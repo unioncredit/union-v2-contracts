@@ -157,6 +157,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         _;
     }
 
+    modifier onlyMarket() {
+        if (address(uToken) != msg.sender) revert AuthFailed();
+        _;
+    }
+
     /* -------------------------------------------------------------------
       Events 
     ------------------------------------------------------------------- */
@@ -520,11 +525,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @dev Borrowing from the market
      *  @param amount Borrow amount
      */
-    function borrow(uint256 amount) public {
+    function borrow(address borrower, uint256 amount) external onlyMarket {
         uint256 remaining = amount;
 
-        for (uint256 i = 0; i < vouchers[msg.sender].length; i++) {
-            Vouch storage vouch = vouchers[msg.sender][i];
+        for (uint256 i = 0; i < vouchers[borrower].length; i++) {
+            Vouch storage vouch = vouchers[borrower][i];
 
             uint256 borrowAmount = vouch.amount - vouch.outstanding;
             if (borrowAmount <= 0) continue;
@@ -539,15 +544,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         }
 
         require(remaining <= 0, "!remaining");
-        uToken.borrow(msg.sender, amount);
-        emit LogBorrow(msg.sender, amount);
+        emit LogBorrow(borrower, amount);
     }
 
     /**
      *  @dev Repay the loan
      *  @param amount Repay amount
      */
-    function repay(uint256 amount) public {
+    function repay(uint256 amount) external onlyMarket {
         // TODO: calls uToken.processRepay();
         // if the amount is greater than interest owed then
         // update the last repayment timestamp and set interest back to 0

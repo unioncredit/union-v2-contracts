@@ -133,7 +133,7 @@ interface IUToken {
      *  Borrow amount must in the range of creditLimit, minLoan, debtCeiling and not overdue
      *  @param amount Borrow amount
      */
-    function borrow(address borrower, uint256 amount) external;
+    function borrow(uint256 amount) external;
 
     /**
      *  @dev Repay the loan

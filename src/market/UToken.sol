@@ -380,41 +380,40 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  Borrow amount must in the range of creditLimit, minBorrow, maxBorrow, debtCeiling and not overdue
      *  @param amount Borrow amount
      */
-    function borrow(address borrower, uint256 amount) external override onlyUserManager whenNotPaused nonReentrant {
-        // TODO: make this only callable by the user manager
-        // TODO: remove user maanger calls for getCreditLimit and updateLockedData
+    function borrow(uint256 amount) external override onlyMember(msg.sender) whenNotPaused nonReentrant {
         IAssetManager assetManagerContract = IAssetManager(assetManager);
         if (amount < minBorrow) revert AmountLessMinBorrow();
         if (amount > getRemainingDebtCeiling()) revert AmountExceedGlobalMax();
 
         uint256 fee = calculatingFee(amount);
-        if (borrowBalanceView(borrower) + amount + fee > maxBorrow) revert AmountExceedMaxBorrow();
-        if (checkIsOverdue(borrower)) revert MemberIsOverdue();
+        if (borrowBalanceView(msg.sender) + amount + fee > maxBorrow) revert AmountExceedMaxBorrow();
+        if (checkIsOverdue(msg.sender)) revert MemberIsOverdue();
         if (amount > assetManagerContract.getLoanableAmount(underlying)) revert InsufficientFundsLeft();
         if (!accrueInterest()) revert AccrueInterestFailed();
 
-        uint256 borrowedAmount = borrowBalanceStoredInternal(borrower);
+        IUserManager(userManager).borrow(msg.sender, amount);
+
+        uint256 borrowedAmount = borrowBalanceStoredInternal(msg.sender);
 
         //Set lastRepay init data
-        if (getLastRepay(borrower) == 0) {
-            accountBorrows[borrower].lastRepay = getBlockNumber();
+        if (getLastRepay(msg.sender) == 0) {
+            accountBorrows[msg.sender].lastRepay = getBlockNumber();
         }
 
         uint256 accountBorrowsNew = borrowedAmount + amount + fee;
         uint256 totalBorrowsNew = totalBorrows + amount + fee;
-        uint256 oldPrincipal = getBorrowed(borrower);
 
-        accountBorrows[borrower].principal += amount + fee;
-        uint256 newPrincipal = getBorrowed(borrower);
-        accountBorrows[borrower].interest = accountBorrowsNew - newPrincipal;
-        accountBorrows[borrower].interestIndex = borrowIndex;
+        accountBorrows[msg.sender].principal += amount + fee;
+        uint256 newPrincipal = getBorrowed(msg.sender);
+        accountBorrows[msg.sender].interest = accountBorrowsNew - newPrincipal;
+        accountBorrows[msg.sender].interestIndex = borrowIndex;
         totalBorrows = totalBorrowsNew;
         // The origination fees contribute to the reserve
         totalReserves += fee;
 
-        if (!assetManagerContract.withdraw(underlying, borrower, amount)) revert WithdrawFailed();
+        if (!assetManagerContract.withdraw(underlying, msg.sender, amount)) revert WithdrawFailed();
 
-        emit LogBorrow(borrower, amount, fee);
+        emit LogBorrow(msg.sender, amount, fee);
     }
 
     function repayBorrow(uint256 repayAmount) external override whenNotPaused nonReentrant {
