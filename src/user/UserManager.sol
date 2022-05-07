@@ -70,11 +70,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     IUToken public uToken;
 
     /**
-     *  @dev Credit Limit Model contract
-     */
-    ICreditLimitModel public creditLimitModel;
-
-    /**
      *  @dev Comptroller contract
      */
     IComptroller public comptroller;
@@ -247,13 +242,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         address assetManager_,
         address unionToken_,
         address stakingToken_,
-        address creditLimitModel_,
         address comptroller_,
         address admin_
     ) public initializer {
         Controller.__Controller_init(admin_);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
-        _setCreditLimitModel(creditLimitModel_);
         comptroller = IComptroller(comptroller_);
         assetManager = assetManager_;
         unionToken = unionToken_;
@@ -297,24 +290,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint256 oldMemberFee = newMemberFee;
         newMemberFee = amount;
         emit LogSetNewMemberFee(oldMemberFee, newMemberFee);
-    }
-
-    /**
-     *  @dev Change the credit limit model
-     *  Only accepts calls from the admin
-     *  @param newCreditLimitModel New credit limit model address
-     */
-    function setCreditLimitModel(address newCreditLimitModel) public onlyAdmin {
-        if (newCreditLimitModel == address(0)) revert AddressZero();
-        _setCreditLimitModel(newCreditLimitModel);
-    }
-
-    function _setCreditLimitModel(address newCreditLimitModel) private {
-        if (!ICreditLimitModel(newCreditLimitModel).isCreditLimitModel()) revert NotCreditLimitModel();
-
-        creditLimitModel = ICreditLimitModel(newCreditLimitModel);
-
-        emit LogNewCreditLimitModel(newCreditLimitModel);
     }
 
     /* -------------------------------------------------------------------
