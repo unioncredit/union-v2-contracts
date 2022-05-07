@@ -128,6 +128,7 @@ contract TestWrapper is Test {
         userManager.addMember(MEMBER_1);
         userManager.addMember(MEMBER_2);
         userManager.addMember(MEMBER_3);
+        vm.stopPrank();
     }
 
     function testDeployment() public {
