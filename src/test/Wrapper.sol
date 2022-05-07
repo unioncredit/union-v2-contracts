@@ -10,12 +10,12 @@ import "../interfaces/IUnionToken.sol";
 import "../interfaces/IComptroller.sol";
 
 contract TestWrapper is Test {
-  IUToken public uToken;
-  IUserManager public userManager;
-  IAssetManager public assetManager;
-  IInterestRateModel public interestRateModel;
-  IUnionToken public unionToken;
-  IComptroller public comptroller;
+    IUToken public uToken;
+    IUserManager public userManager;
+    IAssetManager public assetManager;
+    IInterestRateModel public interestRateModel;
+    IUnionToken public unionToken;
+    IComptroller public comptroller;
 
-  function setUp() public {}
+    function setUp() public {}
 }

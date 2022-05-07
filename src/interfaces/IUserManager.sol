@@ -170,6 +170,6 @@ interface IUserManager {
     ) external;
 
     function borrow(address borrower, uint256 amount) external;
-    
+
     function repay(address borrower, uint256 amount) external;
 }

@@ -1,0 +1,23 @@
+{
+  "name": "union-contracts-1.5",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "format": "prettier --write 'src/**/*.sol'",
+    "format:check": "prettier --check 'src/**/*.sol'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com-GeraldHost:GeraldHost/union-v1.5-contracts.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "prettier": "^2.6.2",
+    "prettier-plugin-solidity": "^1.0.0-beta.19"
+  }
+}
