@@ -314,7 +314,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         for (uint256 i = 0; i < vouchers[borrower].length; i++) {
             Vouch memory vouch = vouchers[borrower][i];
             Staker memory staker = stakers[vouch.staker];
-            total += _max(staker.stakedAmount, vouch.amount) - staker.outstanding;
+            total += _min(staker.stakedAmount, vouch.amount) - staker.outstanding;
         }
     }
 
@@ -360,11 +360,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function updateTrust(address borrower, uint256 trustAmount) external onlyMember(msg.sender) whenNotPaused {
         if (borrower == address(0)) revert AddressZero();
         if (borrower == msg.sender) revert ErrorSelfVouching();
-        Vouch memory vouch = vouchers[borrower][voucherIndexes[borrower][msg.sender]];
-        if (trustAmount < vouch.outstanding) revert TrustAmountTooSmall();
+        uint256 index = voucherIndexes[borrower][msg.sender];
+        if (index != 0) {
+            Vouch memory vouch = vouchers[borrower][index - 1];
+            if (trustAmount < vouch.outstanding) revert TrustAmountTooSmall();
+        }
 
         vouchers[borrower].push(Vouch(msg.sender, trustAmount, 0));
-        voucherIndexes[borrower][msg.sender] = vouchers[borrower].length;
+        voucherIndexes[borrower][msg.sender] = vouchers[borrower].length + 1;
 
         emit LogUpdateTrust(msg.sender, borrower, trustAmount);
     }
@@ -380,7 +383,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (staker != msg.sender && borrower != msg.sender) revert AuthFailed();
 
         uint256 index = voucherIndexes[borrower][staker];
-        Vouch storage vouch = vouchers[borrower][index];
+        Vouch storage vouch = vouchers[borrower][index - 1];
         if (vouch.outstanding > 0) revert LockedStakeNonZero();
 
         emit LogCancelVouch(staker, borrower);
@@ -440,7 +443,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function stake(uint256 amount) public whenNotPaused nonReentrant {
         IERC20Upgradeable erc20Token = IERC20Upgradeable(stakingToken);
 
-        comptroller.withdrawRewards(msg.sender, stakingToken);
+        // FIXME: TODO: ignore the rewards stuff for now as it relies on
+        // frozen stake and we haven't managed that yet.
+        // comptroller.withdrawRewards(msg.sender, stakingToken);
 
         Staker storage staker = stakers[msg.sender];
 

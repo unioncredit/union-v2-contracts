@@ -52,6 +52,10 @@ contract TestWrapper is Test {
         dai = new FaucetERC20();
         dai.__FaucetERC20_init("Dai__Test", "Dai__Test");
 
+        dai.mint(MEMBER_1, 1000 ether);
+        dai.mint(MEMBER_2, 1000 ether);
+        dai.mint(MEMBER_3, 1000 ether);
+
         // Union
         unionToken = new UnionToken("Union__Test", "Union__Test", msg.sender, block.timestamp + 1);
 
@@ -129,6 +133,9 @@ contract TestWrapper is Test {
         userManager.addMember(MEMBER_2);
         userManager.addMember(MEMBER_3);
         vm.stopPrank();
+
+        marketRegistry.addUToken(address(dai), address(uToken));
+        marketRegistry.addUserManager(address(dai), address(userManager));
     }
 
     function testDeployment() public {
