@@ -26,6 +26,7 @@ contract TestWrapper is Test {
 
     // general
     address public constant ADMIN = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
+    uint256 public constant trustAmount = 10 ether;
 
     // utoken
     uint256 public constant initialExchangeRateMantissa = 1000000000000000000;
@@ -33,7 +34,7 @@ contract TestWrapper is Test {
     uint256 public constant originationFee = 5000000000000000;
     uint256 public constant debtCeiling = 250000000000000000000000;
     uint256 public constant maxBorrow = 25000000000000000000000;
-    uint256 public constant minBorrow = 100000000000000000000;
+    uint256 public constant minBorrow = 1 ether;
     uint256 public constant overdueBlocks = 197250;
 
     // members
@@ -55,6 +56,7 @@ contract TestWrapper is Test {
         dai.mint(MEMBER_1, 1000 ether);
         dai.mint(MEMBER_2, 1000 ether);
         dai.mint(MEMBER_3, 1000 ether);
+        dai.mint(address(this), 1000 ether);
 
         // Union
         unionToken = new UnionToken("Union__Test", "Union__Test", msg.sender, block.timestamp + 1);
@@ -136,6 +138,44 @@ contract TestWrapper is Test {
 
         marketRegistry.addUToken(address(dai), address(uToken));
         marketRegistry.addUserManager(address(dai), address(userManager));
+
+        dai.approve(address(uToken), type(uint256).max);
+        uToken.addReserves(dai.balanceOf(address(this)));
+    }
+
+    function initStakers() internal {
+        vm.startPrank(MEMBER_1);
+        dai.approve(address(userManager), 100 ether);
+        userManager.stake(100 ether);
+        vm.stopPrank();
+
+        vm.startPrank(MEMBER_2);
+        dai.approve(address(userManager), 100 ether);
+        userManager.stake(100 ether);
+        vm.stopPrank();
+
+        vm.startPrank(MEMBER_3);
+        dai.approve(address(userManager), 100 ether);
+        userManager.stake(100 ether);
+        vm.stopPrank();
+    }
+
+    function registerMember(address newMember) internal {
+        vm.startPrank(MEMBER_1);
+        userManager.updateTrust(newMember, trustAmount);
+        vm.stopPrank();
+
+        vm.startPrank(MEMBER_2);
+        userManager.updateTrust(newMember, trustAmount);
+        vm.stopPrank();
+
+        vm.startPrank(MEMBER_3);
+        userManager.updateTrust(newMember, trustAmount);
+        vm.stopPrank();
+
+        uint256 memberFee = userManager.newMemberFee();
+        unionToken.approve(address(userManager), memberFee);
+        userManager.registerMember(newMember);
     }
 
     function testDeployment() public {
