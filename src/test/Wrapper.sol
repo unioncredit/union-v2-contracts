@@ -36,6 +36,12 @@ contract TestWrapper is Test {
     uint256 public constant minBorrow = 100000000000000000000;
     uint256 public constant overdueBlocks = 197250;
 
+    // members
+    address public constant MEMBER_1 = address(111);
+    address public constant MEMBER_2 = address(222);
+    address public constant MEMBER_3 = address(333);
+    address public constant MEMBER_4 = address(444);
+
     function deployProxy(address implementation, bytes memory signature) private returns (address) {
         UUPSProxy proxy = new UUPSProxy(implementation, address(0), signature);
         return address(proxy);
@@ -118,5 +124,15 @@ contract TestWrapper is Test {
         uToken.setUserManager(address(userManager));
 
         userManager.setUToken(address(uToken));
+
+        userManager.addMember(MEMBER_1);
+        userManager.addMember(MEMBER_2);
+        userManager.addMember(MEMBER_3);
+    }
+
+    function testDeployment() public {
+        assert(userManager.checkIsMember(MEMBER_1));
+        assert(userManager.checkIsMember(MEMBER_2));
+        assert(userManager.checkIsMember(MEMBER_3));
     }
 }
