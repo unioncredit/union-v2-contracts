@@ -564,7 +564,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         return type(uint256).max;
     }
 
-    function _min(uint128 a, uint128 b) private pure returns (uint128) {
+    function _min(uint256 a, uint256 b) private pure returns (uint256) {
         if (a < b) return a;
         return b;
     }
