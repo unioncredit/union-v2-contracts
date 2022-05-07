@@ -8,7 +8,6 @@ contract TestUToken__borrow is TestWrapper {
     registerMember(MEMBER_4);
 
     uint256 daiBalanceBefore = dai.balanceOf(MEMBER_4);
-    uint256 creditLimit = userManager.getCreditLimit(MEMBER_4);
     vm.startPrank(MEMBER_4);
     uToken.borrow(trustAmount);
     uint256 daiBalanceAfter = dai.balanceOf(MEMBER_4);

@@ -391,7 +391,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (amount > assetManagerContract.getLoanableAmount(underlying)) revert InsufficientFundsLeft();
         if (!accrueInterest()) revert AccrueInterestFailed();
 
-        IUserManager(userManager).borrow(msg.sender, amount);
+        IUserManager(userManager).borrow(msg.sender, amount + fee);
 
         uint256 borrowedAmount = borrowBalanceStoredInternal(msg.sender);
 
@@ -439,8 +439,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     ) internal {
         IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
         //In order to prevent the state from being changed, put the value at the top
-        bool isOverdue = checkIsOverdue(borrower);
-        uint256 oldPrincipal = getBorrowed(borrower);
         if (!accrueInterest()) revert AccrueInterestFailed();
 
         uint256 interest = calculatingInterest(borrower);
@@ -454,11 +452,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (repayAmount >= interest) {
             toReserveAmount = (interest * reserveFactorMantissa) / WAD;
             toRedeemableAmount = interest - toReserveAmount;
-
-            if (isOverdue) {
-                IUserManager(userManager).updateTotalFrozen(borrower, false);
-                IUserManager(userManager).repayLoanOverdue(borrower, underlying, getLastRepay(borrower));
-            }
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
 
@@ -477,11 +470,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         totalReserves += toReserveAmount;
         totalRedeemable += toRedeemableAmount;
 
-        uint256 newPrincipal = getBorrowed(borrower);
+        // FIXME: TODO: userManager.repay();
+        // uint256 newPrincipal = getBorrowed(borrower);
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows -= repayAmount;
-
-        IUserManager(userManager).updateLockedData(borrower, oldPrincipal - newPrincipal, false);
 
         assetToken.safeTransferFrom(payer, address(this), repayAmount);
 
