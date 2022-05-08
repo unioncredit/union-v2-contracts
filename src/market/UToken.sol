@@ -470,8 +470,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         totalReserves += toReserveAmount;
         totalRedeemable += toRedeemableAmount;
 
-        // FIXME: TODO: userManager.repay();
-        // uint256 newPrincipal = getBorrowed(borrower);
+        uint256 newPrincipal = getBorrowed(borrower);
+        IUserManager(userManager).repay(borrower, newPrincipal);
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows -= repayAmount;
 

@@ -234,6 +234,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     event LogBorrow(address borrower, uint256 amount);
 
+    event LogRepay(address borrower, uint256 amount);
+
     /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
@@ -531,10 +533,21 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @dev Repay the loan
      *  @param amount Repay amount
      */
-    function repay(uint256 amount) external onlyMarket {
-        // TODO: calls uToken.processRepay();
-        // if the amount is greater than interest owed then
-        // update the last repayment timestamp and set interest back to 0
+    function repay(address borrower, uint256 amount) external onlyMarket {
+        uint256 remaining = amount;
+        for (uint256 i = 0; i < vouchers[borrower].length; i++) {
+            Vouch storage vouch = vouchers[borrower][i];
+
+            uint256 repaying = _min(vouch.outstanding, remaining);
+            stakers[vouch.staker].outstanding -= repaying;
+            vouch.outstanding -= repaying;
+
+            remaining -= repaying;
+            if (remaining <= 0) break;
+        }
+
+        require(remaining <= 0, "!remaining");
+        emit LogRepay(borrower, amount);
     }
 
     /* -------------------------------------------------------------------
