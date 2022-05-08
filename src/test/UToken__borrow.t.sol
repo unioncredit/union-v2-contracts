@@ -44,4 +44,22 @@ contract TestUToken__borrow is TestWrapper {
         uToken.borrow(borrowAmount);
         vm.stopPrank();
     }
+
+    function testCreditLimitChangesAfterBorrow() public {
+        uint256 borrowAmount = 20 ether;
+        uint256 fee = uToken.calculatingFee(borrowAmount);
+        uint256 creditLimitBefore = userManager.getCreditLimit(newMember);
+        vm.startPrank(newMember);
+        uToken.borrow(borrowAmount);
+        uint256 creditLimitAfter = userManager.getCreditLimit(newMember);
+        assertEq(creditLimitAfter, creditLimitBefore - borrowAmount - fee);
+    }
+
+    function testCannotBorrowMoreThanCreditLimit() public {
+        uint256 creditLimit = userManager.getCreditLimit(newMember);
+        vm.startPrank(newMember);
+        vm.expectRevert(bytes("!remaining"));
+        uToken.borrow(creditLimit);
+        vm.stopPrank();
+    }
 }
