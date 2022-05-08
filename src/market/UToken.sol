@@ -705,7 +705,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
     /**
      * @dev Remove tokens to the reseve
-     * @param reciever address to recieve tokens
+     * @param receiver address to recieve tokens
      * @param reduceAmount amount of tokens to remove
      */
     function removeReserves(address receiver, uint256 reduceAmount)
