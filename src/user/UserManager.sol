@@ -296,7 +296,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      */
     function getCreditLimit(address borrower) public view returns (uint256 total) {
         for (uint256 i = 0; i < vouchers[borrower].length; i++) {
-            // TODO: make this available vouch
             Vouch memory vouch = vouchers[borrower][i];
             Staker memory staker = stakers[vouch.staker];
             total += _min(staker.stakedAmount - staker.outstanding, vouch.amount - vouch.outstanding);

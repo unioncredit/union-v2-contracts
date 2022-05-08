@@ -153,12 +153,6 @@ interface IUToken {
     function repayBorrowBehalf(address borrower, uint256 amount) external;
 
     /**
-     *  @dev Update borrower overdue info
-     *  @param account Borrower address
-     */
-    function updateOverdueInfo(address account) external;
-
-    /**
      *  @dev debt write off
      *  @param borrower Borrower address
      *  @param amount WriteOff amount

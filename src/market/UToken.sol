@@ -110,11 +110,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         _;
     }
 
-    modifier onlyAssetManager() {
-        if (msg.sender != assetManager) revert CallerNotAssetManager();
-        _;
-    }
-
     modifier onlyUserManager() {
         if (msg.sender != userManager) revert CallerNotUserManager();
         _;
@@ -641,34 +636,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      */
     function getBlockNumber() internal view returns (uint256) {
         return block.number;
-    }
-
-    /**
-     *  @dev Update borrower overdue info
-     *  @param account Borrower address
-     */
-    function updateOverdueInfo(address account) external override whenNotPaused {
-        if (account == address(0)) revert AddressZero();
-        if (checkIsOverdue(account)) {
-            IUserManager(userManager).updateTotalFrozen(account, true);
-        }
-    }
-
-    /**
-     *  @dev Batch update borrower overdue info
-     *  @param accounts Borrowers address
-     */
-    function batchUpdateOverdueInfos(address[] calldata accounts) external whenNotPaused {
-        uint256 accountsLength = accounts.length;
-        address[] memory overdueAccounts = new address[](accountsLength);
-        bool[] memory isOverdues = new bool[](accountsLength);
-        for (uint256 i = 0; i < accountsLength; i++) {
-            if (checkIsOverdue(accounts[i])) {
-                overdueAccounts[i] = accounts[i];
-                isOverdues[i] = true;
-            }
-        }
-        IUserManager(userManager).batchUpdateTotalFrozen(overdueAccounts, isOverdues);
     }
 
     function _depositToAssetManager(uint256 amount) internal {
