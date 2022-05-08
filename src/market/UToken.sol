@@ -71,10 +71,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     error AmountExceedMaxBorrow();
     error AmountLessMinBorrow();
     error AmountZero();
-    error BorrowExceedCreditLimit();
     error BorrowRateExceedLimit();
     error WithdrawFailed();
-    error CallerNotAssetManager();
     error CallerNotMember();
     error CallerNotUserManager();
     error ContractNotInterestModel();
@@ -196,11 +194,19 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
       Setters 
     ------------------------------------------------------------------- */
 
+    /**
+     *  @dev set Asset Manager contract address
+     *  Accept claims only from the admin
+     */
     function setAssetManager(address assetManager_) external onlyAdmin {
         if (assetManager_ == address(0)) revert AddressZero();
         assetManager = assetManager_;
     }
 
+    /**
+     *  @dev set User Manager contract address
+     *  Accept claims only from the admin
+     */
     function setUserManager(address userManager_) external onlyAdmin {
         if (userManager_ == address(0)) revert AddressZero();
         userManager = userManager_;
@@ -266,6 +272,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         emit LogNewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel);
     }
 
+    /**
+     *  @dev set reserve factor mantissa
+     *  Accept claims only from the admin
+     */
     function setReserveFactor(uint256 reserveFactorMantissa_) external override onlyAdmin {
         if (reserveFactorMantissa_ > RESERVE_FACTORY_MAX_MANTISSA) revert ReserveFactoryExceedLimit();
         reserveFactorMantissa = reserveFactorMantissa_;
@@ -478,10 +488,16 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         emit LogBorrow(msg.sender, amount, fee);
     }
 
+    /**
+     * @dev Repay borrow see _repayBorrowFresh
+     */
     function repayBorrow(uint256 repayAmount) external override whenNotPaused nonReentrant {
         _repayBorrowFresh(msg.sender, msg.sender, repayAmount);
     }
 
+    /**
+     * @dev Repay borrow see _repayBorrowFresh
+     */
     function repayBorrowBehalf(address borrower, uint256 repayAmount) external override whenNotPaused nonReentrant {
         _repayBorrowFresh(msg.sender, borrower, repayAmount);
     }
@@ -577,6 +593,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
        Mint uToken Functions 
     ------------------------------------------------------------------- */
 
+    /**
+     * @dev Mint uTokens by depositing tokens
+     * @param mintAmount Amount of uTokens to mint
+     */
     function mint(uint256 mintAmount) external override whenNotPaused nonReentrant {
         if (!accrueInterest()) revert AccrueInterestFailed();
         uint256 exchangeRate = exchangeRateStored();
@@ -664,6 +684,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
        Reserve Functions 
     ------------------------------------------------------------------- */
 
+    /**
+     * @dev Add tokens to the reseve
+     * @param addAmount amount of tokens to add
+     */
     function addReserves(uint256 addAmount) external override whenNotPaused nonReentrant {
         if (!accrueInterest()) revert AccrueInterestFailed();
         IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
@@ -679,6 +703,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         emit LogReservesAdded(msg.sender, actualAddAmount, totalReserves);
     }
 
+    /**
+     * @dev Remove tokens to the reseve
+     * @param reciever address to recieve tokens
+     * @param reduceAmount amount of tokens to remove
+     */
     function removeReserves(address receiver, uint256 reduceAmount)
         external
         override
@@ -700,13 +729,16 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     ------------------------------------------------------------------- */
 
     /**
-     * @dev Function to simply retrieve block number
+     *  @dev Function to simply retrieve block number
      *  This exists mainly for inheriting test contracts to stub this result.
      */
     function getBlockNumber() internal view returns (uint256) {
         return block.number;
     }
 
+    /**
+     *  @dev Deposit tokens to the asset manager
+     */
     function _depositToAssetManager(uint256 amount) internal {
         IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
         assetToken.safeApprove(assetManager, 0); // Some ERC20 tokens (e.g. Tether) changed the behavior of approve to look like safeApprove

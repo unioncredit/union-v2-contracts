@@ -109,26 +109,16 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     ------------------------------------------------------------------- */
 
     error AddressZero();
-    error AmountZero();
-    error ErrorData();
     error AuthFailed();
     error ErrorSelfVouching();
-    error MaxTrustLimitReached();
-    error TrustAmountTooLarge();
     error TrustAmountTooSmall();
-    error LockedStakeNonZero();
     error NoExistingMember();
     error NotEnoughStakers();
     error StakeLimitReached();
     error AssetManagerDepositFailed();
     error AssetManagerWithdrawFailed();
     error InsufficientBalance();
-    error ExceedsTotalStaked();
-    error NotOverdue();
-    error ExceedsLocked();
-    error ExceedsTotalFrozen();
-    error LengthNotMatch();
-    error ErrorTotalStake();
+    error LockedStakeNonZero();
 
     /* -------------------------------------------------------------------
       Modifiers 
@@ -513,13 +503,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     /* -------------------------------------------------------------------
        Internal Functions 
     ------------------------------------------------------------------- */
-
-    /**
-     *  @dev Max number of vouches for a member can get, for ddos protection
-     */
-    function _maxTrust() internal pure virtual returns (uint256) {
-        return type(uint256).max;
-    }
 
     function _min(uint256 a, uint256 b) private pure returns (uint256) {
         if (a < b) return a;
