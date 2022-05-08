@@ -218,10 +218,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     event LogSetMaxStakeAmount(uint256 oldMaxStakeAmount, uint256 newMaxStakeAmount);
 
-    event LogBorrow(address borrower, uint256 amount);
-
-    event LogRepay(address borrower, uint256 amount);
-
     /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
@@ -485,47 +481,34 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @dev Borrowing from the market
      *  @param amount Borrow amount
      */
-    function borrow(address borrower, uint256 amount) external onlyMarket {
+    function updateOutstanding(
+        address borrower,
+        uint256 amount,
+        bool lock
+    ) external onlyMarket {
         uint256 remaining = amount;
 
         for (uint256 i = 0; i < vouchers[borrower].length; i++) {
             Vouch storage vouch = vouchers[borrower][i];
+            uint256 innerAmount;
 
-            uint256 borrowAmount = vouch.amount - vouch.outstanding;
-            if (borrowAmount <= 0) continue;
+            if (lock) {
+                uint256 borrowAmount = vouch.amount - vouch.outstanding;
+                if (borrowAmount <= 0) continue;
+                innerAmount = _min(remaining, borrowAmount);
+                stakers[vouch.staker].outstanding += innerAmount;
+                vouch.outstanding += innerAmount;
+            } else {
+                innerAmount = _min(vouch.outstanding, remaining);
+                stakers[vouch.staker].outstanding -= innerAmount;
+                vouch.outstanding -= innerAmount;
+            }
 
-            uint256 borrowing = _min(remaining, borrowAmount);
-
-            stakers[vouch.staker].outstanding += borrowing;
-            vouch.outstanding += borrowing;
-
-            remaining -= borrowing;
+            remaining -= innerAmount;
             if (remaining <= 0) break;
         }
 
         require(remaining <= 0, "!remaining");
-        emit LogBorrow(borrower, amount);
-    }
-
-    /**
-     *  @dev Repay the loan
-     *  @param amount Repay amount
-     */
-    function repay(address borrower, uint256 amount) external onlyMarket {
-        uint256 remaining = amount;
-        for (uint256 i = 0; i < vouchers[borrower].length; i++) {
-            Vouch storage vouch = vouchers[borrower][i];
-
-            uint256 repaying = _min(vouch.outstanding, remaining);
-            stakers[vouch.staker].outstanding -= repaying;
-            vouch.outstanding -= repaying;
-
-            remaining -= repaying;
-            if (remaining <= 0) break;
-        }
-
-        require(remaining <= 0, "!remaining");
-        emit LogRepay(borrower, amount);
     }
 
     /* -------------------------------------------------------------------

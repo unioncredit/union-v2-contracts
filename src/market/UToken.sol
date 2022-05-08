@@ -391,7 +391,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (amount > assetManagerContract.getLoanableAmount(underlying)) revert InsufficientFundsLeft();
         if (!accrueInterest()) revert AccrueInterestFailed();
 
-        IUserManager(userManager).borrow(msg.sender, amount + fee);
+        IUserManager(userManager).updateOutstanding(msg.sender, amount + fee, true);
 
         uint256 borrowedAmount = borrowBalanceStoredInternal(msg.sender);
 
@@ -470,8 +470,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         totalReserves += toReserveAmount;
         totalRedeemable += toRedeemableAmount;
 
-        uint256 newPrincipal = getBorrowed(borrower);
-        IUserManager(userManager).repay(borrower, repayAmount);
+        IUserManager(userManager).updateOutstanding(borrower, repayAmount, false);
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows -= repayAmount;
 
