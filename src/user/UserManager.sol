@@ -17,7 +17,7 @@ import "../interfaces/IUToken.sol";
 
 /**
  * @title UserManager Contract
- * @dev Manages the Union members credit lines, and their vouchees and borrowers info.
+ * @dev Manages the Union members stake and vouches.
  */
 contract UserManager is Controller, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -75,7 +75,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     IComptroller public comptroller;
 
     /**
-     *
+     * @dev Number of vouches needed to become a member
      */
     uint256 public effectiveCount;
 
@@ -87,14 +87,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     /**
      *  @dev Total amount of staked staked token
      */
-    // slither-disable-next-line constable-states
     uint256 public totalStaked;
-
-    /**
-     *  @dev Total frozen
-     */
-    // slither-disable-next-line constable-states
-    uint256 public totalFrozen;
 
     /**
      *  @dev Union Stakers
@@ -119,7 +112,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     error AmountZero();
     error ErrorData();
     error AuthFailed();
-    error NotCreditLimitModel();
     error ErrorSelfVouching();
     error MaxTrustLimitReached();
     error TrustAmountTooLarge();
@@ -160,12 +152,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     /* -------------------------------------------------------------------
       Events 
     ------------------------------------------------------------------- */
-
-    /**
-     *  @dev Update new credit limit model event
-     *  @param newCreditLimitModel New credit limit model address
-     */
-    event LogNewCreditLimitModel(address newCreditLimitModel);
 
     /**
      *  @dev Add new member event
@@ -308,25 +294,17 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Get the member's available credit line
+     *  @dev Get the member's available credit limit
      *  @param borrower Member address
      *  @return total Credit line amount
      */
     function getCreditLimit(address borrower) public view returns (uint256 total) {
         for (uint256 i = 0; i < vouchers[borrower].length; i++) {
+            // TODO: make this available vouch
             Vouch memory vouch = vouchers[borrower][i];
             Staker memory staker = stakers[vouch.staker];
-            total += _min(staker.stakedAmount, vouch.amount) - staker.outstanding;
+            total += _min(staker.stakedAmount - staker.outstanding, vouch.amount - vouch.outstanding);
         }
-    }
-
-    /**
-     *  @dev Get vouching amount
-     *  @param staker Staker address
-     *  @param borrower Borrower address
-     */
-    function getVouchingAmount(address staker, address borrower) public view returns (uint256) {
-        // TODO: return the vouch amount for staker and borrower
     }
 
     /**
