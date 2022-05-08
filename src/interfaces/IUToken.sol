@@ -27,13 +27,6 @@ interface IUToken {
     function getLastRepay(address account) external view returns (uint256);
 
     /**
-     *  @dev Get member interest index
-     *  @param account Member address
-     *  @return Interest index
-     */
-    function getInterestIndex(address account) external view returns (uint256);
-
-    /**
      *  @dev Check if the member's loan is overdue
      *  @param account Member address
      *  @return Check result

@@ -303,15 +303,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     *  @dev Get member interest index
-     *  @param account Member address
-     *  @return interestIndex
-     */
-    function getInterestIndex(address account) public view override returns (uint256) {
-        return accountBorrows[account].interestIndex;
-    }
-
-    /**
      *  @dev Check if the member's loan is overdue
      *  @param account Member address
      *  @return isOverdue
