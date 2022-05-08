@@ -48,7 +48,7 @@ contract TestWrapper is Test {
         return address(proxy);
     }
 
-    function setUp() public {
+    function setUp() public virtual {
         // Mocks
         dai = new FaucetERC20();
         dai.__FaucetERC20_init("Dai__Test", "Dai__Test");

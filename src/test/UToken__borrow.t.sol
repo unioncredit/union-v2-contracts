@@ -3,21 +3,12 @@ pragma solidity ^0.8.0;
 import "./Wrapper.sol";
 
 contract TestUToken__borrow is TestWrapper {
-    function testBorrow() public {
-        initStakers();
-        registerMember(MEMBER_4);
+    uint256 public count = 100;
+    uint256 public amount = 10 ether;
+    address public newMember = address(123);
 
-        uint256 daiBalanceBefore = dai.balanceOf(MEMBER_4);
-        vm.startPrank(MEMBER_4);
-        uToken.borrow(trustAmount);
-        uint256 daiBalanceAfter = dai.balanceOf(MEMBER_4);
-        assertEq(daiBalanceAfter - daiBalanceBefore, trustAmount);
-    }
-
-    function testBorrowFrom100() public {
-        uint256 count = 100;
-        uint256 amount = 10 ether;
-        address newMember = address(123);
+    function setUp() public override {
+        super.setUp();
 
         for (uint256 i = 0; i < count; i++) {
             address member = address(uint160(uint256(keccak256(abi.encode(111 * i)))));
@@ -37,7 +28,17 @@ contract TestUToken__borrow is TestWrapper {
         uint256 memberFee = userManager.newMemberFee();
         unionToken.approve(address(userManager), memberFee);
         userManager.registerMember(newMember);
+    }
 
+    function testBorrow() public {
+        uint256 daiBalanceBefore = dai.balanceOf(newMember);
+        vm.startPrank(newMember);
+        uToken.borrow(trustAmount);
+        uint256 daiBalanceAfter = dai.balanceOf(newMember);
+        assertEq(daiBalanceAfter - daiBalanceBefore, trustAmount);
+    }
+
+    function testBorrowFrom100() public {
         uint256 borrowAmount = (count - 1) * amount;
         vm.startPrank(newMember);
         uToken.borrow(borrowAmount);
