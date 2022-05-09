@@ -311,7 +311,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (getBorrowed(account) != 0) {
             uint256 lastRepay = getLastRepay(account);
             uint256 diff = getBlockNumber() - lastRepay;
-            isOverdue = (overdueBlocks < diff);
+            isOverdue = overdueBlocks < diff;
         }
     }
 
@@ -506,26 +506,24 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         address borrower,
         uint256 amount
     ) internal {
-        IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
-        //In order to prevent the state from being changed, put the value at the top
         if (!accrueInterest()) revert AccrueInterestFailed();
 
         uint256 interest = calculatingInterest(borrower);
         uint256 borrowedAmount = borrowBalanceStoredInternal(borrower);
         uint256 repayAmount = amount > borrowedAmount ? borrowedAmount : amount;
         if (repayAmount == 0) revert AmountZero();
-        bool isOverdue = checkIsOverdue(borrower);
 
         uint256 toReserveAmount;
         uint256 toRedeemableAmount;
         if (repayAmount >= interest) {
+            bool isOverdue = checkIsOverdue(borrower);
             toReserveAmount = (interest * reserveFactorMantissa) / WAD;
             toRedeemableAmount = interest - toReserveAmount;
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
 
-            if(isOverdue) {
-              IUserManager(userManager).updateTotalFrozen(borrower, false);
+            if (isOverdue) {
+                IUserManager(userManager).updateTotalFrozen(borrower, false);
             }
 
             if (getBorrowed(borrower) == 0) {
@@ -547,7 +545,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows -= repayAmount;
 
-        assetToken.safeTransferFrom(payer, address(this), repayAmount);
+        IERC20Upgradeable(underlying).safeTransferFrom(payer, address(this), repayAmount);
 
         _depositToAssetManager(repayAmount);
 
@@ -577,8 +575,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
     function debtWriteOff(address borrower, uint256 amount) external override whenNotPaused onlyUserManager {
         uint256 oldPrincipal = getBorrowed(borrower);
-        uint256 repayAmount;
-        amount > oldPrincipal ? repayAmount = oldPrincipal : repayAmount = amount;
+        uint256 repayAmount = amount > oldPrincipal ? oldPrincipal : amount;
 
         accountBorrows[borrower].principal = oldPrincipal - repayAmount;
         totalBorrows -= repayAmount;
