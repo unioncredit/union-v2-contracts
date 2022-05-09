@@ -144,11 +144,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         _;
     }
 
-    modifier onlyMarketOrAdmin() {
-        if (address(uToken) != msg.sender && !isAdmin(msg.sender)) revert AuthFailed();
-        _;
-    }
-
     modifier onlyMarket() {
         if (address(uToken) != msg.sender) revert AuthFailed();
         _;
@@ -307,6 +302,10 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         }
     }
 
+    /**
+     *  @dev Get the count of vouchers
+     *  @param borrower Address of borrower
+     */
     function getVoucherCount(address borrower) public view returns (uint256) {
         return vouchers[borrower].length;
     }
@@ -320,19 +319,31 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         return stakers[account].stakedAmount;
     }
 
+    /**
+     *  @dev Get frozen coin age
+     *  @param borrower Address of borrower
+     *  @param pastBlocks Number of blocks past
+     */
     function getFrozenCoinAge(address borrower, uint256 pastBlocks) external view returns (uint256) {
         uint256 blockDelta = block.number - memberFrozen[borrower].lastRepaid;
-        if (pastBlocks >= blockDelta) {
-            return memberFrozen[borrower].amount * blockDelta;
-        } else {
-            return memberFrozen[borrower].amount * pastBlocks;
-        }
+        return
+            pastBlocks >= blockDelta
+                ? memberFrozen[borrower].amount * blockDelta
+                : memberFrozen[borrower].amount * pastBlocks;
     }
 
+    /**
+     *  @dev Get total frozen amount
+     *  @param borrower Address of borrower
+     */
     function getTotalFrozenAmount(address borrower) external view returns (uint256) {
         return memberFrozen[borrower].amount;
     }
 
+    /**
+     *  @dev Get Total locked stake
+     *  @param staker Staker address
+     */
     function getTotalLockedStake(address staker) external view returns (uint256) {
         return stakers[staker].outstanding;
     }
@@ -422,7 +433,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (stakers[newMember].isMember) revert NoExistingMember();
 
         uint256 count = 0;
-        for (uint256 i = 0; i < vouchers[newMember].length; i++) {
+        uint256 vouchersLength = vouchers[newMember].length;
+        for (uint256 i = 0; i < vouchersLength; i++) {
             Vouch memory vouch = vouchers[newMember][i];
             Staker memory staker = stakers[vouch.staker];
             if (staker.stakedAmount > 0) count++;
@@ -431,8 +443,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (count < effectiveCount) revert NotEnoughStakers();
 
         stakers[newMember].isMember = true;
-        IUnionToken unionTokenContract = IUnionToken(unionToken);
-        unionTokenContract.burnFrom(msg.sender, newMemberFee);
+        IUnionToken(unionToken).burnFrom(msg.sender, newMemberFee);
 
         emit LogRegisterMember(msg.sender, newMember);
     }
@@ -478,10 +489,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         staker.stakedAmount -= amount;
         totalStaked -= amount;
 
-        if (!IAssetManager(assetManager).withdraw(stakingToken, address(this), amount))
+        if (!IAssetManager(assetManager).withdraw(stakingToken, msg.sender, amount)) {
             revert AssetManagerWithdrawFailed();
-
-        erc20Token.safeTransfer(msg.sender, amount);
+        }
 
         emit LogUnstake(msg.sender, amount);
     }
