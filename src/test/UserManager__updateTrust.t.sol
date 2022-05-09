@@ -88,6 +88,18 @@ contract TestUserManager__updateTrust is TestWrapper {
         userManager.updateTrust(address(1234), 100);
     }
 
-    // function testCannotUpdateTrustLessThanOutstanding() public {}
-    // function testCannotUpdateTrustWhenPaused() public {}
+    function testCannotUpdateTrustLessThanOutstanding() public {
+        initStakers();
+        registerMember(MEMBER_4);
+        vm.startPrank(MEMBER_4);
+        uint256 creditLimit = userManager.getCreditLimit(MEMBER_4);
+        uint256 fee = uToken.calculatingFee(creditLimit);
+        uToken.borrow(creditLimit - fee);
+        vm.stopPrank();
+
+        vm.startPrank(MEMBER_1);
+        vm.expectRevert(UserManager.TrustAmountTooSmall.selector);
+        userManager.updateTrust(MEMBER_4, 0);
+        vm.stopPrank();
+    }
 }

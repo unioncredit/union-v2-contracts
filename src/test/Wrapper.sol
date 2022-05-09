@@ -26,7 +26,7 @@ contract TestWrapper is Test {
 
     // general
     address public constant ADMIN = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
-    uint256 public constant trustAmount = 10 ether;
+    uint256 public constant trustAmount = 100 ether;
 
     // utoken
     uint256 public constant initialExchangeRateMantissa = 1000000000000000000;
