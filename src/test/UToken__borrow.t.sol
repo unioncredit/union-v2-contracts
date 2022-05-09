@@ -62,4 +62,13 @@ contract TestUToken__borrow is TestWrapper {
         uToken.borrow(creditLimit);
         vm.stopPrank();
     }
+
+    // function testBorrowUpdatesAccountBorrows public {}
+    // function testBorrowUpdatesTotalBorrow() public {}
+    // function testBorrowUpdatesLasRepay() public {}
+    // function testBorrowAddsFeeToReserves() public {}
+    // function testCannotBorrowLessThanMinBorrow() public {}
+    // function testCannotBorrowMoreThanMaxBorrow() public {}
+    // function testCannotBorrowWhenOverdue() public {}
+    // function testCannotBorrowMoreThanGlobalMax() public {}
 }

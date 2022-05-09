@@ -43,4 +43,14 @@ contract TestUToken__repay is TestWrapper {
         uint256 creditLimitAfter = userManager.getCreditLimit(MEMBER_4);
         assertEq(creditLimitAfter - creditLimitBefore, repayAmount - interest);
     }
+
+    // function testRepayAccruesInterest() public {}
+    // function testCannotRepayZero() public {}
+    // function testRepayUpdatesReserveAmount() public {}
+    // function testRepayUpdateRedeemableAmount() public {}
+    // function testRepayUpdatesAccountBorrows() public {}
+    // function testRepayTotalAmountUpdatesLastRepayAsZero() public {}
+    // function testRepayLessThanInterestUpdateBorrowsInterest() public {}
+    // function testRepayIncreasesBorrowersBalance() public {}
+    // function testRepayDepositsIntoAssetManager() public {}
 }

@@ -530,7 +530,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         require(remaining <= 0, "!remaining");
     }
 
-    // TODO: should this live in uToken?
     function updateTotalFrozen(address borrower, bool isOverdue) external {
         if (isOverdue) {
             // get outstanding amount

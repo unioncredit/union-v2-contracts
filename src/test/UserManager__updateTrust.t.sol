@@ -19,4 +19,14 @@ contract TestUserManager__updateTrust is TestWrapper {
         uint256 newCreditLimit = userManager.getCreditLimit(MEMBER_4);
         assertEq(newCreditLimit, trustAmount * 3);
     }
+
+    // function testUpdateTrustCreatesVouch() {}
+    // function testUpdateTrustExistingVouch() {}
+    // function testUpdateTrustSavesVouchIndex() {}
+    // function testUpdateTrust1000() public {}
+    // function testCannotUpdateTrustOnZeroAddress() public {}
+    // function testCannotUpdateTrustOnSelf() public {}
+    // function testCannotUpdateTrustLessThanOutstanding() public {}
+    // function testCannotUpdateTrustNonMember() public {}
+    // function testCannotUpdateTrustWhenPaused() public {}
 }
