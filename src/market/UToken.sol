@@ -543,7 +543,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         totalReserves += toReserveAmount;
         totalRedeemable += toRedeemableAmount;
 
-        IUserManager(userManager).updateOutstanding(borrower, repayAmount, false);
+        IUserManager(userManager).updateOutstanding(borrower, repayAmount - interest, false);
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows -= repayAmount;
 
