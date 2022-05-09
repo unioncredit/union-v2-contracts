@@ -307,6 +307,10 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         }
     }
 
+    function getVoucherCount(address borrower) public view returns (uint256) {
+        return vouchers[borrower].length;
+    }
+
     /**
      *  @dev Get the user's deposited stake amount
      *  @param account Member address
