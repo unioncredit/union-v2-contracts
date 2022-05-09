@@ -358,13 +358,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (borrower == address(0)) revert AddressZero();
         if (borrower == msg.sender) revert ErrorSelfVouching();
         uint256 index = voucherIndexes[borrower][msg.sender];
-        if (index != 0) {
-            Vouch memory vouch = vouchers[borrower][index - 1];
+        if (index > 0) {
+            Vouch storage vouch = vouchers[borrower][index - 1];
             if (trustAmount < vouch.outstanding) revert TrustAmountTooSmall();
+            vouch.amount = trustAmount;
+        } else {
+            vouchers[borrower].push(Vouch(msg.sender, trustAmount, 0));
+            voucherIndexes[borrower][msg.sender] = vouchers[borrower].length;
         }
-
-        vouchers[borrower].push(Vouch(msg.sender, trustAmount, 0));
-        voucherIndexes[borrower][msg.sender] = vouchers[borrower].length + 1;
 
         emit LogUpdateTrust(msg.sender, borrower, trustAmount);
     }
