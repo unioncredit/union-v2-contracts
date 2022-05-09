@@ -63,12 +63,58 @@ contract TestUToken__borrow is TestWrapper {
         vm.stopPrank();
     }
 
-    // function testBorrowUpdatesAccountBorrows public {}
-    // function testBorrowUpdatesTotalBorrow() public {}
-    // function testBorrowUpdatesLasRepay() public {}
-    // function testBorrowAddsFeeToReserves() public {}
-    // function testCannotBorrowLessThanMinBorrow() public {}
-    // function testCannotBorrowMoreThanMaxBorrow() public {}
-    // function testCannotBorrowWhenOverdue() public {}
-    // function testCannotBorrowMoreThanGlobalMax() public {}
+    function testBorrowUpdatesAccountBorrows() public {
+        uint256 borrowedBefore = uToken.getBorrowed(newMember);
+        vm.prank(newMember);
+        uToken.borrow(trustAmount);
+        uint256 fee = uToken.calculatingFee(trustAmount);
+        uint256 borrowedAfter = uToken.getBorrowed(newMember);
+        assertEq(borrowedAfter - borrowedBefore, trustAmount + fee);
+    }
+
+    function testBorrowUpdatesTotalBorrow() public {
+        uint256 borrowedBefore = uToken.totalBorrows();
+        vm.prank(newMember);
+        uToken.borrow(trustAmount);
+        uint256 fee = uToken.calculatingFee(trustAmount);
+        uint256 borrowedAfter = uToken.totalBorrows();
+        assertEq(borrowedAfter - borrowedBefore, trustAmount + fee);
+    }
+
+    function testBorrowUpdatesLasRepay() public {
+        assertEq(uToken.getLastRepay(newMember), 0);
+        vm.prank(newMember);
+        uToken.borrow(trustAmount);
+        assert(uToken.getLastRepay(newMember) != 0);
+    }
+
+    function testBorrowAddsFeeToReserves() public {
+        uint256 reservesBefore = uToken.totalReserves();
+        vm.prank(newMember);
+        uToken.borrow(trustAmount);
+        uint256 fee = uToken.calculatingFee(trustAmount);
+        assertEq(uToken.totalReserves() - reservesBefore, fee);
+    }
+
+    function testCannotBorrowLessThanMinBorrow() public {
+        vm.prank(newMember);
+        vm.expectRevert(UToken.AmountLessMinBorrow.selector);
+        uToken.borrow(1);
+    }
+
+    function testCannotBorrowMoreThanMaxBorrow() public {
+        vm.prank(newMember);
+        vm.expectRevert(UToken.AmountExceedGlobalMax.selector);
+        uToken.borrow(type(uint256).max);
+    }
+
+    function testCannotBorrowWhenOverdue() public {
+        vm.prank(newMember);
+        uToken.borrow(trustAmount);
+        vm.roll(block.number + uToken.overdueBlocks() + 1);
+        assert(uToken.checkIsOverdue(newMember));
+        vm.prank(newMember);
+        vm.expectRevert(UToken.MemberIsOverdue.selector);
+        uToken.borrow(trustAmount);
+    }
 }
