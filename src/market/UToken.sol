@@ -512,9 +512,9 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         uint256 interest = calculatingInterest(borrower);
         uint256 borrowedAmount = borrowBalanceStoredInternal(borrower);
-
         uint256 repayAmount = amount > borrowedAmount ? borrowedAmount : amount;
         if (repayAmount == 0) revert AmountZero();
+        bool isOverdue = checkIsOverdue(borrower);
 
         uint256 toReserveAmount;
         uint256 toRedeemableAmount;
@@ -523,6 +523,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             toRedeemableAmount = interest - toReserveAmount;
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
+
+            if(isOverdue) {
+              IUserManager(userManager).updateTotalFrozen(borrower, false);
+            }
 
             if (getBorrowed(borrower) == 0) {
                 //LastRepay is cleared when the arrears are paid off, and reinitialized the next time the loan is borrowed
@@ -578,6 +582,17 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         accountBorrows[borrower].principal = oldPrincipal - repayAmount;
         totalBorrows -= repayAmount;
+    }
+
+    /**
+     *  @dev Update borrower overdue info
+     *  @param borrower Borrower address
+     */
+    function updateOverdueInfo(address borrower) external whenNotPaused {
+        if (borrower == address(0)) revert AddressZero();
+        if (checkIsOverdue(borrower)) {
+            IUserManager(userManager).updateTotalFrozen(borrower, true);
+        }
     }
 
     /* -------------------------------------------------------------------

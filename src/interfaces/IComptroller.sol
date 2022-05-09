@@ -19,13 +19,6 @@ interface IComptroller {
      */
     function withdrawRewards(address sender, address token) external returns (uint256);
 
-    function addFrozenCoinAge(
-        address staker,
-        address token,
-        uint256 lockedStake,
-        uint256 lastRepay
-    ) external;
-
     function updateTotalStaked(address token, uint256 totalStaked) external returns (bool);
 
     /**

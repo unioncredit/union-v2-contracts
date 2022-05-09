@@ -40,6 +40,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint256 outstanding;
     }
 
+    struct FrozenInfo {
+        uint256 amount;
+        uint256 lastRepaid;
+    }
+
     /* -------------------------------------------------------------------
       Storage 
     ------------------------------------------------------------------- */
@@ -90,6 +95,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     uint256 public totalStaked;
 
     /**
+     *  @dev Total amount of stake fozen
+     */
+    uint256 public totalFrozen;
+
+    /**
      *  @dev Union Stakers
      */
     mapping(address => Staker) public stakers;
@@ -103,6 +113,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      * @dev Staker mapped to index in vouch array
      */
     mapping(address => mapping(address => uint256)) public voucherIndexes;
+
+    /**
+     *  @dev Mapping of member address to amount frozen
+     */
+    mapping(address => FrozenInfo) public memberFrozen;
 
     /* -------------------------------------------------------------------
       Errors 
@@ -301,6 +316,23 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         return stakers[account].stakedAmount;
     }
 
+    function getFrozenCoinAge(address borrower, uint256 pastBlocks) external view returns (uint256) {
+        uint256 blockDelta = block.number - memberFrozen[borrower].lastRepaid;
+        if (pastBlocks >= blockDelta) {
+            return memberFrozen[borrower].amount * blockDelta;
+        } else {
+            return memberFrozen[borrower].amount * pastBlocks;
+        }
+    }
+
+    function getTotalFrozenAmount(address borrower) external view returns (uint256) {
+        return memberFrozen[borrower].amount;
+    }
+
+    function getTotalLockedStake(address staker) external view returns (uint256) {
+        return stakers[staker].outstanding;
+    }
+
     /* -------------------------------------------------------------------
       Core Functions 
     ------------------------------------------------------------------- */
@@ -408,9 +440,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function stake(uint256 amount) public whenNotPaused nonReentrant {
         IERC20Upgradeable erc20Token = IERC20Upgradeable(stakingToken);
 
-        // FIXME: TODO: ignore the rewards stuff for now as it relies on
-        // frozen stake and we haven't managed that yet.
-        // comptroller.withdrawRewards(msg.sender, stakingToken);
+        comptroller.withdrawRewards(msg.sender, stakingToken);
 
         Staker storage staker = stakers[msg.sender];
 
@@ -498,6 +528,21 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         }
 
         require(remaining <= 0, "!remaining");
+    }
+
+    // TODO: should this live in uToken?
+    function updateTotalFrozen(address borrower, bool isOverdue) external {
+        if (isOverdue) {
+            // get outstanding amount
+            uint256 borrowed = uToken.getBorrowed(borrower);
+            memberFrozen[borrower].amount = borrowed;
+            memberFrozen[borrower].lastRepaid = uToken.getLastRepay(borrower);
+            totalFrozen += borrowed;
+        } else {
+            // decrement totalFrozen by memberFrozen
+            totalFrozen -= memberFrozen[borrower].amount;
+            memberFrozen[borrower].amount = 0;
+        }
     }
 
     /* -------------------------------------------------------------------

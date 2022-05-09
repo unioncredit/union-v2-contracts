@@ -16,7 +16,6 @@ contract Comptroller is Controller, IComptroller {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     struct Info {
-        uint256 frozenCoinAge;
         uint256 updatedBlock; //last withdraw rewards block
         uint256 inflationIndex; //last withdraw rewards inflationIndex
         uint256 accrued; //the unionToken accrued but not yet transferred to each user
@@ -102,7 +101,6 @@ contract Comptroller is Controller, IComptroller {
         uint256 totalStaked_ = userManagerContract.totalStaked() - userManagerContract.totalFrozen();
         gInflationIndex = _getInflationIndexNew(totalStaked_, block.number - gLastUpdatedBlock);
         gLastUpdatedBlock = block.number;
-        users[sender][token].frozenCoinAge = 0;
         users[sender][token].updatedBlock = block.number;
         users[sender][token].inflationIndex = gInflationIndex;
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
@@ -149,9 +147,7 @@ contract Comptroller is Controller, IComptroller {
         }
 
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
-        userManagerData.frozenCoinAge =
-            userManagerContract.getFrozenCoinAge(account, pastBlocks) +
-            userInfo.frozenCoinAge;
+        userManagerData.frozenCoinAge = userManagerContract.getFrozenCoinAge(account, pastBlocks);
 
         userManagerData.totalLocked = userManagerContract.getTotalLockedStake(account);
         userManagerData.isMember = userManagerContract.checkIsMember(account);
@@ -204,24 +200,6 @@ contract Comptroller is Controller, IComptroller {
         gLastUpdatedBlock = block.number;
 
         return true;
-    }
-
-    function addFrozenCoinAge(
-        address staker,
-        address token,
-        uint256 lockedStake,
-        uint256 lastRepay
-    ) external override onlyUserManager(token) {
-        uint256 lastBlock = users[staker][token].updatedBlock;
-        uint256 blocks;
-        if (lastBlock > lastRepay) {
-            // Frozen CoinAge here has been accounted for when the user withdraws the rewards, so here just need to calculate the delta between block.number and lastBlock
-            blocks = block.number - lastBlock;
-        } else {
-            blocks = block.number - lastRepay;
-        }
-
-        users[staker][token].frozenCoinAge += lockedStake * blocks;
     }
 
     /**
