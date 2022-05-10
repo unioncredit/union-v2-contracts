@@ -162,15 +162,15 @@ contract TestWrapper is Test {
 
     function registerMember(address newMember) internal {
         vm.startPrank(MEMBER_1);
-        userManager.updateTrust(newMember, trustAmount);
+        userManager.updateTrust(newMember, uint128(trustAmount));
         vm.stopPrank();
 
         vm.startPrank(MEMBER_2);
-        userManager.updateTrust(newMember, trustAmount);
+        userManager.updateTrust(newMember, uint128(trustAmount));
         vm.stopPrank();
 
         vm.startPrank(MEMBER_3);
-        userManager.updateTrust(newMember, trustAmount);
+        userManager.updateTrust(newMember, uint128(trustAmount));
         vm.stopPrank();
 
         uint256 memberFee = userManager.newMemberFee();

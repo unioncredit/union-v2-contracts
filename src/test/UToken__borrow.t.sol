@@ -20,8 +20,8 @@ contract TestUToken__borrow is TestWrapper {
             vm.startPrank(member);
             dai.mint(member, amount);
             dai.approve(address(userManager), amount);
-            userManager.stake(amount);
-            userManager.updateTrust(newMember, amount);
+            userManager.stake(uint128(amount));
+            userManager.updateTrust(newMember, uint128(amount));
             vm.stopPrank();
         }
 

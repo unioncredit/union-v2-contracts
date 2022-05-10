@@ -29,15 +29,15 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     // TODO: packing
     struct Vouch {
         address staker;
-        uint256 amount;
-        uint256 outstanding;
+        uint128 amount;
+        uint128 outstanding;
     }
 
     // TODO: packing
     struct Staker {
         bool isMember;
-        uint256 stakedAmount;
-        uint256 outstanding;
+        uint128 stakedAmount;
+        uint128 outstanding;
     }
 
     struct FrozenInfo {
@@ -52,7 +52,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     /**
      *  @dev Max amount that can be staked of the staking token
      */
-    uint256 public maxStakeAmount;
+    uint128 public maxStakeAmount;
 
     /**
      *  @dev The staking token that is staked in the comptroller
@@ -248,10 +248,10 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      * Emits {LogSetMaxStakeAmount} event
      * @param maxStakeAmount_ The max stake amount
      */
-    function setMaxStakeAmount(uint256 maxStakeAmount_) public onlyAdmin {
-        uint256 oldMaxStakeAmount = maxStakeAmount;
+    function setMaxStakeAmount(uint128 maxStakeAmount_) public onlyAdmin {
+        uint128 oldMaxStakeAmount = maxStakeAmount;
         maxStakeAmount = maxStakeAmount_;
-        emit LogSetMaxStakeAmount(oldMaxStakeAmount, maxStakeAmount);
+        emit LogSetMaxStakeAmount(uint256(oldMaxStakeAmount), uint256(maxStakeAmount));
     }
 
     /**
@@ -369,7 +369,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param borrower Account address
      *  @param trustAmount Trust amount
      */
-    function updateTrust(address borrower, uint256 trustAmount) external onlyMember(msg.sender) whenNotPaused {
+    function updateTrust(address borrower, uint128 trustAmount) external onlyMember(msg.sender) whenNotPaused {
         if (borrower == address(0)) revert AddressZero();
         if (borrower == msg.sender) revert ErrorSelfVouching();
         uint256 index = voucherIndexes[borrower][msg.sender];
@@ -453,7 +453,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  Emits a {LogStake} event.
      *  @param amount Amount to stake
      */
-    function stake(uint256 amount) public whenNotPaused nonReentrant {
+    function stake(uint128 amount) public whenNotPaused nonReentrant {
         IERC20Upgradeable erc20Token = IERC20Upgradeable(stakingToken);
 
         comptroller.withdrawRewards(msg.sender, stakingToken);
@@ -478,7 +478,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  Emits {LogUnstake} event
      *  @param amount Amount to unstake
      */
-    function unstake(uint256 amount) external whenNotPaused nonReentrant {
+    function unstake(uint128 amount) external whenNotPaused nonReentrant {
         IERC20Upgradeable erc20Token = IERC20Upgradeable(stakingToken);
         Staker storage staker = stakers[msg.sender];
 
@@ -520,14 +520,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint256 amount,
         bool lock
     ) external onlyMarket {
-        uint256 remaining = amount;
+        uint128 remaining = uint128(amount);
 
         for (uint256 i = 0; i < vouchers[borrower].length; i++) {
             Vouch storage vouch = vouchers[borrower][i];
-            uint256 innerAmount;
+            uint128 innerAmount;
 
             if (lock) {
-                uint256 borrowAmount = vouch.amount - vouch.outstanding;
+                uint128 borrowAmount = uint128(vouch.amount) - vouch.outstanding;
                 if (borrowAmount <= 0) continue;
                 innerAmount = _min(remaining, borrowAmount);
                 stakers[vouch.staker].outstanding += innerAmount;
@@ -563,13 +563,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
        Internal Functions 
     ------------------------------------------------------------------- */
 
-    function _min(uint256 a, uint256 b) private pure returns (uint256) {
+    function _min(uint128 a, uint128 b) private pure returns (uint128) {
         if (a < b) return a;
-        return b;
-    }
-
-    function _max(uint256 a, uint256 b) private pure returns (uint256) {
-        if (a > b) return a;
         return b;
     }
 }
