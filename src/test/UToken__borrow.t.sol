@@ -5,7 +5,9 @@ import "./Wrapper.sol";
 contract TestUToken__borrow is TestWrapper {
     uint256 public count = 100;
     uint256 public amount = 10 ether;
+
     address public newMember = address(123);
+    address public newerMember = address(1234);
 
     function setUp() public override {
         super.setUp();
@@ -21,13 +23,18 @@ contract TestUToken__borrow is TestWrapper {
             dai.mint(member, amount);
             dai.approve(address(userManager), amount);
             userManager.stake(uint128(amount));
+
+            userManager.updateTrust(newerMember, uint128(amount));
             userManager.updateTrust(newMember, uint128(amount));
             vm.stopPrank();
         }
 
-        uint256 memberFee = userManager.newMemberFee();
-        unionToken.approve(address(userManager), memberFee);
+        unionToken.approve(address(userManager), type(uint256).max);
         userManager.registerMember(newMember);
+        userManager.registerMember(newerMember);
+
+        dai.mint(address(this), 1000000 ether);
+        uToken.addReserves(dai.balanceOf(address(this)));
     }
 
     function testBorrow() public {
@@ -116,5 +123,19 @@ contract TestUToken__borrow is TestWrapper {
         vm.prank(newMember);
         vm.expectRevert(UToken.MemberIsOverdue.selector);
         uToken.borrow(trustAmount);
+    }
+
+    function testCannotBorrowWhenAvailableStakeZero() public {
+        uint256 creditLimit = userManager.getCreditLimit(newMember);
+        uint256 fee = uToken.calculatingFee(creditLimit);
+
+        vm.startPrank(newMember);
+        uToken.borrow(creditLimit - fee);
+        vm.stopPrank();
+
+        vm.startPrank(newerMember);
+        vm.expectRevert(bytes("!remaining"));
+        uToken.borrow(creditLimit - fee);
+        vm.stopPrank();
     }
 }

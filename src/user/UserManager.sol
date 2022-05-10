@@ -527,10 +527,13 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             uint128 innerAmount;
 
             if (lock) {
-                uint128 borrowAmount = uint128(vouch.amount) - vouch.outstanding;
+                uint128 stakerOutstanding = stakers[vouch.staker].outstanding;
+                uint128 stakerStakedAmount = stakers[vouch.staker].stakedAmount;
+                uint128 availableStake = stakerStakedAmount - stakerOutstanding;
+                uint128 borrowAmount = _min(availableStake, uint128(vouch.amount) - vouch.outstanding);
                 if (borrowAmount <= 0) continue;
                 innerAmount = _min(remaining, borrowAmount);
-                stakers[vouch.staker].outstanding += innerAmount;
+                stakers[vouch.staker].outstanding = stakerOutstanding + innerAmount;
                 vouch.outstanding += innerAmount;
             } else {
                 innerAmount = _min(vouch.outstanding, remaining);
