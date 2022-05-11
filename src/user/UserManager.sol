@@ -108,7 +108,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     mapping(address => Vouch[]) public vouchers;
 
     /**
-     * @dev Staker mapped to index in vouch array
+     * @dev Borrower mapped to Staker mapped to index in vouch array
      */
     mapping(address => mapping(address => uint256)) public voucherIndexes;
 
@@ -517,8 +517,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         // TODO: check maxOverdue
         if (staker != msg.sender) revert AuthFailed();
 
+        // TODO: write getVouch(address borrower, address staker);
         uint256 vouchIndex = voucherIndexes[borrower][staker];
-        Vouch memory vouch = vouchers[borrower][vouchIndex];
+        Vouch memory vouch = vouchers[borrower][vouchIndex - 1];
 
         if (amount > vouch.outstanding) revert ExceedsLocked();
   
