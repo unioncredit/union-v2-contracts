@@ -6,6 +6,8 @@ pragma solidity 0.8.4;
  *  @dev Union members can borrow and repay thru this component.
  */
 interface IUToken {
+    function overdueBlocks() external view returns (uint256);
+
     /**
      *  @dev Returns the remaining amount that can be borrowed from the market.
      *  @return Remaining total amount

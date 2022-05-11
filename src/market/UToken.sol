@@ -48,7 +48,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public totalBorrows; //Total amount of outstanding borrows of the underlying in this market
     uint256 public totalReserves; //Total amount of reserves of the underlying held in this marke
     uint256 public totalRedeemable; //Calculates the exchange rate from the underlying to the uToken
-    uint256 public overdueBlocks; //overdue duration, based on the number of blocks
+    uint256 public override overdueBlocks; //overdue duration, based on the number of blocks
     uint256 public originationFee;
     uint256 public debtCeiling; //The debt limit for the whole system
     uint256 public maxBorrow;

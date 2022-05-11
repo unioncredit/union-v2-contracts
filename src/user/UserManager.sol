@@ -98,6 +98,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     uint256 public totalFrozen;
 
     /**
+     *  @dev Max blocks can be overdue for
+     */
+    uint256 public maxOverdue;
+
+    /**
      *  @dev Union Stakers
      */
     mapping(address => Staker) public stakers;
@@ -219,6 +224,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     event LogSetMaxStakeAmount(uint256 oldMaxStakeAmount, uint256 newMaxStakeAmount);
 
+    event LogSetMaxOverdue(uint256 oldMaxOverdue, uint256 newMaxOverdue);
+
     /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
@@ -228,7 +235,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         address unionToken_,
         address stakingToken_,
         address comptroller_,
-        address admin_
+        address admin_,
+        uint256 maxOverdue_
     ) public initializer {
         Controller.__Controller_init(admin_);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
@@ -238,6 +246,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         stakingToken = stakingToken_;
         newMemberFee = 10**18; // Set the default membership fee
         maxStakeAmount = 5000e18;
+        maxOverdue = maxOverdue_;
     }
 
     /* -------------------------------------------------------------------
@@ -275,6 +284,12 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint256 oldMemberFee = newMemberFee;
         newMemberFee = amount;
         emit LogSetNewMemberFee(oldMemberFee, newMemberFee);
+    }
+
+    function setMaxOverdue(uint256 _maxOverdue) public onlyAdmin {
+        uint256 oldMaxOverdue = maxOverdue;
+        maxOverdue = _maxOverdue;
+        emit LogSetMaxOverdue(oldMaxOverdue, _maxOverdue);
     }
 
     /* -------------------------------------------------------------------
@@ -514,21 +529,27 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     ) public {
         if (amount == 0) revert AmountZero();
         if (!uToken.checkIsOverdue(borrower)) revert NotOverdue();
-        // TODO: check maxOverdue
-        if (staker != msg.sender) revert AuthFailed();
+        uint256 overdueBlocks = uToken.overdueBlocks();
+        uint256 lastRepay = uToken.getLastRepay(borrower);
+        if (block.number <= lastRepay + overdueBlocks + maxOverdue) {
+            if (staker != msg.sender) revert AuthFailed();
+        }
 
         // TODO: write getVouch(address borrower, address staker);
         uint256 vouchIndex = voucherIndexes[borrower][staker];
-        Vouch memory vouch = vouchers[borrower][vouchIndex - 1];
+        Vouch storage vouch = vouchers[borrower][vouchIndex - 1];
 
         if (amount > vouch.outstanding) revert ExceedsLocked();
-  
+
         // update staker staked amount
         stakers[staker].stakedAmount -= uint128(amount);
-        
+        totalStaked -= amount;
+
         // update frozen amounts
         uint256 frozenAmount = memberFrozen[borrower].amount;
-        memberFrozen[borrower].amount = frozenAmount >= amount ? frozenAmount - amount : 0;
+        uint256 unFreezeAmount = amount >= frozenAmount ? frozenAmount : amount;
+        memberFrozen[borrower].amount = frozenAmount - unFreezeAmount;
+        totalFrozen -= unFreezeAmount;
 
         // update vouch trust amount
         vouch.amount -= uint128(amount);
@@ -579,7 +600,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         require(remaining <= 0, "!remaining");
     }
 
-    function updateTotalFrozen(address borrower, bool isOverdue) external {
+    function updateTotalFrozen(address borrower, bool isOverdue) external onlyMarket {
         if (isOverdue) {
             // get outstanding amount
             uint256 borrowed = uToken.getBorrowed(borrower);
