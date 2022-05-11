@@ -26,14 +26,12 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
       Types 
     ------------------------------------------------------------------- */
 
-    // TODO: packing
     struct Vouch {
         address staker;
         uint128 amount;
         uint128 outstanding;
     }
 
-    // TODO: packing
     struct Staker {
         bool isMember;
         uint128 stakedAmount;
@@ -134,6 +132,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     error AssetManagerWithdrawFailed();
     error InsufficientBalance();
     error LockedStakeNonZero();
+    error NotOverdue();
+    error ExceedsLocked();
+    error AmountZero();
 
     /* -------------------------------------------------------------------
       Modifiers 
@@ -506,8 +507,37 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param borrower address of borrower
      *  @param amount amount to writeoff
      */
-    function debtWriteOff(address borrower, uint256 amount) public {
-        // TODO:
+    function debtWriteOff(
+        address staker,
+        address borrower,
+        uint256 amount
+    ) public {
+        if (amount == 0) revert AmountZero();
+        if (!uToken.checkIsOverdue(borrower)) revert NotOverdue();
+        // TODO: check maxOverdue
+        if (staker != msg.sender) revert AuthFailed();
+
+        uint256 vouchIndex = voucherIndexes[borrower][staker];
+        Vouch memory vouch = vouchers[borrower][vouchIndex];
+
+        if (amount > vouch.outstanding) revert ExceedsLocked();
+  
+        // update staker staked amount
+        stakers[staker].stakedAmount -= uint128(amount);
+        
+        // update frozen amounts
+        uint256 frozenAmount = memberFrozen[borrower].amount;
+        memberFrozen[borrower].amount = frozenAmount >= amount ? frozenAmount - amount : 0;
+
+        // update vouch trust amount
+        vouch.amount -= uint128(amount);
+        if (vouch.amount == 0) {
+            // 3a. if trust is 0 then cancel the vouch
+        }
+
+        IAssetManager(assetManager).debtWriteOff(stakingToken, amount);
+        uToken.debtWriteOff(borrower, amount);
+
         emit LogDebtWriteOff(msg.sender, borrower, amount);
     }
 
