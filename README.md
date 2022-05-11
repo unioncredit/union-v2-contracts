@@ -7,7 +7,9 @@
 
 ## Todo
 
--   Comptroller rewards lookup
+-   [ ] fuzzing tests
+-   [ ] test the rest of the code base still works
+-   [ ] write getVoucherIndex function and rename voucherIndexes to voucherPositions
 
 ## Tests
 
