@@ -34,27 +34,97 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
       Storage 
     ------------------------------------------------------------------- */
 
-    bool public constant IS_UTOKEN = true;
     uint256 public constant WAD = 1e18;
-    uint256 internal constant BORROW_RATE_MAX_MANTISSA = 0.005e16; //Maximum borrow rate that can ever be applied (.005% / block)
-    uint256 internal constant RESERVE_FACTORY_MAX_MANTISSA = 1e18; //Maximum fraction of interest that can be set aside for reserves
 
-    address public underlying;
-    IInterestRateModel public interestRateModel;
-    uint256 internal initialExchangeRateMantissa; //Initial exchange rate used when minting the first UTokens (used when totalSupply = 0)
-    uint256 public reserveFactorMantissa; //Fraction of interest currently set aside for reserves
-    uint256 public accrualBlockNumber; //Block number that interest was last accrued at
-    uint256 public borrowIndex; //Accumulator of the total earned interest rate since the opening of the market
-    uint256 public totalBorrows; //Total amount of outstanding borrows of the underlying in this market
-    uint256 public totalReserves; //Total amount of reserves of the underlying held in this marke
-    uint256 public totalRedeemable; //Calculates the exchange rate from the underlying to the uToken
-    uint256 public override overdueBlocks; //overdue duration, based on the number of blocks
+    /**
+     * @dev Maximum borrow rate that can ever be applied (.005% / block)
+     */
+    uint256 internal constant BORROW_RATE_MAX_MANTISSA = 0.005e16;
+
+    /**
+     *  @dev Maximum fraction of interest that can be set aside for reserves
+     */
+    uint256 internal constant RESERVE_FACTORY_MAX_MANTISSA = 1e18;
+
+    /**
+     *  @dev Initial exchange rate used when minting the first UTokens (used when totalSupply = 0)
+     */
+    uint256 internal initialExchangeRateMantissa;
+
+    /**
+     *  @dev Fraction of interest currently set aside for reserves
+     */
+    uint256 public reserveFactorMantissa;
+
+    /**
+     *  @dev Block number that interest was last accrued at
+     */
+    uint256 public accrualBlockNumber;
+
+    /**
+     *  @dev Accumulator of the total earned interest rate since the opening of the market
+     */
+    uint256 public borrowIndex;
+
+    /**
+     *  @dev Total amount of outstanding borrows of the underlying in this market
+     */
+    uint256 public totalBorrows;
+
+    /**
+     *  @dev Total amount of reserves of the underlying held in this marke
+     */
+    uint256 public totalReserves;
+
+    /**
+     *  @dev Calculates the exchange rate from the underlying to the uToken
+     */
+    uint256 public totalRedeemable;
+
+    /**
+     *  @dev overdue duration, based on the number of blocks
+     */
+    uint256 public override overdueBlocks;
+
+    /**
+     *  @dev fee paid at loan origin
+     */
     uint256 public originationFee;
-    uint256 public debtCeiling; //The debt limit for the whole system
+
+    /**
+     *  @dev The debt limit for the whole system
+     */
+    uint256 public debtCeiling;
+
+    /**
+     *  @dev Max amount that can be borrowed by a single member
+     */
     uint256 public maxBorrow;
+
+    /**
+     *  @dev Min amount that can be borrowed by a single member
+     */
     uint256 public minBorrow;
+
+    /**
+     *  @dev Asset manager contract address
+     */
     address public assetManager;
+
+    /**
+     *  @dev User manager contract address
+     */
     address public userManager;
+
+    /**
+     * @dev Address of underlying token
+     */
+    address public underlying;
+
+    /**
+     * @dev Interest rate model used for calculating interest rate
+     */
+    IInterestRateModel public interestRateModel;
 
     /**
      * @notice Mapping of account addresses to outstanding borrow balances
