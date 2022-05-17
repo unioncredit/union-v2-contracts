@@ -180,7 +180,7 @@ contract TestWrapper is Test {
         userManager.registerMember(newMember);
     }
 
-    function testDeployment() public {
+    function testDeployment() public view {
         assert(userManager.checkIsMember(MEMBER_1));
         assert(userManager.checkIsMember(MEMBER_2));
         assert(userManager.checkIsMember(MEMBER_3));

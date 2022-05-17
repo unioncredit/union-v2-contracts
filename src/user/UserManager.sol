@@ -511,7 +511,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param amount Amount to unstake
      */
     function unstake(uint128 amount) external whenNotPaused nonReentrant {
-        IERC20Upgradeable erc20Token = IERC20Upgradeable(stakingToken);
         Staker storage staker = stakers[msg.sender];
 
         if (staker.stakedAmount - staker.outstanding < amount) revert InsufficientBalance();
