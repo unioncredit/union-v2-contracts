@@ -418,7 +418,10 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Stop vouch for other member.
+     *  @dev Remove voucher for memeber
+     *  Can be called by either the borrower or the staker. It will remove the voucher from
+     *  the voucher array by replacing it with the last item of the array and reseting the array
+     *  size to -1 by poping off the last item
      *  Only callable by a member when the contract is not paused
      *  Emit {LogCancelVouch} event
      *  @param staker Staker address
