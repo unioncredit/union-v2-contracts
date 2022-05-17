@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import "./Wrapper.sol";
+import "../user/UserManager.sol";
 
 contract TestUToken__borrow is TestWrapper {
     uint256 public count = 100;
@@ -65,7 +66,7 @@ contract TestUToken__borrow is TestWrapper {
     function testCannotBorrowMoreThanCreditLimit() public {
         uint256 creditLimit = userManager.getCreditLimit(newMember);
         vm.startPrank(newMember);
-        vm.expectRevert(bytes("!remaining"));
+        vm.expectRevert(UserManager.OutstandingRemaining.selector);
         uToken.borrow(creditLimit);
         vm.stopPrank();
     }
@@ -134,7 +135,7 @@ contract TestUToken__borrow is TestWrapper {
         vm.stopPrank();
 
         vm.startPrank(newerMember);
-        vm.expectRevert(bytes("!remaining"));
+        vm.expectRevert(UserManager.OutstandingRemaining.selector);
         uToken.borrow(creditLimit - fee);
         vm.stopPrank();
     }

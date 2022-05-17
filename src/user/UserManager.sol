@@ -140,6 +140,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     error NotOverdue();
     error ExceedsLocked();
     error AmountZero();
+    error OutstandingRemaining();
 
     /* -------------------------------------------------------------------
       Modifiers 
@@ -597,7 +598,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             if (remaining <= 0) break;
         }
 
-        require(remaining <= 0, "!remaining");
+        if (remaining > 0) revert OutstandingRemaining();
     }
 
     function updateTotalFrozen(address borrower, bool isOverdue) external onlyMarket {
