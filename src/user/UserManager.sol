@@ -223,8 +223,18 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      */
     event LogSetNewMemberFee(uint256 oldMemberFee, uint256 newMemberFee);
 
+    /**
+     *  @dev set max stake amount
+     *  @param oldMaxStakeAmount Old amount
+     *  @param newMaxStakeAmount New amount
+     */
     event LogSetMaxStakeAmount(uint256 oldMaxStakeAmount, uint256 newMaxStakeAmount);
 
+    /**
+     *  @dev set max overdue
+     *  @param oldMaxOverdue Old value
+     *  @param newMaxOverdue New value
+     */
     event LogSetMaxOverdue(uint256 oldMaxOverdue, uint256 newMaxOverdue);
 
     /* -------------------------------------------------------------------
@@ -287,6 +297,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         emit LogSetNewMemberFee(oldMemberFee, newMemberFee);
     }
 
+    /**
+     * @dev set New max overdue value
+     * Emits {LogSetMaxOverdue} event
+     * @param _maxOverdue New maxOverdue value
+     */
     function setMaxOverdue(uint256 _maxOverdue) public onlyAdmin {
         uint256 oldMaxOverdue = maxOverdue;
         maxOverdue = _maxOverdue;
@@ -513,6 +528,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         emit LogUnstake(msg.sender, amount);
     }
 
+    /**
+     *  @dev collect staker rewards from the comptroller
+     */
     function withdrawRewards() external whenNotPaused nonReentrant {
         comptroller.withdrawRewards(msg.sender, stakingToken);
     }
@@ -601,6 +619,12 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (remaining > 0) revert OutstandingRemaining();
     }
 
+    /**
+     *  @dev Update total frozen for overdue memeber
+     *  Only callable by the uToken contract
+     *  @param borrower Address of borrower
+     *  @param isOverdue If the borrower is overdue
+     */
     function updateTotalFrozen(address borrower, bool isOverdue) external onlyMarket {
         if (isOverdue) {
             // get outstanding amount
