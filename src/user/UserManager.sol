@@ -431,6 +431,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         Vouch storage vouch = vouchers[borrower][index - 1];
         if (vouch.outstanding > 0) revert LockedStakeNonZero();
 
+        vouchers[borrower][index - 1] = vouchers[borrower][vouchers[borrower].length - 1];
+        vouchers[borrower].pop();
+
         emit LogCancelVouch(staker, borrower);
     }
 
