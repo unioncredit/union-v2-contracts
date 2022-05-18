@@ -146,6 +146,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     error ExceedsLocked();
     error AmountZero();
     error OutstandingRemaining();
+    error VoucherNotFound();
 
     /* -------------------------------------------------------------------
       Modifiers 
@@ -436,7 +437,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (staker != msg.sender && borrower != msg.sender) revert AuthFailed();
 
         Index memory index = voucherIndexes[borrower][staker];
-        require(index.isSet, "!voucher");
+        if(!index.isSet) revert VoucherNotFound();
 
         Vouch storage vouch = vouchers[borrower][index.idx];
         if (vouch.outstanding > 0) revert LockedStakeNonZero();
@@ -567,7 +568,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         }
 
         Index memory index = voucherIndexes[borrower][staker];
-        require(index.isSet, "!voucher");
+        if(!index.isSet) revert VoucherNotFound();
         Vouch storage vouch = vouchers[borrower][index.idx];
 
         if (amount > vouch.outstanding) revert ExceedsLocked();
