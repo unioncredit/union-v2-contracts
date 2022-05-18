@@ -51,7 +51,7 @@ contract TestUserManager__updateTrust is TestWrapper {
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
         userManager.updateTrust(newMember, 100);
-        (bool isSet, uint256 vouchIndex) = userManager.voucherIndexes(newMember, MEMBER_4);
+        (bool isSet, ) = userManager.voucherIndexes(newMember, MEMBER_4);
         assert(isSet);
         vm.stopPrank();
     }

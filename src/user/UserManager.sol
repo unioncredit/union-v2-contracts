@@ -386,6 +386,31 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         return stakers[staker].outstanding;
     }
 
+    /**
+     *  @dev Get staker locked stake for a borrower
+     *  @param staker Staker address
+     *  @param borrower Borrower address
+     *  @return LockedStake
+     */
+    function getLockedStake(address staker, address borrower) public view returns (uint256) {
+        Index memory index = voucherIndexes[borrower][staker];
+        if (!index.isSet) return 0;
+        return vouchers[borrower][index.idx].outstanding;
+    }
+
+    /**
+     *  @dev Get vouching amount
+     *  @param staker Staker address
+     *  @param borrower Borrower address
+     */
+    function getVouchingAmount(address staker, address borrower) public view returns (uint256) {
+        Index memory index = voucherIndexes[borrower][staker];
+        Staker memory staker = stakers[staker];
+        if (!index.isSet) return 0;
+        uint128 trustAmount = vouchers[borrower][index.idx].amount;
+        return trustAmount < staker.stakedAmount ? trustAmount : staker.stakedAmount;
+    }
+
     /* -------------------------------------------------------------------
       Core Functions 
     ------------------------------------------------------------------- */
@@ -437,7 +462,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (staker != msg.sender && borrower != msg.sender) revert AuthFailed();
 
         Index memory index = voucherIndexes[borrower][staker];
-        if(!index.isSet) revert VoucherNotFound();
+        if (!index.isSet) revert VoucherNotFound();
 
         Vouch storage vouch = vouchers[borrower][index.idx];
         if (vouch.outstanding > 0) revert LockedStakeNonZero();
@@ -568,7 +593,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         }
 
         Index memory index = voucherIndexes[borrower][staker];
-        if(!index.isSet) revert VoucherNotFound();
+        if (!index.isSet) revert VoucherNotFound();
         Vouch storage vouch = vouchers[borrower][index.idx];
 
         if (amount > vouch.outstanding) revert ExceedsLocked();
