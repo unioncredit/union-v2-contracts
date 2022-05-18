@@ -400,12 +400,12 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     /**
      *  @dev Get vouching amount
-     *  @param staker Staker address
+     *  @param _staker Staker address
      *  @param borrower Borrower address
      */
-    function getVouchingAmount(address staker, address borrower) public view returns (uint256) {
-        Index memory index = voucherIndexes[borrower][staker];
-        Staker memory staker = stakers[staker];
+    function getVouchingAmount(address _staker, address borrower) public view returns (uint256) {
+        Index memory index = voucherIndexes[borrower][_staker];
+        Staker memory staker = stakers[_staker];
         if (!index.isSet) return 0;
         uint128 trustAmount = vouchers[borrower][index.idx].amount;
         return trustAmount < staker.stakedAmount ? trustAmount : staker.stakedAmount;

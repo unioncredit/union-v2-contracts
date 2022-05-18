@@ -27,4 +27,14 @@ contract TestUserManager__cancelVouch is TestWrapper {
         (address staker2, , ) = userManager.vouchers(newMember, 0);
         assertEq(staker2, MEMBER_2);
     }
+
+    function testCannotCancelVouchVoucherNotFound() public {
+        address mem = address(6969);
+        registerMember(mem);
+
+        vm.startPrank(MEMBER_1);
+        userManager.updateTrust(newMember, 100);
+        userManager.cancelVouch(MEMBER_1, mem);
+        vm.stopPrank();
+    }
 }
