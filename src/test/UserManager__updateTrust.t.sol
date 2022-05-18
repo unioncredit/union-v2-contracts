@@ -22,28 +22,28 @@ contract TestUserManager__updateTrust is TestWrapper {
         assertEq(newCreditLimit, trustAmount * 3);
     }
 
-    function testUpdateTrustCreatesVouch() public {
+    function testUpdateTrustCreatesVouch(uint128 trustAmount) public {
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
-        userManager.updateTrust(newMember, 100);
+        userManager.updateTrust(newMember, trustAmount);
         (, uint256 vouchIndex) = userManager.voucherIndexes(newMember, address(this));
         (address staker, uint256 amount, uint256 outstanding) = userManager.vouchers(newMember, vouchIndex);
         vm.stopPrank();
         assertEq(staker, MEMBER_4);
-        assertEq(amount, 100);
+        assertEq(amount, trustAmount);
         assertEq(outstanding, 0);
     }
 
-    function testUpdateTrustExistingVouch() public {
+    function testUpdateTrustExistingVouch(uint128 amountBefore, uint128 amountAfter) public {
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
-        userManager.updateTrust(newMember, 100);
+        userManager.updateTrust(newMember, amountBefore);
         (, uint256 vouchIndex) = userManager.voucherIndexes(newMember, MEMBER_4);
         (, uint256 amountBefore, ) = userManager.vouchers(newMember, vouchIndex);
-        assertEq(amountBefore, 100);
-        userManager.updateTrust(newMember, 200);
+        assertEq(amountBefore, amountBefore);
+        userManager.updateTrust(newMember, amountAfter);
         (, uint256 amountAfter, ) = userManager.vouchers(newMember, vouchIndex);
-        assertEq(amountAfter, 200);
+        assertEq(amountAfter, amountAfter);
         vm.stopPrank();
     }
 
