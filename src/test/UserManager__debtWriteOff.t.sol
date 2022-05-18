@@ -38,8 +38,8 @@ contract TestUserManager__debtWriteOff is TestWrapper {
             uint128
         )
     {
-        uint256 index = userManager.voucherIndexes(borrower, staker);
-        return userManager.vouchers(borrower, index - 1);
+        (, uint256 index) = userManager.voucherIndexes(borrower, staker);
+        return userManager.vouchers(borrower, index);
     }
 
     function testDebtWriteOffStakedAmount() public {

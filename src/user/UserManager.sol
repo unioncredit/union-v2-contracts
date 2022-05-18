@@ -43,6 +43,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint256 lastRepaid;
     }
 
+    struct Index {
+        bool isSet;
+        uint256 idx;
+    }
+
     /* -------------------------------------------------------------------
       Storage 
     ------------------------------------------------------------------- */
@@ -115,7 +120,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     /**
      * @dev Borrower mapped to Staker mapped to index in vouch array
      */
-    mapping(address => mapping(address => uint256)) public voucherIndexes;
+    mapping(address => mapping(address => Index)) public voucherIndexes;
 
     /**
      *  @dev Mapping of member address to amount frozen
@@ -404,14 +409,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function updateTrust(address borrower, uint128 trustAmount) external onlyMember(msg.sender) whenNotPaused {
         if (borrower == address(0)) revert AddressZero();
         if (borrower == msg.sender) revert ErrorSelfVouching();
-        uint256 index = voucherIndexes[borrower][msg.sender];
-        if (index > 0) {
-            Vouch storage vouch = vouchers[borrower][index - 1];
+        Index memory index = voucherIndexes[borrower][msg.sender];
+        if (index.isSet) {
+            Vouch storage vouch = vouchers[borrower][index.idx];
             if (trustAmount < vouch.outstanding) revert TrustAmountTooSmall();
             vouch.amount = trustAmount;
         } else {
+            voucherIndexes[borrower][msg.sender] = Index(true, vouchers[borrower].length);
             vouchers[borrower].push(Vouch(msg.sender, trustAmount, 0));
-            voucherIndexes[borrower][msg.sender] = vouchers[borrower].length;
         }
 
         emit LogUpdateTrust(msg.sender, borrower, trustAmount);
@@ -430,11 +435,13 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function cancelVouch(address staker, address borrower) external onlyMember(msg.sender) whenNotPaused {
         if (staker != msg.sender && borrower != msg.sender) revert AuthFailed();
 
-        uint256 index = voucherIndexes[borrower][staker];
-        Vouch storage vouch = vouchers[borrower][index - 1];
+        Index memory index = voucherIndexes[borrower][staker];
+        require(index.isSet, "!voucher");
+
+        Vouch storage vouch = vouchers[borrower][index.idx];
         if (vouch.outstanding > 0) revert LockedStakeNonZero();
 
-        vouchers[borrower][index - 1] = vouchers[borrower][vouchers[borrower].length - 1];
+        vouchers[borrower][index.idx] = vouchers[borrower][vouchers[borrower].length - 1];
         vouchers[borrower].pop();
 
         emit LogCancelVouch(staker, borrower);
@@ -559,9 +566,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             if (staker != msg.sender) revert AuthFailed();
         }
 
-        // TODO: write getVouch(address borrower, address staker);
-        uint256 vouchIndex = voucherIndexes[borrower][staker];
-        Vouch storage vouch = vouchers[borrower][vouchIndex - 1];
+        Index memory index = voucherIndexes[borrower][staker];
+        require(index.isSet, "!voucher");
+        Vouch storage vouch = vouchers[borrower][index.idx];
 
         if (amount > vouch.outstanding) revert ExceedsLocked();
 

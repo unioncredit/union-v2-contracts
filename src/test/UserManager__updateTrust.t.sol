@@ -26,7 +26,7 @@ contract TestUserManager__updateTrust is TestWrapper {
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
         userManager.updateTrust(newMember, 100);
-        uint256 vouchIndex = userManager.voucherIndexes(newMember, address(this));
+        (, uint256 vouchIndex) = userManager.voucherIndexes(newMember, address(this));
         (address staker, uint256 amount, uint256 outstanding) = userManager.vouchers(newMember, vouchIndex);
         vm.stopPrank();
         assertEq(staker, MEMBER_4);
@@ -38,7 +38,7 @@ contract TestUserManager__updateTrust is TestWrapper {
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
         userManager.updateTrust(newMember, 100);
-        uint256 vouchIndex = userManager.voucherIndexes(newMember, MEMBER_4) - 1;
+        (, uint256 vouchIndex) = userManager.voucherIndexes(newMember, MEMBER_4);
         (, uint256 amountBefore, ) = userManager.vouchers(newMember, vouchIndex);
         assertEq(amountBefore, 100);
         userManager.updateTrust(newMember, 200);
@@ -51,8 +51,8 @@ contract TestUserManager__updateTrust is TestWrapper {
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
         userManager.updateTrust(newMember, 100);
-        uint256 vouchIndex = userManager.voucherIndexes(newMember, MEMBER_4);
-        assert(vouchIndex != 0);
+        (bool isSet, uint256 vouchIndex) = userManager.voucherIndexes(newMember, MEMBER_4);
+        assert(isSet);
         vm.stopPrank();
     }
 
