@@ -34,16 +34,16 @@ contract TestUserManager__updateTrust is TestWrapper {
         assertEq(outstanding, 0);
     }
 
-    function testUpdateTrustExistingVouch(uint128 amountBefore, uint128 amountAfter) public {
+    function testUpdateTrustExistingVouch(uint128 amount0, uint128 amount1) public {
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
-        userManager.updateTrust(newMember, amountBefore);
+        userManager.updateTrust(newMember, amount0);
         (, uint256 vouchIndex) = userManager.voucherIndexes(newMember, MEMBER_4);
         (, uint256 amountBefore, ) = userManager.vouchers(newMember, vouchIndex);
-        assertEq(amountBefore, amountBefore);
-        userManager.updateTrust(newMember, amountAfter);
+        assertEq(amountBefore, amount0);
+        userManager.updateTrust(newMember, amount1);
         (, uint256 amountAfter, ) = userManager.vouchers(newMember, vouchIndex);
-        assertEq(amountAfter, amountAfter);
+        assertEq(amountAfter, amount1);
         vm.stopPrank();
     }
 
