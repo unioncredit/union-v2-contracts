@@ -13,16 +13,15 @@ contract TestUserManager__updateTrust is TestWrapper {
     }
 
     function testUpdateTrustGetCreditLimit() public {
-        registerMember(MEMBER_4);
-        uint256 creditLimit = userManager.getCreditLimit(MEMBER_4);
-        assertEq(creditLimit, 0);
         // stakers stake to underwrite credit line
         initStakers();
+        registerMember(MEMBER_4);
         uint256 newCreditLimit = userManager.getCreditLimit(MEMBER_4);
         assertEq(newCreditLimit, trustAmount * 3);
     }
 
     function testUpdateTrustCreatesVouch(uint128 trustAmount) public {
+        initStakers();
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
         userManager.updateTrust(newMember, trustAmount);
@@ -35,6 +34,7 @@ contract TestUserManager__updateTrust is TestWrapper {
     }
 
     function testUpdateTrustExistingVouch(uint128 amount0, uint128 amount1) public {
+        initStakers();
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
         userManager.updateTrust(newMember, amount0);
@@ -48,6 +48,7 @@ contract TestUserManager__updateTrust is TestWrapper {
     }
 
     function testUpdateTrustSavesVouchIndex() public {
+        initStakers();
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
         userManager.updateTrust(newMember, 100);
@@ -57,6 +58,7 @@ contract TestUserManager__updateTrust is TestWrapper {
     }
 
     function testUpdateTrust1000() public {
+        initStakers();
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
         for (uint256 i = 0; i < 1000; i++) {
@@ -68,6 +70,7 @@ contract TestUserManager__updateTrust is TestWrapper {
     }
 
     function testCannotUpdateTrustOnZeroAddress() public {
+        initStakers();
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
         vm.expectRevert(UserManager.AddressZero.selector);
@@ -76,6 +79,7 @@ contract TestUserManager__updateTrust is TestWrapper {
     }
 
     function testCannotUpdateTrustOnSelf() public {
+        initStakers();
         registerMember(MEMBER_4);
         vm.startPrank(MEMBER_4);
         vm.expectRevert(UserManager.ErrorSelfVouching.selector);

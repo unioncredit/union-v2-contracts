@@ -87,18 +87,20 @@ contract TestWrapper is Test {
         );
 
         uint256 maxOverdue = 1000;
+        uint256 effectiveCount = 3;
         address userManagerLogic = address(new UserManager());
         userManager = UserManager(
             deployProxy(
                 userManagerLogic,
                 abi.encodeWithSignature(
-                    "__UserManager_init(address,address,address,address,address,uint256)",
+                    "__UserManager_init(address,address,address,address,address,uint256,uint256)",
                     address(assetManager),
                     address(unionToken),
                     address(dai),
                     address(comptroller),
                     ADMIN,
-                    maxOverdue
+                    maxOverdue,
+                    effectiveCount
                 )
             )
         );
