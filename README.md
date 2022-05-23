@@ -68,7 +68,8 @@ forge -vv
 To profile gas usage:
 
 ```
-yarn gas
+forge test --gas-report
+forge snapshot
 ```
 
 ## Format
