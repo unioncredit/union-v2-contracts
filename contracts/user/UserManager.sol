@@ -243,6 +243,13 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      */
     event LogSetMaxOverdue(uint256 oldMaxOverdue, uint256 newMaxOverdue);
 
+    /**
+     *  @dev set effective count
+     *  @param oldEffectiveCount Old value
+     *  @param newEffectiveCount New value
+     */
+    event LogSetEffectiveCount(uint256 oldEffectiveCount, uint256 newEffectiveCount);
+
     /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
@@ -253,7 +260,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         address stakingToken_,
         address comptroller_,
         address admin_,
-        uint256 maxOverdue_
+        uint256 maxOverdue_,
+        uint256 effectiveCount_
     ) public initializer {
         Controller.__Controller_init(admin_);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
@@ -264,6 +272,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         newMemberFee = 10**18; // Set the default membership fee
         maxStakeAmount = 5000e18;
         maxOverdue = maxOverdue_;
+        effectiveCount = effectiveCount_;
     }
 
     /* -------------------------------------------------------------------
@@ -300,7 +309,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function setNewMemberFee(uint256 amount) public onlyAdmin {
         uint256 oldMemberFee = newMemberFee;
         newMemberFee = amount;
-        emit LogSetNewMemberFee(oldMemberFee, newMemberFee);
+        emit LogSetNewMemberFee(oldMemberFee, amount);
     }
 
     /**
@@ -312,6 +321,17 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint256 oldMaxOverdue = maxOverdue;
         maxOverdue = _maxOverdue;
         emit LogSetMaxOverdue(oldMaxOverdue, _maxOverdue);
+    }
+
+    /**
+     * @dev set New effective count
+     * Emits {LogSetEffectiveCount} event
+     * @param _effectiveCount New effectiveCount value
+     */
+    function setEffectiveCount(uint256 _effectiveCount) public onlyAdmin {
+        uint256 oldEffectiveCount = effectiveCount;
+        effectiveCount = _effectiveCount;
+        emit LogSetEffectiveCount(oldEffectiveCount, _effectiveCount);
     }
 
     /* -------------------------------------------------------------------
@@ -509,6 +529,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             Vouch memory vouch = vouchers[newMember][i];
             Staker memory staker = stakers[vouch.staker];
             if (staker.stakedAmount > 0) count++;
+            if (count >= effectiveCount) break;
         }
 
         if (count < effectiveCount) revert NotEnoughStakers();
