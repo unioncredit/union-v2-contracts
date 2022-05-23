@@ -1,23 +1,29 @@
 {
-  "name": "union-contracts-1.5",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "lib": "lib"
-  },
-  "scripts": {
-    "format": "prettier --write 'src/**/*.sol'",
-    "format:check": "prettier --check 'src/**/*.sol'"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git@github.com-GeraldHost:GeraldHost/union-v1.5-contracts.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "prettier": "^2.6.2",
-    "prettier-plugin-solidity": "^1.0.0-beta.19"
-  }
+    "name": "union-v1.5-contracts",
+    "version": "0.1.0",
+    "description": "",
+    "main": "index.js",
+    "directories": {
+        "lib": "lib"
+    },
+    "scripts": {
+        "format": "prettier --write 'contracts/**/*.sol'",
+        "format:check": "prettier --check 'contracts/**/*.sol'",
+        "hh:compile": "yarn hardhat compile",
+        "f:compile": "forge build",
+        "f:test": "forge test"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:unioncredit/union-v1.5-contracts.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@openzeppelin/contracts": "^4.6.0",
+        "@openzeppelin/contracts-upgradeable": "^4.6.0",
+        "hardhat": "^2.9.6",
+        "prettier": "^2.6.2",
+        "prettier-plugin-solidity": "^1.0.0-beta.19"
+    }
 }

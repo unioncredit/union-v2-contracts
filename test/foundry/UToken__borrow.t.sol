@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import "./Wrapper.sol";
-import "../user/UserManager.sol";
+import "union-v1.5-contracts/user/UserManager.sol";
 
 contract TestUToken__borrow is TestWrapper {
     uint256 public count = 100;

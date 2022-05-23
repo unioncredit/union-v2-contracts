@@ -2,15 +2,15 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../market/MarketRegistry.sol";
-import "../asset/AssetManager.sol";
-import "../token/Comptroller.sol";
-import "../market/UToken.sol";
-import "../mocks/FaucetERC20.sol";
-import "../token/UnionToken.sol";
-import "../user/UserManager.sol";
-import "../market/FixedInterestRateModel.sol";
-import "../UUPSProxy.sol";
+import "union-v1.5-contracts/market/MarketRegistry.sol";
+import "union-v1.5-contracts/asset/AssetManager.sol";
+import "union-v1.5-contracts/token/Comptroller.sol";
+import "union-v1.5-contracts/market/UToken.sol";
+import "union-v1.5-contracts/mocks/FaucetERC20.sol";
+import "union-v1.5-contracts/token/UnionToken.sol";
+import "union-v1.5-contracts/user/UserManager.sol";
+import "union-v1.5-contracts/market/FixedInterestRateModel.sol";
+import "union-v1.5-contracts/UUPSProxy.sol";
 
 contract TestWrapper is Test {
     // Mocks
