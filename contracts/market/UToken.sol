@@ -611,6 +611,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             } else {
                 accountBorrows[borrower].lastRepay = getBlockNumber();
             }
+
+            IUserManager(userManager).updateOutstanding(borrower, repayAmount - interest, false);
         } else {
             toReserveAmount = (repayAmount * reserveFactorMantissa) / WAD;
             toRedeemableAmount = repayAmount - toReserveAmount;
@@ -620,7 +622,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         totalReserves += toReserveAmount;
         totalRedeemable += toRedeemableAmount;
 
-        IUserManager(userManager).updateOutstanding(borrower, repayAmount - interest, false);
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows -= repayAmount;
 

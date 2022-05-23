@@ -66,29 +66,6 @@ contract UserManagerMock {
         return limit;
     }
 
-    function getBorrowerAddresses(address account) public view returns (address[] memory) {}
-
-    function getStakerAddresses(address account) public view returns (address[] memory) {}
-
-    function getBorrowerAsset(address account, address borrower)
-        public
-        view
-        returns (
-            uint256 trustAmount,
-            uint256 vouchingAmount,
-            uint256 lockedStake
-        )
-    {}
-
-    function getStakerAsset(address account, address staker)
-        public
-        view
-        returns (
-            uint256 trustAmount,
-            uint256 vouchingAmount,
-            uint256 lockedStake
-        )
-    {}
 
     function getLockedStake(address staker, address borrower) public view returns (uint256) {}
 
@@ -97,6 +74,8 @@ contract UserManagerMock {
     function addMember(address account) public {}
 
     function updateTrust(address borrower_, uint256 trustAmount) external {}
+
+    function updateOutstanding(address borrower_, uint256 amount, bool lock) external {}
 
     function cancelVouch(address staker, address borrower) external {}
 
@@ -111,40 +90,13 @@ contract UserManagerMock {
 
     function registerMember(address newMember) public {}
 
-    function updateLockedData(
-        address borrower,
-        uint256 amount,
-        bool isBorrow
-    ) external {}
-
     function stake(uint256 amount) public {}
-
-    /**
-     *  @dev stakeWithPermit
-     *  @param amount Amount
-     */
-    function stakeWithPermit(
-        uint256 amount,
-        uint256 nonce,
-        uint256 expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public {}
 
     function unstake(uint256 amount) external {}
 
     function withdrawRewards() external {}
 
     function updateTotalFrozen(address, bool) external {}
-
-    function batchUpdateTotalFrozen(address[] calldata, bool[] calldata) external {}
-
-    function repayLoanOverdue(
-        address account,
-        address token,
-        uint256 lastRepay
-    ) external {}
 
     //Only supports sumOfTrust
     function debtWriteOff(address borrower, uint256 amount) public {}
