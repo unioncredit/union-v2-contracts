@@ -1,6 +1,6 @@
 # Union Contracts V1.5
 
-Built using [foundry](https://book.getfoundry.sh/)
+Built using [foundry](https://book.getfoundry.sh/) and [hardhat](https://hardhat.org/)
 
 ## Difference from V1
 
@@ -9,21 +9,70 @@ View the [diff](https://github.com/unioncredit/union-v1.5-contracts/compare/v1..
 -   Does not lock interest, only locks principal
 -   First in first out locks for vouchers
 
-## Tests
+## Install
+
+To install dependencies:
+
+```
+git clone git@github.com:unioncredit/union-v1.5-contracts.git && cd union-v1.5-contracts
+yarn install
+```
+
+## Usage
+
+To compile with hardhat:
+
+```
+yarn hh:compile
+```
+
+## Foundry
+
+Union V1.5 Contracts also includes a suit of tests (fuzzing tests) writte in solidity with foundry
+
+To install Foundry (assuming a Linux or macOS System):
+
+```
+curl -L https://foundry.paradigm.xyz | bash
+```
+
+This will download foundryup. To start Foundry, run:
+
+```
+foundryup
+```
+
+To install dependencies:
+
+```
+forge install
+```
+
+To run tests:
 
 ```
 forge test
 ```
 
-## Compile
+The following modifiers are also available:
+
+- Level 2 (-vv): Logs emitted during tests are also displayed.
+- Level 3 (-vvv): Stack traces for failing tests are also displayed.
+- Level 4 (-vvvv): Stack traces for all tests are displayed, and setup traces for failing tests are displayed.
+- Level 5 (-vvvvv): Stack traces and setup traces are always displayed.
 
 ```
-forge build
+forge -vv
 ```
 
-## Gas
+To profile gas usage:
 
 ```
-forge test --gas-report
-forge snapshot
+yarn gas
+```
+
+## Format
+
+```
+yarn format
 ```
