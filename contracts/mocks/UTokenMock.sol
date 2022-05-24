@@ -21,23 +21,23 @@ contract UTokenMock is ERC20Upgradeable {
 
     bool public isOverdue;
 
+    address public userManager;
+
+    uint256 public borrowed;
+
     function __UToken_init() public initializer {
         ERC20Upgradeable.__ERC20_init("uToken", "uToken");
     }
 
-    function updateOverdueInfo(
-        address userManager,
-        address account,
-        bool _isOverdue
-    ) external {
+    function setUserManager(address _userManager) public {
+        userManager = _userManager;
+    }
+
+    function updateOverdueInfo(address account, bool _isOverdue) external {
         IUserManager(userManager).updateTotalFrozen(account, _isOverdue);
     }
 
-    function updateLockedData(
-        address userManager,
-        address account,
-        uint256 amount
-    ) external {
+    function updateLockedData(address account, uint256 amount) external {
         IUserManager(userManager).updateLockedData(account, amount, true);
     }
 
@@ -79,13 +79,23 @@ contract UTokenMock is ERC20Upgradeable {
         )
     {}
 
-    function getBorrowed(address) public view returns (uint256) {}
+    function setBorrowed(uint256 _borrowed) public {
+        borrowed = _borrowed;
+    }
+
+    function getBorrowed(address) public view returns (uint256) {
+        return borrowed;
+    }
 
     function borrowBalanceView(address) public pure returns (uint256) {
         return 0;
     }
 
     function borrowRatePerBlock() public view returns (uint256) {}
+
+    function borrow(uint256 amount) external {
+        IUserManager(userManager).updateOutstanding(msg.sender, amount, true);
+    }
 
     function supplyRatePerBlock() public pure returns (uint256) {
         return 0;

@@ -73,6 +73,7 @@ describe("User Manager Contract", () => {
         await userManager.addMember(MEMBER2.address);
         await userManager.addMember(MEMBER3.address);
         await userManager.addMember(MEMBER4.address);
+        await uToken.setUserManager(userManager.address);
     });
 
     it("Stake amount more than individual limit should revert", async () => {
@@ -190,7 +191,7 @@ describe("User Manager Contract", () => {
         isMember.should.eq(true);
     });
 
-    xit("Credit limit", async () => {
+    it("Credit limit", async () => {
         const vouchAmount1 = parseEther("1");
         const vouchAmount2 = parseEther("100");
         const vouchAmount3 = parseEther("200");
@@ -233,7 +234,7 @@ describe("User Manager Contract", () => {
         let locked3 = await userManager.getLockedStake(MEMBER3.address, BOB.address);
         locked3.toString().should.eq("0");
 
-        await userManager.connect(BOB).borrow(creditLimit);
+        await uToken.connect(BOB).borrow(creditLimit);
         locked = await userManager.getLockedStake(MEMBER1.address, BOB.address);
         locked.toString().should.eq(parseEther("100").toString());
         locked2 = await userManager.getLockedStake(MEMBER2.address, BOB.address);
@@ -289,6 +290,7 @@ describe("User Manager Contract", () => {
     });
 
     xit("Total frozen amount", async () => {
+        // TODO: there is a todo in User manager to fix frozen values
         await erc20.connect(MEMBER1).approve(userManager.address, parseEther("10000"));
         await erc20.connect(MEMBER2).approve(userManager.address, parseEther("10000"));
         await erc20.connect(MEMBER3).approve(userManager.address, parseEther("10000"));
@@ -305,16 +307,12 @@ describe("User Manager Contract", () => {
         const creditLimit = await userManager.getCreditLimit(BOB.address);
         //Simulate user loan default
         await uToken.setIsOverdue(true);
-        // await uToken.updateLockedData(userManager.address, BOB.address, creditLimit);
-        await uToken.updateOverdueInfo(userManager.address, BOB.address, true);
+        await uToken.connect(BOB).borrow(creditLimit);
+        await uToken.setBorrowed(creditLimit);
+        await uToken.updateOverdueInfo(BOB.address, true);
 
         let totalFrozen = await userManager.totalFrozen();
         totalFrozen.toString().should.eq(creditLimit.toString());
-        totalAmount = await userManager.getTotalFrozenAmount(MEMBER1.address);
-        totalAmount.toString().should.eq(parseEther("1").toString());
-
-        // await uToken.updateLockedData(userManager.address, BOB.address, creditLimit.add(parseEther("1")));
-        await uToken.updateOverdueInfo(userManager.address, BOB.address, true);
         totalAmount = await userManager.getTotalFrozenAmount(MEMBER1.address);
         totalAmount.toString().should.eq(parseEther("1").toString());
 
@@ -351,33 +349,15 @@ describe("User Manager Contract", () => {
         await expect(userManager.connect(ALICE).updateTrust(MEMBER1.address, 1)).to.be.revertedWith("AuthFailed()");
     });
 
-    xit("Trust amount cannot be less than the locked amount", async () => {
+    it("Trust amount cannot be less than the locked amount", async () => {
         await userManager.addMember(ADMIN.address);
         await erc20.approve(userManager.address, parseEther("10000"));
         await userManager.stake(parseEther("1000"));
         await userManager.updateTrust(BOB.address, 10);
 
-        await userManager.updateLockedData(BOB.address, 10, true);
+        await uToken.connect(BOB).borrow(10);
 
-        await expect(userManager.updateTrust(BOB.address, 1)).to.be.revertedWith("TrustAmountTooLarge()");
-    });
-
-    xit("Get locked stake when totalLockedStake > stakingAmount", async () => {
-        await userManager.addMember(ALICE.address);
-        await userManager.addMember(BOB.address);
-        await erc20.connect(MEMBER1).approve(userManager.address, parseEther("10000"));
-        await userManager.connect(MEMBER1).stake(parseEther("1000"));
-        await userManager.connect(MEMBER1).updateTrust(ALICE.address, 10);
-        await userManager.connect(MEMBER1).updateTrust(BOB.address, 10);
-        await userManager.updateLockedData(BOB.address, 10, true);
-
-        const res = await userManager.getLockedStake(MEMBER1.address, BOB.address);
-        res.toString().should.eq("10"); //creditLimitModelMock mock 10
-
-        await userManager.connect(MEMBER1).unstake(parseEther("1000").sub(10));
-        await userManager.updateLockedData(BOB.address, 100, true);
-        const totalAmount = await userManager.connect(MEMBER1).getTotalLockedStake(MEMBER1.address);
-        totalAmount.toString().should.eq("10");
+        await expect(userManager.updateTrust(BOB.address, 1)).to.be.revertedWith("TrustAmountTooSmall()");
     });
 
     it("Withdraw rewards", async () => {
@@ -395,11 +375,6 @@ describe("User Manager Contract", () => {
     it("Get staker balance", async () => {
         const balance = await userManager.getStakerBalance(BOB.address);
         balance.toString().should.eq("0");
-    });
-
-    xit("Find stakers info", async () => {
-        const staker = await userManager.stakers(BOB.address);
-        staker.toString().should.eq("0");
     });
 
     it("Stake and unstake", async () => {
@@ -563,8 +538,8 @@ describe("User Manager Contract", () => {
         const creditLimit = await userManager.getCreditLimit(TOM.address);
         //Simulate user loan default
         await uToken.setIsOverdue(true);
-        await uToken.updateLockedData(userManager.address, TOM.address, creditLimit);
-        await uToken.updateOverdueInfo(userManager.address, TOM.address, true);
+        await uToken.updateLockedData(TOM.address, creditLimit);
+        await uToken.updateOverdueInfo(TOM.address, true);
 
         let stakeAmount = await userManager.stakers(MEMBER1.address);
         let lockedAmount = await userManager.getLockedStake(MEMBER1.address, TOM.address);

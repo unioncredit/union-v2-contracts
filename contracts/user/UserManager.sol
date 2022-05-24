@@ -382,6 +382,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param borrower Address of borrower
      *  @param pastBlocks Number of blocks past
      */
+    // TODO: this should actually take the `staker` and loop through all their borrowers
+    // we need to change this member locked logic so we don't have to loop
     function getFrozenCoinAge(address borrower, uint256 pastBlocks) external view returns (uint256) {
         uint256 blockDelta = block.number - memberFrozen[borrower].lastRepaid;
         return
@@ -684,6 +686,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param borrower Address of borrower
      *  @param isOverdue If the borrower is overdue
      */
+    // TODO: need to update this to track staker to borrower locked amount
+    // should end up with something similar to updateOutstanding
     function updateTotalFrozen(address borrower, bool isOverdue) external onlyMarket {
         if (isOverdue) {
             // get outstanding amount
