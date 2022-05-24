@@ -13,7 +13,7 @@ contract UserManagerMock {
     uint256 public totalStaked;
     uint256 public totalFrozen;
     bool public isMember;
-    int256 public limit;
+    uint256 public limit;
     uint256 public stakerBalance;
     uint256 public totalLockedStake;
     uint256 public totalFrozenAmount;
@@ -58,11 +58,11 @@ contract UserManagerMock {
         return totalFrozenAmount;
     }
 
-    function setCreditLimit(int256 limit_) public {
+    function setCreditLimit(uint256 limit_) public {
         limit = limit_;
     }
 
-    function getCreditLimit(address) public view returns (int256) {
+    function getCreditLimit(address) public view returns (uint256) {
         return limit;
     }
 
@@ -75,7 +75,9 @@ contract UserManagerMock {
 
     function updateTrust(address borrower_, uint256 trustAmount) external {}
 
-    function updateOutstanding(address borrower_, uint256 amount, bool lock) external {}
+    function updateOutstanding(address borrower_, uint256 amount, bool lock) external {
+      if(amount > limit) require(false);
+    }
 
     function cancelVouch(address staker, address borrower) external {}
 
