@@ -34,6 +34,9 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
       Storage 
     ------------------------------------------------------------------- */
 
+    /**
+     * @dev Wad do you want
+     */
     uint256 public constant WAD = 1e18;
 
     /**
@@ -533,8 +536,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (amount > assetManagerContract.getLoanableAmount(underlying)) revert InsufficientFundsLeft();
         if (!accrueInterest()) revert AccrueInterestFailed();
 
-        IUserManager(userManager).updateOutstanding(msg.sender, amount + fee, true);
-
         uint256 borrowedAmount = borrowBalanceStoredInternal(msg.sender);
 
         //Set lastRepay init data
@@ -550,10 +551,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         accountBorrows[msg.sender].interest = accountBorrowsNew - newPrincipal;
         accountBorrows[msg.sender].interestIndex = borrowIndex;
         totalBorrows = totalBorrowsNew;
+
         // The origination fees contribute to the reserve
         totalReserves += fee;
 
         if (!assetManagerContract.withdraw(underlying, msg.sender, amount)) revert WithdrawFailed();
+        IUserManager(userManager).updateLocked(msg.sender, amount + fee, true);
 
         emit LogBorrow(msg.sender, amount, fee);
     }
@@ -595,15 +598,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 toReserveAmount;
         uint256 toRedeemableAmount;
         if (repayAmount >= interest) {
-            bool isOverdue = checkIsOverdue(borrower);
             toReserveAmount = (interest * reserveFactorMantissa) / WAD;
             toRedeemableAmount = interest - toReserveAmount;
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
-
-            if (isOverdue) {
-                IUserManager(userManager).updateTotalFrozen(borrower, false);
-            }
 
             if (getBorrowed(borrower) == 0) {
                 //LastRepay is cleared when the arrears are paid off, and reinitialized the next time the loan is borrowed
@@ -612,7 +610,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
                 accountBorrows[borrower].lastRepay = getBlockNumber();
             }
 
-            IUserManager(userManager).updateOutstanding(borrower, repayAmount - interest, false);
+            IUserManager(userManager).updateLocked(borrower, repayAmount - interest, false);
         } else {
             toReserveAmount = (repayAmount * reserveFactorMantissa) / WAD;
             toRedeemableAmount = repayAmount - toReserveAmount;
@@ -659,17 +657,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         accountBorrows[borrower].principal = oldPrincipal - repayAmount;
         totalBorrows -= repayAmount;
-    }
-
-    /**
-     *  @dev Update borrower overdue info
-     *  @param borrower Borrower address
-     */
-    function updateOverdueInfo(address borrower) external whenNotPaused {
-        if (borrower == address(0)) revert AddressZero();
-        if (checkIsOverdue(borrower)) {
-            IUserManager(userManager).updateTotalFrozen(borrower, true);
-        }
     }
 
     /* -------------------------------------------------------------------

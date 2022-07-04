@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 interface IErc20 is IERC20Upgradeable {
@@ -10,11 +9,11 @@ interface IErc20 is IERC20Upgradeable {
     function burn(address account, uint256 amount) external;
 }
 
-contract AaveMock is Initializable {
+contract AaveMock {
     uint128 public rate;
     address public aToken;
 
-    function __AaveMock_init(uint128 _rate, address _aToken) public initializer {
+    constructor(uint128 _rate, address _aToken) public {
         rate = _rate;
         aToken = _aToken;
     }

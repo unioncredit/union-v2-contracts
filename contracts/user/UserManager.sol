@@ -28,19 +28,15 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     struct Vouch {
         address staker;
-        uint128 amount;
-        uint128 outstanding;
+        uint96 amount;
+        uint96 locked;
+        uint64 lastUpdated;
     }
 
     struct Staker {
         bool isMember;
-        uint128 stakedAmount;
-        uint128 outstanding;
-    }
-
-    struct FrozenInfo {
-        uint256 amount;
-        uint256 lastRepaid;
+        uint96 stakedAmount;
+        uint96 locked;
     }
 
     struct Index {
@@ -55,7 +51,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     /**
      *  @dev Max amount that can be staked of the staking token
      */
-    uint128 public maxStakeAmount;
+    uint96 public maxStakeAmount;
 
     /**
      *  @dev The staking token that is staked in the comptroller
@@ -98,11 +94,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     uint256 public totalStaked;
 
     /**
-     *  @dev Total amount of stake fozen
-     */
-    uint256 public totalFrozen;
-
-    /**
      *  @dev Max blocks can be overdue for
      */
     uint256 public maxOverdue;
@@ -113,7 +104,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     mapping(address => Staker) public stakers;
 
     /**
-     *  @dev Staker mapped to recieved vouches
+     *  @dev Staker (borrower) mapped to recieved vouches
      */
     mapping(address => Vouch[]) public vouchers;
 
@@ -121,11 +112,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      * @dev Borrower mapped to Staker mapped to index in vouch array
      */
     mapping(address => mapping(address => Index)) public voucherIndexes;
-
-    /**
-     *  @dev Mapping of member address to amount frozen
-     */
-    mapping(address => FrozenInfo) public memberFrozen;
 
     /* -------------------------------------------------------------------
       Errors 
@@ -145,7 +131,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     error NotOverdue();
     error ExceedsLocked();
     error AmountZero();
-    error OutstandingRemaining();
+    error LockedRemaining();
     error VoucherNotFound();
 
     /* -------------------------------------------------------------------
@@ -284,8 +270,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      * Emits {LogSetMaxStakeAmount} event
      * @param maxStakeAmount_ The max stake amount
      */
-    function setMaxStakeAmount(uint128 maxStakeAmount_) public onlyAdmin {
-        uint128 oldMaxStakeAmount = maxStakeAmount;
+    function setMaxStakeAmount(uint96 maxStakeAmount_) public onlyAdmin {
+        uint96 oldMaxStakeAmount = maxStakeAmount;
         maxStakeAmount = maxStakeAmount_;
         emit LogSetMaxStakeAmount(uint256(oldMaxStakeAmount), uint256(maxStakeAmount));
     }
@@ -356,7 +342,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         for (uint256 i = 0; i < vouchers[borrower].length; i++) {
             Vouch memory vouch = vouchers[borrower][i];
             Staker memory staker = stakers[vouch.staker];
-            total += _min(staker.stakedAmount - staker.outstanding, vouch.amount - vouch.outstanding);
+            total += _min(staker.stakedAmount - staker.locked, vouch.amount - vouch.locked);
         }
     }
 
@@ -382,22 +368,13 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param borrower Address of borrower
      *  @param pastBlocks Number of blocks past
      */
-    // TODO: this should actually take the `staker` and loop through all their borrowers
-    // we need to change this member locked logic so we don't have to loop
-    function getFrozenCoinAge(address borrower, uint256 pastBlocks) external view returns (uint256) {
-        uint256 blockDelta = block.number - memberFrozen[borrower].lastRepaid;
-        return
-            pastBlocks >= blockDelta
-                ? memberFrozen[borrower].amount * blockDelta
-                : memberFrozen[borrower].amount * pastBlocks;
-    }
-
-    /**
-     *  @dev Get total frozen amount
-     *  @param borrower Address of borrower
-     */
-    function getTotalFrozenAmount(address borrower) external view returns (uint256) {
-        return memberFrozen[borrower].amount;
+    function getFrozenCoinAge(address borrower, uint256 pastBlocks)
+        external
+        view
+        returns (uint256 totalFrozen, uint256 frozenCoinage)
+    {
+        // TODO: get total frozen
+        // TODO: get frozen coinage
     }
 
     /**
@@ -405,7 +382,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param staker Staker address
      */
     function getTotalLockedStake(address staker) external view returns (uint256) {
-        return stakers[staker].outstanding;
+        return stakers[staker].locked;
     }
 
     /**
@@ -417,7 +394,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function getLockedStake(address staker, address borrower) public view returns (uint256) {
         Index memory index = voucherIndexes[borrower][staker];
         if (!index.isSet) return 0;
-        return vouchers[borrower][index.idx].outstanding;
+        return vouchers[borrower][index.idx].locked;
     }
 
     /**
@@ -429,7 +406,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         Index memory index = voucherIndexes[borrower][_staker];
         Staker memory staker = stakers[_staker];
         if (!index.isSet) return 0;
-        uint128 trustAmount = vouchers[borrower][index.idx].amount;
+        uint96 trustAmount = vouchers[borrower][index.idx].amount;
         return trustAmount < staker.stakedAmount ? trustAmount : staker.stakedAmount;
     }
 
@@ -454,17 +431,17 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param borrower Account address
      *  @param trustAmount Trust amount
      */
-    function updateTrust(address borrower, uint128 trustAmount) external onlyMember(msg.sender) whenNotPaused {
+    function updateTrust(address borrower, uint96 trustAmount) external onlyMember(msg.sender) whenNotPaused {
         if (borrower == address(0)) revert AddressZero();
         if (borrower == msg.sender) revert ErrorSelfVouching();
         Index memory index = voucherIndexes[borrower][msg.sender];
         if (index.isSet) {
             Vouch storage vouch = vouchers[borrower][index.idx];
-            if (trustAmount < vouch.outstanding) revert TrustAmountTooSmall();
+            if (trustAmount < vouch.locked) revert TrustAmountTooSmall();
             vouch.amount = trustAmount;
         } else {
             voucherIndexes[borrower][msg.sender] = Index(true, vouchers[borrower].length);
-            vouchers[borrower].push(Vouch(msg.sender, trustAmount, 0));
+            vouchers[borrower].push(Vouch(msg.sender, trustAmount, 0, 0));
         }
 
         emit LogUpdateTrust(msg.sender, borrower, trustAmount);
@@ -480,14 +457,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param staker Staker address
      *  @param borrower borrower address
      */
-    function cancelVouch(address staker, address borrower) external onlyMember(msg.sender) whenNotPaused {
+    function cancelVouch(address staker, address borrower) public onlyMember(msg.sender) whenNotPaused {
         if (staker != msg.sender && borrower != msg.sender) revert AuthFailed();
 
         Index memory index = voucherIndexes[borrower][staker];
         if (!index.isSet) revert VoucherNotFound();
 
         Vouch storage vouch = vouchers[borrower][index.idx];
-        if (vouch.outstanding > 0) revert LockedStakeNonZero();
+        if (vouch.locked > 0) revert LockedStakeNonZero();
 
         vouchers[borrower][index.idx] = vouchers[borrower][vouchers[borrower].length - 1];
         vouchers[borrower].pop();
@@ -547,7 +524,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  Emits a {LogStake} event.
      *  @param amount Amount to stake
      */
-    function stake(uint128 amount) public whenNotPaused nonReentrant {
+    function stake(uint96 amount) public whenNotPaused nonReentrant {
         IERC20Upgradeable erc20Token = IERC20Upgradeable(stakingToken);
 
         comptroller.withdrawRewards(msg.sender, stakingToken);
@@ -572,10 +549,10 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  Emits {LogUnstake} event
      *  @param amount Amount to unstake
      */
-    function unstake(uint128 amount) external whenNotPaused nonReentrant {
+    function unstake(uint96 amount) external whenNotPaused nonReentrant {
         Staker storage staker = stakers[msg.sender];
 
-        if (staker.stakedAmount - staker.outstanding < amount) revert InsufficientBalance();
+        if (staker.stakedAmount - staker.locked < amount) revert InsufficientBalance();
 
         comptroller.withdrawRewards(msg.sender, stakingToken);
 
@@ -605,7 +582,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function debtWriteOff(
         address staker,
         address borrower,
-        uint256 amount
+        uint96 amount
     ) public {
         if (amount == 0) revert AmountZero();
         if (!uToken.checkIsOverdue(borrower)) revert NotOverdue();
@@ -619,94 +596,73 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (!index.isSet) revert VoucherNotFound();
         Vouch storage vouch = vouchers[borrower][index.idx];
 
-        if (amount > vouch.outstanding) revert ExceedsLocked();
+        if (amount > vouch.locked) revert ExceedsLocked();
 
         // update staker staked amount
-        stakers[staker].stakedAmount -= uint128(amount);
+        stakers[staker].stakedAmount -= amount;
         totalStaked -= amount;
 
-        // update frozen amounts
-        uint256 frozenAmount = memberFrozen[borrower].amount;
-        uint256 unFreezeAmount = amount >= frozenAmount ? frozenAmount : amount;
-        memberFrozen[borrower].amount = frozenAmount - unFreezeAmount;
-        totalFrozen -= unFreezeAmount;
-
         // update vouch trust amount
-        vouch.amount -= uint128(amount);
+        vouch.lastUpdated = uint64(block.timestamp);
+        vouch.amount -= amount;
         if (vouch.amount == 0) {
-            // 3a. if trust is 0 then cancel the vouch
+            cancelVouch(staker, borrower);
         }
 
-        IAssetManager(assetManager).debtWriteOff(stakingToken, amount);
-        uToken.debtWriteOff(borrower, amount);
+        IAssetManager(assetManager).debtWriteOff(stakingToken, uint256(amount));
+        uToken.debtWriteOff(borrower, uint256(amount));
 
-        emit LogDebtWriteOff(msg.sender, borrower, amount);
+        emit LogDebtWriteOff(msg.sender, borrower, uint256(amount));
     }
 
     /**
      *  @dev Borrowing from the market
      *  @param amount Borrow amount
      */
-    function updateOutstanding(
+    function updateLocked(
         address borrower,
-        uint256 amount,
+        uint96 amount,
         bool lock
     ) external onlyMarket {
-        uint128 remaining = uint128(amount);
+        uint96 remaining = amount;
 
         for (uint256 i = 0; i < vouchers[borrower].length; i++) {
             Vouch storage vouch = vouchers[borrower][i];
-            uint128 innerAmount;
+            uint96 innerAmount;
 
             if (lock) {
-                uint128 stakerOutstanding = stakers[vouch.staker].outstanding;
-                uint128 stakerStakedAmount = stakers[vouch.staker].stakedAmount;
-                uint128 availableStake = stakerStakedAmount - stakerOutstanding;
-                uint128 borrowAmount = _min(availableStake, uint128(vouch.amount) - vouch.outstanding);
-                if (borrowAmount <= 0) continue;
-                innerAmount = _min(remaining, borrowAmount);
-                stakers[vouch.staker].outstanding = stakerOutstanding + innerAmount;
-                vouch.outstanding += innerAmount;
+                uint96 stakerOutstanding = stakers[vouch.staker].locked;
+                uint96 stakerStakedAmount = stakers[vouch.staker].stakedAmount;
+                uint96 availableStake = stakerStakedAmount - stakerOutstanding;
+                uint96 lockAmount = _min(availableStake, vouch.amount - vouch.locked);
+                if (lockAmount == 0) continue;
+                innerAmount = _min(remaining, lockAmount);
+                // Storage writes
+                stakers[vouch.staker].locked = stakerOutstanding + innerAmount;
+                vouch.locked += innerAmount;
+                vouch.lastUpdated = uint64(block.timestamp);
             } else {
-                innerAmount = _min(vouch.outstanding, remaining);
-                stakers[vouch.staker].outstanding -= innerAmount;
-                vouch.outstanding -= innerAmount;
+                uint96 locked = vouch.locked;
+                if (locked == 0) continue;
+                innerAmount = _min(locked, remaining);
+                // Storage writes
+                stakers[vouch.staker].locked -= innerAmount;
+                vouch.locked -= innerAmount;
+                vouch.lastUpdated = uint64(block.timestamp);
             }
 
             remaining -= innerAmount;
             if (remaining <= 0) break;
         }
 
-        if (remaining > 0) revert OutstandingRemaining();
-    }
-
-    /**
-     *  @dev Update total frozen for overdue memeber
-     *  Only callable by the uToken contract
-     *  @param borrower Address of borrower
-     *  @param isOverdue If the borrower is overdue
-     */
-    // TODO: need to update this to track staker to borrower locked amount
-    // should end up with something similar to updateOutstanding
-    function updateTotalFrozen(address borrower, bool isOverdue) external onlyMarket {
-        if (isOverdue) {
-            // get outstanding amount
-            uint256 borrowed = uToken.getBorrowed(borrower);
-            memberFrozen[borrower].amount = borrowed;
-            memberFrozen[borrower].lastRepaid = uToken.getLastRepay(borrower);
-            totalFrozen += borrowed;
-        } else {
-            // decrement totalFrozen by memberFrozen
-            totalFrozen -= memberFrozen[borrower].amount;
-            memberFrozen[borrower].amount = 0;
-        }
+        if (remaining > 0) revert LockedRemaining();
     }
 
     /* -------------------------------------------------------------------
        Internal Functions 
     ------------------------------------------------------------------- */
 
-    function _min(uint128 a, uint128 b) private pure returns (uint128) {
+    function _min(uint96 a, uint96 b) private pure returns (uint96) {
         if (a < b) return a;
         return b;
     }

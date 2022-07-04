@@ -169,5 +169,5 @@ interface IUserManager {
         uint256 lastRepay
     ) external;
 
-    function updateOutstanding(address borrower, uint256 amount, bool lock) external;
+    function updateLocked(address borrower, uint256 amount, bool lock) external;
 }

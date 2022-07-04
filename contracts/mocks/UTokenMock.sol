@@ -1,169 +1,91 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {IUToken} from "../interfaces/IUToken.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import "../interfaces/IUserManager.sol";
-
-/**
- *  @title UToken Contract
- *  @dev Union accountBorrows can borrow and repay thru this component.
- */
-contract UTokenMock is ERC20Upgradeable {
-    bool public constant IS_UTOKEN = true;
-    uint256 public constant WAD = 1e18;
-    uint256 internal constant BORROW_RATE_MAX_MANTISSA = 0.005e16; //Maximum borrow rate that can ever be applied (.005% / block)
-    uint256 internal constant RESERVE_FACTORY_MAX_MANTISSA = 1e18; //Maximum fraction of interest that can be set aside for reserves
-
-    bytes32 public constant PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-
-    bool public isOverdue;
-
-    address public userManager;
-
-    uint256 public borrowed;
-
-    function __UToken_init() public initializer {
-        ERC20Upgradeable.__ERC20_init("uToken", "uToken");
-    }
-
-    function setUserManager(address _userManager) public {
-        userManager = _userManager;
-    }
-
-    function updateOverdueInfo(address account, bool _isOverdue) external {
-        IUserManager(userManager).updateTotalFrozen(account, _isOverdue);
-    }
-
-    function updateLockedData(address account, uint256 amount) external {
-        IUserManager(userManager).updateLockedData(account, amount, true);
-    }
-
-    function setIsOverdue(bool _isOverdue) public returns (bool) {
-        return isOverdue = _isOverdue;
-    }
-
-    function checkIsOverdue(address) public view returns (bool) {
-        return isOverdue;
-    }
-
-    function getRemainingDebtCeiling() public pure returns (uint256) {
+contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
+    function overdueBlocks() external view override returns (uint256) {
         return 0;
     }
 
-    function getLastRepay(address) public pure returns (uint256 lastRepay) {
-        lastRepay = 0;
-    }
-
-    function getInterestIndex(address) public pure returns (uint256 interestIndex) {
-        interestIndex = 0;
-    }
-
-    function calculatingFee(uint256) public pure returns (uint256) {
+    function getRemainingDebtCeiling() external view override returns (uint256) {
         return 0;
     }
 
-    function getLoan(address)
-        public
-        view
-        returns (
-            uint256 principal,
-            uint256 totalBorrowed,
-            address asset,
-            uint256 apr,
-            int256 limit,
-            bool _isOverdue,
-            uint256 lastRepay
-        )
-    {}
-
-    function setBorrowed(uint256 _borrowed) public {
-        borrowed = _borrowed;
-    }
-
-    function getBorrowed(address) public view returns (uint256) {
-        return borrowed;
-    }
-
-    function borrowBalanceView(address) public pure returns (uint256) {
+    function getBorrowed(address account) external view override returns (uint256) {
         return 0;
     }
 
-    function borrowRatePerBlock() public view returns (uint256) {}
-
-    function borrow(uint256 amount) external {
-        IUserManager(userManager).updateOutstanding(msg.sender, amount, true);
-    }
-
-    function supplyRatePerBlock() public pure returns (uint256) {
+    function getLastRepay(address account) external view override returns (uint256) {
         return 0;
     }
 
-    function exchangeRateCurrent() public view returns (uint256) {
-        return exchangeRateStored();
-    }
-
-    function exchangeRateStored() public view returns (uint256) {}
-
-    function calculatingInterest(address) public pure returns (uint256) {
+    function getInterestIndex(address account) external view override returns (uint256) {
         return 0;
     }
 
-    function repayBorrowWithPermit(
-        address,
-        uint256,
-        uint256,
-        uint256,
-        uint8,
-        bytes32,
-        bytes32
-    ) public {}
+    function checkIsOverdue(address account) external view override returns (bool) {
+        return false;
+    }
 
-    function accrueInterest() public pure returns (bool) {
+    function borrowRatePerBlock() external view override returns (uint256) {
+        return 0;
+    }
+
+    function calculatingFee(uint256) external view override returns (uint256) {
+        return 0;
+    }
+
+    function calculatingInterest(address) external view override returns (uint256) {
+        return 0;
+    }
+
+    function borrowBalanceView(address) external view override returns (uint256) {
+        return 0;
+    }
+
+    function setOriginationFee(uint256) external override {}
+
+    function setDebtCeiling(uint256) external override {}
+
+    function setMaxBorrow(uint256) external override {}
+
+    function setMinBorrow(uint256) external override {}
+
+    function setOverdueBlocks(uint256) external override {}
+
+    function setInterestRateModel(address) external override {}
+
+    function setReserveFactor(uint256) external override {}
+
+    function supplyRatePerBlock() external override returns (uint256) {
+        return 1;
+    }
+
+    function accrueInterest() external override returns (bool) {
         return true;
     }
 
-    function balanceOfUnderlying(address owner) external view returns (uint256) {
-        return balanceOf(owner);
+    function balanceOfUnderlying(address) external override returns (uint256) {
+        return 0;
     }
 
-    function mint(uint256 mintAmount) external {
-        _mint(msg.sender, mintAmount);
-    }
+    function mint(uint256) external override {}
 
-    function redeem(uint256) external {}
+    function redeem(uint256) external override {}
 
-    function redeemUnderlying(uint256) external {}
+    function redeemUnderlying(uint256) external override {}
 
-    function addReserves(uint256) external {}
+    function addReserves(uint256) external override {}
 
-    function removeReserves(address, uint256) external {}
+    function removeReserves(address, uint256) external override {}
 
-    function debtWriteOff(address, uint256) external {}
+    function borrow(uint256) external override {}
 
-    function getBlockNumber() internal view returns (uint256) {
-        return block.number;
-    }
+    function repayBorrow(uint256) external override {}
 
-    function batchUpdateOverdueInfos(address[] calldata accounts) external {}
+    function repayBorrowBehalf(address, uint256) external override {}
 
-    function getChainId() internal view returns (uint256) {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
-        return chainId;
-    }
-
-    function permit(
-        address,
-        address,
-        uint256,
-        uint256,
-        uint8,
-        bytes32,
-        bytes32
-    ) external {}
+    function debtWriteOff(address, uint256) external override {}
 }

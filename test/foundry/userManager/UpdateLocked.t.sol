@@ -1,0 +1,82 @@
+pragma solidity ^0.8.0;
+
+import {TestWrapper} from "../TestWrapper.sol";
+
+contract TestUpdateLocked is TestUserManagerBase {
+    address[] public MEMBERS = [address(10), address(11), address(12)];
+    uint96 stakeAmount = 100 ether;
+
+    function setUp() public override {
+        super.setUp();
+        for (uint256 i = 0; i < MEMBERS.length; i++) {
+            vm.prank(ADMIN);
+            userManager.addMember(MEMBERS[i]);
+            daiMock.mint(MEMBERS[i], stakeAmount);
+
+            vm.startPrank(MEMBERS[i]);
+            daiMock.approve(address(userManager), type(uint256).max);
+            userManager.stake(stakeAmount);
+            userManager.updateTrust(ACCOUNT, stakeAmount);
+            vm.stopPrank();
+        }
+    }
+
+    function _prankMarket() private {
+        vm.startPrank(address(userManager.uToken()));
+    }
+
+    function testLocksFirstInFirst(uint96 lockAmount) public {
+        vm.assume(lockAmount <= stakeAmount);
+        _prankMarket();
+        userManager.updateLocked(ACCOUNT, lockAmount, true);
+        vm.stopPrank();
+
+        (, uint96 amount, uint96 locked, ) = userManager.vouchers(ACCOUNT, 0);
+        assertEq(locked, lockAmount);
+    }
+
+    function testUpdatesLastUpdated(uint96 lockAmount) public {
+        uint64 lastUpdated;
+        (, , , lastUpdated) = userManager.vouchers(ACCOUNT, 0);
+        assertEq(lastUpdated, 0);
+
+        vm.assume(lockAmount <= stakeAmount);
+        _prankMarket();
+        userManager.updateLocked(ACCOUNT, lockAmount, true);
+        vm.stopPrank();
+
+        (, , , lastUpdated) = userManager.vouchers(ACCOUNT, 0);
+        assertEq(lastUpdated, block.timestamp);
+    }
+
+    function testLocksEntireCreditline() public {
+        _prankMarket();
+        uint96 lockAmount = uint96(stakeAmount * MEMBERS.length);
+        userManager.updateLocked(ACCOUNT, lockAmount, true);
+        vm.stopPrank();
+
+        for (uint256 i = 0; i < MEMBERS.length; i++) {
+            (, uint96 amount, uint96 locked, ) = userManager.vouchers(ACCOUNT, i);
+            assertEq(locked, stakeAmount);
+        }
+    }
+
+    function testUnlocksFirstInFirst() public {
+        _prankMarket();
+        uint96 lockAmount = uint96(stakeAmount * MEMBERS.length);
+        userManager.updateLocked(ACCOUNT, lockAmount, true);
+        userManager.updateLocked(ACCOUNT, stakeAmount, false);
+        vm.stopPrank();
+
+        (, uint96 amount, uint96 locked, ) = userManager.vouchers(ACCOUNT, 0);
+        assertEq(locked, 0);
+    }
+
+    function testCannotUpdateWithRemaining(uint96 lockAmount) public {
+        vm.assume(lockAmount > uint96(stakeAmount * MEMBERS.length));
+        _prankMarket();
+        vm.expectRevert(UserManager.LockedRemaining.selector);
+        userManager.updateLocked(ACCOUNT, lockAmount, true);
+        vm.stopPrank();
+    }
+}

@@ -1,39 +1,30 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IComptroller} from "../interfaces/IComptroller.sol";
 
-contract ComptrollerMock {
-    address public unionToken;
-    uint256 public rewardAmount;
-
-    function __ComptrollerMock_init() public {}
-
-    function getRewardsMultiplier(address account, address token) public view returns (uint256) {}
-
-    function setRewardsInfo(address _unionToken, uint256 _rewardAmount) external {
-        unionToken = _unionToken;
-        rewardAmount = _rewardAmount;
+contract ComptrollerMock is IComptroller {
+    function getRewardsMultiplier(address, address) external view override returns (uint256) {
+        return 0;
     }
 
-    function withdrawRewards(address sender, address) external returns (uint256) {
-        IERC20Upgradeable(unionToken).transfer(sender, rewardAmount);
-        return rewardAmount;
+    function withdrawRewards(address, address) external override returns (uint256) {
+        return 0;
+    }
+
+    function updateTotalStaked(address, uint256) external override returns (bool) {
+        return false;
     }
 
     function calculateRewardsByBlocks(
-        address account,
-        address token,
-        uint256 futureBlocks
-    ) public view returns (uint256) {}
-
-    function calculateRewards(address account, address token) public view returns (uint256) {
-        return calculateRewardsByBlocks(account, token, 0);
+        address,
+        address,
+        uint256
+    ) external view override returns (uint256) {
+        return 0;
     }
 
-    function inflationPerBlock(uint256) public view returns (uint256) {}
-
-    function updateTotalStaked(address, uint256) external pure returns (bool) {
-        return true;
+    function calculateRewards(address account, address token) external view override returns (uint256) {
+        return 0;
     }
 }
