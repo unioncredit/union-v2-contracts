@@ -1,11 +1,9 @@
-require("@nomiclabs/hardhat-waffle");
-require("@nomiclabs/hardhat-ethers");
-require("@openzeppelin/hardhat-upgrades");
+import "@nomiclabs/hardhat-waffle";
+import "@nomiclabs/hardhat-ethers";
+import "@openzeppelin/hardhat-upgrades";
+import "@typechain/hardhat";
 
-/**
- * @type import('hardhat/config').HardhatUserConfig
- */
-module.exports = {
+export default {
     solidity: {
         compilers: [
             {

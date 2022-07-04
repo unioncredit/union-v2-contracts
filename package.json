@@ -12,7 +12,8 @@
         "hh:compile": "yarn hardhat compile",
         "hh:test:unit": "yarn hardhat test test/hardhat/unit/*",
         "f:compile": "forge build",
-        "f:test": "forge test"
+        "f:test": "forge test",
+        "clean": "forge clean && yarn hardhat clean"
     },
     "repository": {
         "type": "git",
@@ -26,6 +27,11 @@
         "@openzeppelin/contracts": "4.4.2",
         "@openzeppelin/contracts-upgradeable": "4.4.2",
         "@openzeppelin/hardhat-upgrades": "^1.17.0",
+        "@typechain/ethers-v5": "^10.1.0",
+        "@typechain/hardhat": "^6.1.2",
+        "@types/chai": "^4.3.1",
+        "@types/mocha": "^9.1.1",
+        "@types/node": "^18.0.1",
         "chai": "^4.3.6",
         "eth-permit": "^0.2.1",
         "ethereum-waffle": "^3.4.4",
@@ -33,6 +39,10 @@
         "hardhat": "^2.9.6",
         "mocha": "^10.0.0",
         "prettier": "^2.6.2",
-        "prettier-plugin-solidity": "^1.0.0-beta.19"
+        "prettier-plugin-solidity": "^1.0.0-beta.19",
+        "ts-generator": "^0.1.1",
+        "ts-node": "^10.8.2",
+        "typechain": "^8.1.0",
+        "typescript": "^4.7.4"
     }
 }
