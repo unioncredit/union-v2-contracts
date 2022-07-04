@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
-import {TestWrapper} from "../TestWrapper.sol";
+import {TestUserManagerBase} from "./TestUserManagerBase.sol";
+import {UserManager} from "union-v1.5-contracts/user/UserManager.sol";
 
 contract TestUpdateTrust is TestUserManagerBase {
     function setUp() public override {

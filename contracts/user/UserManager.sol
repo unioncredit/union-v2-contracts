@@ -365,16 +365,30 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     /**
      *  @dev Get frozen coin age
-     *  @param borrower Address of borrower
-     *  @param pastBlocks Number of blocks past
+     *  @param  borrower Address of borrower
+     *  @param  pastBlocks Number of blocks past to calculate coinAge from
+     *          coinage = min(block.number - lastUpdated, pastBlocks) * amount
      */
-    function getFrozenCoinAge(address borrower, uint256 pastBlocks)
+    function getFrozenInfo(address borrower, uint256 pastBlocks)
         external
         view
         returns (uint256 totalFrozen, uint256 frozenCoinage)
     {
-        // TODO: get total frozen
-        // TODO: get frozen coinage
+        uint256 overdueBlocks = uToken.overdueBlocks();
+        uint256 vouchersLength = vouchers[borrower].length;
+        for (uint256 i = 0; i < vouchersLength; i++) {
+            uint256 lastUpdated = vouchers[borrower][i].lastUpdated;
+            uint256 diff = block.number - lastUpdated;
+            if (overdueBlocks < diff) {
+                uint96 locked = vouchers[borrower][i].locked;
+                totalFrozen += locked;
+                if (pastBlocks >= diff) {
+                    frozenCoinage += locked * diff;
+                } else {
+                    frozenCoinage += locked * pastBlocks;
+                }
+            }
+        }
     }
 
     /**
