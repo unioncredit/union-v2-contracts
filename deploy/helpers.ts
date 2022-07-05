@@ -4,6 +4,8 @@ import {UUPSProxy, UUPSProxy__factory} from "../typechain-types";
 
 const AddressZero = "0x0000000000000000000000000000000000000000";
 
+const DEBUG_DEFAULT = false;
+
 export async function deployProxy<T extends Contract>(
     signer: Signer,
     contractFactory: ContractFactory,
@@ -12,7 +14,7 @@ export async function deployProxy<T extends Contract>(
         signature: string;
         args: Array<unknown>;
     },
-    debug = true
+    debug = DEBUG_DEFAULT
 ) {
     const implementation = await deployContract<T>(contractFactory, `Proxy:Implementation:${contractName}`, [], debug);
 
@@ -46,7 +48,7 @@ export async function deployContract<T extends Contract>(
     contractFactory: ContractFactory,
     contractName: string,
     constructorArgs: Array<unknown> = [],
-    debug = true,
+    debug = DEBUG_DEFAULT,
     waitForBlocks = undefined
 ): Promise<T> {
     const contract = await contractFactory.deploy(...constructorArgs);

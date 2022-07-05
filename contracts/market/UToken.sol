@@ -52,7 +52,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     /**
      *  @dev Initial exchange rate used when minting the first UTokens (used when totalSupply = 0)
      */
-    uint256 internal initialExchangeRateMantissa;
+    uint256 public initialExchangeRateMantissa;
 
     /**
      *  @dev Fraction of interest currently set aside for reserves

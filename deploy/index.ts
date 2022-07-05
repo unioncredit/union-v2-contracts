@@ -73,6 +73,7 @@ export interface Contracts {
     comptroller: Comptroller;
     assetManager: AssetManager;
     dai: ERC20 | FaucetERC20;
+    marketRegistry: MarketRegistry;
     unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
         pureToken: PureTokenAdapter;
@@ -201,6 +202,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
             ]
         });
         uToken = UToken__factory.connect(proxy.address, signer);
+        await userManager.setUToken(uToken.address);
     }
 
     // deploy fixedInterestRateModel
@@ -222,6 +224,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         userManager,
         uToken,
         unionToken,
+        marketRegistry,
         fixedInterestRateModel,
         comptroller,
         assetManager,
