@@ -39,7 +39,7 @@ export async function deployProxy<T extends Contract>(
         debug
     );
 
-    return {proxy, implementation};
+    return {proxy: proxy as any as T, implementation};
 }
 
 export async function deployContract<T extends Contract>(
