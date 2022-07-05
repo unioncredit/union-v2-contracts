@@ -95,6 +95,10 @@ describe("Test deployment configs", () => {
             const underlying = await contracts.uToken.underlying();
             expect(underlying).eq(contracts.dai.address);
         });
+        it("has the correct initialExchangeRateMantissa", async () => {
+            const initialExchangeRateMantissa = await contracts.uToken.initialExchangeRateMantissa();
+            expect(initialExchangeRateMantissa).eq(config.main.uToken.initialExchangeRateMantissa);
+        });
         it("has the correct reserveFactorMantissa", async () => {
             const reserveFactorMantissa = await contracts.uToken.reserveFactorMantissa();
             expect(reserveFactorMantissa).eq(config.main.uToken.reserveFactorMantissa);

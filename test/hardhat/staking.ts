@@ -1,5 +1,6 @@
 import {expect} from "chai";
 import {Signer} from "ethers";
+import {parseUnits} from "ethers/lib/utils";
 import {ethers} from "hardhat";
 
 import deploy, {Contracts} from "../../deploy";
@@ -19,11 +20,23 @@ describe("Staking and unstaking", () => {
 
     const beforeContext = async () => {
         contracts = await deploy({...config.main, admin: deployerAddress}, deployer);
+
+        if ("mint" in contracts.dai) {
+            for (const signer of signers) {
+                const address = await signer.getAddress();
+                const amount = parseUnits("10000000");
+                await contracts.dai.mint(address, amount);
+                await contracts.dai.approve(contracts.userManager.address, amount);
+            }
+        }
     };
 
     context("staking and unstaking as a non member", () => {
         before(beforeContext);
-        it("cannot stake more than limit");
+        it("cannot stake more than limit", async () => {
+            const maxStake = await contracts.userManager.maxStakeAmount();
+            await contracts.userManager.stake(maxStake);
+        });
         it("transfers underlying token to assetManager");
         it("staking updates total staked and user staked");
         it("cannot unstake more than staked");
@@ -39,7 +52,7 @@ describe("Staking and unstaking", () => {
         it("staker with frozen balance gets less rewards");
         it("staker with locked balance gets more rewards");
     });
-    
+
     context("stake underwrites borrow", () => {
         before(beforeContext);
         it("cannot unstake when locked");

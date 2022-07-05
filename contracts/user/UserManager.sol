@@ -94,6 +94,12 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     uint256 public totalStaked;
 
     /**
+     *  @dev Total amount of stake frozen
+     *  TODO:
+     */
+    uint256 public totalFrozen;
+
+    /**
      *  @dev Max blocks can be overdue for
      */
     uint256 public maxOverdue;

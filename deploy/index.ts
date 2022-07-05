@@ -177,6 +177,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
             ]
         });
         userManager = UserManager__factory.connect(proxy.address, signer);
+        await marketRegistry.addUserManager(dai.address, userManager.address);
     }
 
     // deploy uToken
@@ -203,6 +204,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         });
         uToken = UToken__factory.connect(proxy.address, signer);
         await userManager.setUToken(uToken.address);
+        await marketRegistry.addUToken(dai.address, uToken.address);
     }
 
     // deploy fixedInterestRateModel
