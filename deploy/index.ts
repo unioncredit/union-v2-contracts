@@ -1,4 +1,4 @@
-import {Signer} from "ethers";
+import {BigNumberish, Signer} from "ethers";
 
 import {
     AssetManager__factory,
@@ -20,7 +20,9 @@ import {
     FaucetERC20_ERC20Permit,
     FaucetERC20_ERC20Permit__factory,
     MarketRegistry,
-    MarketRegistry__factory
+    MarketRegistry__factory,
+    FixedInterestRateModel,
+    FixedInterestRateModel__factory
 } from "../typechain-types";
 import {deployProxy, deployContract} from "./helpers";
 
@@ -30,7 +32,7 @@ interface Addresses {
     unionToken?: string;
     dai?: string;
     marketRegistry?: string;
-    fixedRateInterestModal?: string;
+    fixedRateInterestModel?: string;
     comptroller?: string;
     assetManager?: string;
     adapters?: {
@@ -42,26 +44,32 @@ interface DeployConfig {
     admin: string;
     addresses: Addresses;
     userManager: {
-        maxOverdue: number;
-        effectiveCount: number;
+        maxOverdue: BigNumberish;
+        effectiveCount: BigNumberish;
     };
     uToken: {
         name: string;
         symbol: string;
-        initialExchangeRateMantissa: number;
-        reserveFactorMantissa: number;
-        originationFee: number;
-        debtCeiling: number;
-        maxBorrow: number;
-        minBorrow: number;
-        overdueBlocks: number;
+        initialExchangeRateMantissa: BigNumberish;
+        reserveFactorMantissa: BigNumberish;
+        originationFee: BigNumberish;
+        debtCeiling: BigNumberish;
+        maxBorrow: BigNumberish;
+        minBorrow: BigNumberish;
+        overdueBlocks: BigNumberish;
+    };
+    fixedInterestRateModel: {
+        interestRatePerBlock: BigNumberish;
+    };
+    comptroller: {
+        halfDecayPoint: BigNumberish;
     };
 }
 
 interface Contracts {
     userManager: UserManager;
     uToken: UToken;
-    fixedInterestRateModel: null;
+    fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
     assetManager: AssetManager;
     dai: ERC20 | FaucetERC20;
@@ -114,9 +122,9 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.comptroller) {
         comptroller = Comptroller__factory.connect(config.addresses.comptroller, signer);
     } else {
-        const {proxy} = await deployProxy<Comptroller>(signer, new Comptroller__factory(signer), "Comtroller", {
-            signature: "__Comptroller_init(address, address)",
-            args: [unionToken.address, marketRegistry.address]
+        const {proxy} = await deployProxy<Comptroller>(signer, new Comptroller__factory(signer), "Comptroller", {
+            signature: "__Comptroller_init(address,address,uint256)",
+            args: [unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint]
         });
         comptroller = proxy;
     }
@@ -195,13 +203,26 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         uToken = proxy;
     }
 
-    // TODO: deploy fixed interest rate model
+    // deploy fixedInterestRateModel
+    let fixedInterestRateModel: FixedInterestRateModel;
+    if (config.addresses.fixedRateInterestModel) {
+        fixedInterestRateModel = FixedInterestRateModel__factory.connect(
+            config.addresses.fixedRateInterestModel,
+            signer
+        );
+    } else {
+        fixedInterestRateModel = await deployContract<FixedInterestRateModel>(
+            new FixedInterestRateModel__factory(signer),
+            "FixedInterestRateModel",
+            [config.fixedInterestRateModel.interestRatePerBlock]
+        );
+    }
 
     return {
         userManager,
         uToken,
         unionToken,
-        fixedInterestRateModel: null,
+        fixedInterestRateModel,
         comptroller,
         assetManager,
         dai,

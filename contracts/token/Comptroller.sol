@@ -54,13 +54,13 @@ contract Comptroller is Controller, IComptroller {
      */
     event LogWithdrawRewards(address indexed account, uint256 amount);
 
-    function __Comptroller_init(address unionToken_, address marketRegistry_) public initializer {
+    function __Comptroller_init(address unionToken_, address marketRegistry_, uint256 _halfDecayPoint) public initializer {
         Controller.__Controller_init(msg.sender);
         unionToken = IERC20Upgradeable(unionToken_);
         marketRegistry = IMarketRegistry(marketRegistry_);
         gInflationIndex = INIT_INFLATION_INDEX;
         gLastUpdatedBlock = block.number;
-        halfDecayPoint = 500000;
+        halfDecayPoint = _halfDecayPoint;
     }
 
     function setHalfDecayPoint(uint256 point) public onlyAdmin {

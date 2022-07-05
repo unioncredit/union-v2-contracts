@@ -17,7 +17,7 @@ export async function deployProxy<T extends Contract>(
     const implementation = await deployContract<T>(contractFactory, `Proxy:Implementation:${contractName}`, [], debug);
 
     const initFnName = initialize.signature.replace(/\((.+)?\)/, "");
-    const iface = new Interface([initialize.signature]);
+    const iface = new Interface([`function ${initialize.signature} external`]);
     const encoded = iface.encodeFunctionData(initFnName, initialize.args || []);
 
     if (debug) {
@@ -31,7 +31,7 @@ export async function deployProxy<T extends Contract>(
         );
     }
 
-    const constructorArgs = [implementation, AddressZero, encoded];
+    const constructorArgs = [implementation.address, AddressZero, encoded];
     const proxy = await deployContract<UUPSProxy>(
         new UUPSProxy__factory(signer),
         `Proxy:${contractName}`,
