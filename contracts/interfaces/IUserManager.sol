@@ -68,8 +68,6 @@ interface IUserManager {
 
     function totalFrozen() external view returns (uint256);
 
-    function getFrozenCoinAge(address staker, uint256 pastBlocks) external view returns (uint256);
-
     /**
      *  @dev Add a new member
      *  Accept claims only from the admin
@@ -116,7 +114,7 @@ interface IUserManager {
      *  @param staker Staker address
      *  @return Frozen token amount
      */
-    function getTotalFrozenAmount(address staker) external view returns (uint256);
+    function getFrozenInfo(address staker, uint256 blocks) external view returns (uint256, uint256);
 
     /**
      *  @dev Update userManager locked info
