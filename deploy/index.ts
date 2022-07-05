@@ -10,9 +10,19 @@ import {
     UToken__factory,
     AssetManager,
     PureTokenAdapter,
-    PureTokenAdapter__factory
+    PureTokenAdapter__factory,
+    ERC20,
+    ERC20__factory,
+    FaucetERC20,
+    FaucetERC20__factory,
+    IUnionToken,
+    IUnionToken__factory,
+    FaucetERC20_ERC20Permit,
+    FaucetERC20_ERC20Permit__factory,
+    MarketRegistry,
+    MarketRegistry__factory
 } from "../typechain-types";
-import {deployProxy} from "./helpers";
+import {deployProxy, deployContract} from "./helpers";
 
 interface Addresses {
     userManager?: string;
@@ -54,16 +64,50 @@ interface Contracts {
     fixedInterestRateModel: null;
     comptroller: Comptroller;
     assetManager: AssetManager;
+    dai: ERC20 | FaucetERC20;
+    unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
         pureToken: PureTokenAdapter;
     };
 }
 
 export default async function (config: DeployConfig, signer: Signer): Promise<Contracts> {
-    // TODO: deploy this stuff
-    let unionToken = {address: null};
-    let dai = {address: null};
-    let marketRegistry = {address: null};
+    // deploy market registry
+    let marketRegistry: MarketRegistry;
+    if (config.addresses.marketRegistry) {
+        marketRegistry = MarketRegistry__factory.connect(config.addresses.marketRegistry, signer);
+    } else {
+        const {proxy} = await deployProxy<MarketRegistry>(
+            signer,
+            new MarketRegistry__factory(signer),
+            "MarketRegistry",
+            {
+                signature: "__MarketRegistry_init()",
+                args: []
+            }
+        );
+        marketRegistry = proxy;
+    }
+
+    // deploy UNION
+    let unionToken: IUnionToken | FaucetERC20_ERC20Permit;
+    if (config.addresses.unionToken) {
+        unionToken = IUnionToken__factory.connect(config.addresses.unionToken, signer);
+    } else {
+        unionToken = await deployContract<FaucetERC20_ERC20Permit>(
+            new FaucetERC20_ERC20Permit__factory(signer),
+            "UnionToken",
+            ["Union Token", "UNION"]
+        );
+    }
+
+    // deploy DAI
+    let dai: ERC20 | FaucetERC20;
+    if (config.addresses.dai) {
+        dai = ERC20__factory.connect(config.addresses.dai, signer);
+    } else {
+        dai = await deployContract<FaucetERC20>(new FaucetERC20__factory(signer), "DAI", ["DAI", "DAI"]);
+    }
 
     // deploy comptroller
     let comptroller: Comptroller;
@@ -156,9 +200,11 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     return {
         userManager,
         uToken,
+        unionToken,
         fixedInterestRateModel: null,
         comptroller,
         assetManager,
+        dai,
         adapters: {pureToken}
     };
 }
