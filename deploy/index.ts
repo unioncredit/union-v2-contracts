@@ -66,7 +66,7 @@ interface DeployConfig {
     };
 }
 
-interface Contracts {
+export interface Contracts {
     userManager: UserManager;
     uToken: UToken;
     fixedInterestRateModel: FixedInterestRateModel;
@@ -94,7 +94,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
                 args: []
             }
         );
-        marketRegistry = proxy;
+        marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
     }
 
     // deploy UNION
@@ -126,7 +126,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
             signature: "__Comptroller_init(address,address,uint256)",
             args: [unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint]
         });
-        comptroller = proxy;
+        comptroller = Comptroller__factory.connect(proxy.address, signer);
     }
 
     // deploy asset manager
@@ -138,7 +138,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
             signature: "__AssetManager_init(address)",
             args: [marketRegistry.address]
         });
-        assetManager = proxy;
+        assetManager = AssetManager__factory.connect(proxy.address, signer);
     }
 
     // deploy pure token
@@ -155,7 +155,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
                 args: [assetManager.address]
             }
         );
-        pureToken = proxy;
+        pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
     }
 
     // deploy user manager
@@ -175,7 +175,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
                 config.userManager.effectiveCount
             ]
         });
-        userManager = proxy;
+        userManager = UserManager__factory.connect(proxy.address, signer);
     }
 
     // deploy uToken
@@ -200,7 +200,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
                 config.admin
             ]
         });
-        uToken = proxy;
+        uToken = UToken__factory.connect(proxy.address, signer);
     }
 
     // deploy fixedInterestRateModel
