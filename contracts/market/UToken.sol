@@ -556,7 +556,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         totalReserves += fee;
 
         if (!assetManagerContract.withdraw(underlying, msg.sender, amount)) revert WithdrawFailed();
-        IUserManager(userManager).updateLocked(msg.sender, amount + fee, true);
+        // TODO: this could overflow? should borrow input be uint96?
+        IUserManager(userManager).updateLocked(msg.sender, uint96(amount + fee), true);
 
         emit LogBorrow(msg.sender, amount, fee);
     }
@@ -610,7 +611,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
                 accountBorrows[borrower].lastRepay = getBlockNumber();
             }
 
-            IUserManager(userManager).updateLocked(borrower, repayAmount - interest, false);
+            IUserManager(userManager).updateLocked(borrower, uint96(repayAmount - interest), false);
         } else {
             toReserveAmount = (repayAmount * reserveFactorMantissa) / WAD;
             toRedeemableAmount = repayAmount - toReserveAmount;

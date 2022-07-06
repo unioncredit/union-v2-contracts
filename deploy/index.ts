@@ -180,6 +180,21 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         await marketRegistry.addUserManager(dai.address, userManager.address);
     }
 
+    // deploy fixedInterestRateModel
+    let fixedInterestRateModel: FixedInterestRateModel;
+    if (config.addresses.fixedRateInterestModel) {
+        fixedInterestRateModel = FixedInterestRateModel__factory.connect(
+            config.addresses.fixedRateInterestModel,
+            signer
+        );
+    } else {
+        fixedInterestRateModel = await deployContract<FixedInterestRateModel>(
+            new FixedInterestRateModel__factory(signer),
+            "FixedInterestRateModel",
+            [config.fixedInterestRateModel.interestRatePerBlock]
+        );
+    }
+
     // deploy uToken
     let uToken: UToken;
     if (config.addresses.uToken) {
@@ -205,21 +220,9 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         uToken = UToken__factory.connect(proxy.address, signer);
         await userManager.setUToken(uToken.address);
         await marketRegistry.addUToken(dai.address, uToken.address);
-    }
-
-    // deploy fixedInterestRateModel
-    let fixedInterestRateModel: FixedInterestRateModel;
-    if (config.addresses.fixedRateInterestModel) {
-        fixedInterestRateModel = FixedInterestRateModel__factory.connect(
-            config.addresses.fixedRateInterestModel,
-            signer
-        );
-    } else {
-        fixedInterestRateModel = await deployContract<FixedInterestRateModel>(
-            new FixedInterestRateModel__factory(signer),
-            "FixedInterestRateModel",
-            [config.fixedInterestRateModel.interestRatePerBlock]
-        );
+        await uToken.setUserManager(userManager.address);
+        await uToken.setAssetManager(assetManager.address);
+        await uToken.setInterestRateModel(fixedInterestRateModel.address);
     }
 
     return {

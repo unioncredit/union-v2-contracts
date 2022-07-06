@@ -122,9 +122,9 @@ interface IUserManager {
      *  @param amount Borrow or repay amount(Including previously accrued interest)
      *  @param isBorrow True is borrow, false is repay
      */
-    function updateLockedData(
+    function updateLocked(
         address borrower,
-        uint256 amount,
+        uint96 amount,
         bool isBorrow
     ) external;
 
@@ -166,6 +166,4 @@ interface IUserManager {
         address token,
         uint256 lastRepay
     ) external;
-
-    function updateLocked(address borrower, uint256 amount, bool lock) external;
 }

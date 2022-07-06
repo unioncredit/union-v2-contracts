@@ -360,6 +360,8 @@ contract Comptroller is Controller, IComptroller {
         bool isMember_
     ) private pure returns (uint256) {
         if (isMember_) {
+            // TODO: you can't have a frozen amount that is greater than stake because interest is no
+            // longer backed...
             if (userStaked == 0 || totalFrozen_ >= lockedStake || totalFrozen_ >= userStaked) {
                 return memberRatio;
             }

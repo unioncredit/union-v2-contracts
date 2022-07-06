@@ -4,6 +4,13 @@ import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 
 export default {
+    networks: {
+        hardhat: {
+            accounts: {
+                count: 13
+            }
+        }
+    },
     solidity: {
         compilers: [
             {

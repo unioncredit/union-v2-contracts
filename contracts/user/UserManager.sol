@@ -375,6 +375,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param  pastBlocks Number of blocks past to calculate coinAge from
      *          coinage = min(block.number - lastUpdated, pastBlocks) * amount
      */
+    // TODO: borrower should be staker
+    // TODO: vouchers should be stakers vouches given
     function getFrozenInfo(address borrower, uint256 pastBlocks)
         external
         view
@@ -389,9 +391,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
                 uint96 locked = vouchers[borrower][i].locked;
                 totalFrozen += locked;
                 if (pastBlocks >= diff) {
-                    frozenCoinage += locked * diff;
+                    frozenCoinage += (locked * diff);
                 } else {
-                    frozenCoinage += locked * pastBlocks;
+                    frozenCoinage += (locked * pastBlocks);
                 }
             }
         }
@@ -623,7 +625,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         totalStaked -= amount;
 
         // update vouch trust amount
-        vouch.lastUpdated = uint64(block.timestamp);
+        vouch.lastUpdated = uint64(block.number);
         vouch.amount -= amount;
         if (vouch.amount == 0) {
             cancelVouch(staker, borrower);
@@ -660,7 +662,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
                 // Storage writes
                 stakers[vouch.staker].locked = stakerOutstanding + innerAmount;
                 vouch.locked += innerAmount;
-                vouch.lastUpdated = uint64(block.timestamp);
+                vouch.lastUpdated = uint64(block.number);
             } else {
                 uint96 locked = vouch.locked;
                 if (locked == 0) continue;
@@ -668,7 +670,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
                 // Storage writes
                 stakers[vouch.staker].locked -= innerAmount;
                 vouch.locked -= innerAmount;
-                vouch.lastUpdated = uint64(block.timestamp);
+                vouch.lastUpdated = uint64(block.number);
             }
 
             remaining -= innerAmount;
