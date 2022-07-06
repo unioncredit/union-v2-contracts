@@ -28,6 +28,18 @@ describe("Vouching", () => {
 
     context("Adjusting trust", () => {
         before(beforeContext);
-        it("");
+        it("cannot vouch for self");
+        it("can only be called by a member");
+        it("cannot increase vouch when updating trust with no stake");
+        it("increase vouch when updating trust with stake");
+        it("can update trust on already trusted member");
+        it("cannot reduce trust with locked amount");
+    });
+
+    context("Cancel vouch", () => {
+        before(beforeContext);
+        it("only staker or borrower can cancel vouch");
+        it("cannot cancel a vouch with locked amount");
+        it("cancelling vouch removes member from vouchers array and correctly re-indexes");
     });
 });

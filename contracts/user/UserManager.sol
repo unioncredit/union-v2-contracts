@@ -454,7 +454,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param trustAmount Trust amount
      */
     function updateTrust(address borrower, uint96 trustAmount) external onlyMember(msg.sender) whenNotPaused {
-        if (borrower == address(0)) revert AddressZero();
         if (borrower == msg.sender) revert ErrorSelfVouching();
         Index memory index = voucherIndexes[borrower][msg.sender];
         if (index.isSet) {
