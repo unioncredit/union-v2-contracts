@@ -155,7 +155,6 @@ describe("Staking and unstaking", () => {
             const borrowerAddress = await borrower.getAddress();
             const [multiplierBefore] = await helpers.getRewardsMultipliers(staker);
 
-            // TODO: this test currently fails. Once getFrozenInfo is fixed it will pass
             await helpers.withOverdueblocks(1, async () => {
                 const isOverdue = await contracts.uToken.checkIsOverdue(borrowerAddress);
                 expect(isOverdue).eq(true);

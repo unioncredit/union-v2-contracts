@@ -10,7 +10,7 @@
         "format": "prettier --write 'contracts/**/*.sol'",
         "format:check": "prettier --check 'contracts/**/*.sol'",
         "hh:compile": "yarn hardhat compile",
-        "hh:test": "yarn hardhat test test/hardhat/*",
+        "hh:test": "yarn hardhat test",
         "f:compile": "forge build",
         "f:test": "forge test",
         "clean": "forge clean && yarn hardhat clean"

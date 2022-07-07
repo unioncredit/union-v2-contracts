@@ -25,5 +25,5 @@ export default {
             }
         ]
     },
-    paths: {cache: "hh-cache", tests: "./test/hardhat"}
+    paths: {cache: "hh-cache", tests: "./test/"}
 };
