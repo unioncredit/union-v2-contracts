@@ -1,4 +1,4 @@
-import {BigNumberish, Signer} from "ethers";
+import {BigNumber, BigNumberish, ContractTransaction, Signer} from "ethers";
 import {ethers} from "hardhat";
 import {Contracts} from "../../deploy";
 
@@ -16,11 +16,13 @@ export const warp = async (seconds: number) => {
 };
 
 export interface Helpers {
-    getStakedAmounts: (...args: Signer[]) => Promise<BigNumberish[]>;
-    calculateRewards: (...args: Signer[]) => Promise<BigNumberish[]>;
-    getRewardsMultipliers: (...args: Signer[]) => Promise<BigNumberish[]>;
-    updateTrust: (staker: Signer, borrower: Signer, amount: BigNumberish) => Promise<void>;
-    borrow: (borrower: Signer, amount: BigNumberish) => Promise<void>;
+    getStakedAmounts: (...args: Signer[]) => Promise<BigNumber[]>;
+    calculateRewards: (...args: Signer[]) => Promise<BigNumber[]>;
+    getRewardsMultipliers: (...args: Signer[]) => Promise<BigNumber[]>;
+    getVouchingAmounts: (borrower: Signer, ...args: Signer[]) => Promise<BigNumber[]>;
+    getCreditLimits: (...args: Signer[]) => Promise<BigNumber[]>;
+    updateTrust: (staker: Signer, borrower: Signer, amount: BigNumberish) => Promise<ContractTransaction>;
+    borrow: (borrower: Signer, amount: BigNumberish) => Promise<ContractTransaction>;
     stake: (amount: BigNumberish, ...accounts: Signer[]) => Promise<void>;
     withOverdueblocks: (blocks: BigNumberish, fn: () => Promise<void>) => Promise<void>;
 }
@@ -57,17 +59,36 @@ export const createHelpers = (contracts: Contracts): Helpers => {
         );
     };
 
+    const getVouchingAmounts = (borrower: Signer, ...accounts: Signer[]) => {
+        const borrowerAddress = borrower.getAddress();
+        return Promise.all(
+            accounts.map(async account => {
+                const address = await account.getAddress();
+                return contracts.userManager.getVouchingAmount(address, borrowerAddress);
+            })
+        );
+    };
+
+    const getCreditLimits = (...accounts: Signer[]) => {
+        return Promise.all(
+            accounts.map(async account => {
+                const address = await account.getAddress();
+                return contracts.userManager.getCreditLimit(address);
+            })
+        );
+    };
+
     /** ---------------------------------------------------------
      * Payable Functions
      * ------------------------------------------------------- */
 
     const updateTrust = async (staker: Signer, borrower: Signer, amount: BigNumberish) => {
         const borrowerAddress = await borrower.getAddress();
-        await contracts.userManager.connect(staker).updateTrust(borrowerAddress, amount);
+        return contracts.userManager.connect(staker).updateTrust(borrowerAddress, amount);
     };
 
     const borrow = async (borrower: Signer, amount: BigNumberish) => {
-        await contracts.uToken.connect(borrower).borrow(amount);
+        return contracts.uToken.connect(borrower).borrow(amount);
     };
 
     const stake = async (stakeAmount: BigNumberish, ...accounts: Signer[]) => {
@@ -89,5 +110,15 @@ export const createHelpers = (contracts: Contracts): Helpers => {
         await contracts.uToken.setOverdueBlocks(overdueBlocks);
     };
 
-    return {getStakedAmounts, calculateRewards, withOverdueblocks, getRewardsMultipliers, updateTrust, borrow, stake};
+    return {
+        getStakedAmounts,
+        calculateRewards,
+        getVouchingAmounts,
+        getRewardsMultipliers,
+        getCreditLimits,
+        updateTrust,
+        borrow,
+        stake,
+        withOverdueblocks
+    };
 };

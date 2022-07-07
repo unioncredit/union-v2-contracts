@@ -153,7 +153,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     error AddressZero();
     error AuthFailed();
     error ErrorSelfVouching();
-    error TrustAmountTooSmall();
+    error TrustAmountLtLocked();
     error NoExistingMember();
     error NotEnoughStakers();
     error StakeLimitReached();
@@ -492,6 +492,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function updateTrust(address borrower, uint96 trustAmount) external onlyMember(msg.sender) whenNotPaused {
         address staker = msg.sender;
         if (borrower == staker) revert ErrorSelfVouching();
+        if (!checkIsMember(staker)) revert AuthFailed();
 
         // Check if this staker is already vouching for this borrower
         // If they are already vouching then update the existing vouch record
@@ -501,7 +502,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             // Update existing record checking that the new trust amount is
             // not less than the amount of stake currently locked by the borrower
             Vouch storage vouch = vouchers[borrower][index.idx];
-            if (trustAmount < vouch.locked) revert TrustAmountTooSmall();
+            if (trustAmount < vouch.locked) revert TrustAmountLtLocked();
             vouch.amount = trustAmount;
         } else {
             // Get the new index that this vouch is going to be inserted at
@@ -748,7 +749,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             // we can stop looping through vouchers
             if (remaining <= 0) break;
         }
-  
+
         // If we have looped through all the available vouchers for this
         // borrower and we still have a remaining amount then we have to
         // revert as there is not enough vouchers to lock/unlock
