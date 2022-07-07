@@ -27,10 +27,26 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     ------------------------------------------------------------------- */
 
     struct Vouch {
+        // staker recieveing the vouch
         address staker;
+        // trust amount
         uint96 amount;
+        // amount of stake locked by this vouch
         uint96 locked;
+        // block number of last update
         uint64 lastUpdated;
+    }
+
+    // TODO: this is going to take up 2 slots because for whateve reason
+    // adddress don't pack in structs even though they are only 20 bytes
+    // so we can probably do this return abi.encodePacked(borrower, uint32(i));
+    // and store that instead which would fit in one slot once we have a test
+    // suite up and running we can update this
+    struct Vouchee {
+        // address of borrower
+        address borrower;
+        // vouchees index in the vouchers Vouch array
+        uint256 voucherIndex;
     }
 
     struct Staker {
@@ -39,6 +55,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint96 locked;
     }
 
+    // TODO: this can be packed into 1 slot
     struct Index {
         bool isSet;
         uint256 idx;
@@ -110,14 +127,24 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     mapping(address => Staker) public stakers;
 
     /**
-     *  @dev Staker (borrower) mapped to recieved vouches
+     *  @dev Staker (borrower) mapped to recieved vouches (staker)
      */
     mapping(address => Vouch[]) public vouchers;
 
     /**
-     * @dev Borrower mapped to Staker mapped to index in vouch array
+     * @dev Borrower mapped to Staker mapped to index in vouchers array
      */
     mapping(address => mapping(address => Index)) public voucherIndexes;
+
+    /**
+     *  @dev Staker (staker) mapped to vouches given (borrower)
+     */
+    mapping(address => Vouchee[]) public vouchees;
+
+    /**
+     * @dev Borrower mapped to Staker mapped to index in vochee array
+     */
+    mapping(address => mapping(address => Index)) public voucheeIndexes;
 
     /* -------------------------------------------------------------------
       Errors 
@@ -295,6 +322,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     /**
      * @dev set New Member fee
+     * @dev The amount of UNION an account must burn to become a member
      * Emits {LogSetNewMemberFee} event
      * @param amount New member fee amount
      */
@@ -317,6 +345,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     /**
      * @dev set New effective count
+     * @dev this is the number of vouches an account needs in order
+     *      to register as a member
      * Emits {LogSetEffectiveCount} event
      * @param _effectiveCount New effectiveCount value
      */
@@ -377,6 +407,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      */
     // TODO: borrower should be staker
     // TODO: vouchers should be stakers vouches given
+    //
+    // Loop through stakers borrowers
+    // Look up each Vouch for the borrower
     function getFrozenInfo(address borrower, uint256 pastBlocks)
         external
         view
@@ -454,18 +487,35 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param trustAmount Trust amount
      */
     function updateTrust(address borrower, uint96 trustAmount) external onlyMember(msg.sender) whenNotPaused {
-        if (borrower == msg.sender) revert ErrorSelfVouching();
-        Index memory index = voucherIndexes[borrower][msg.sender];
+        address staker = msg.sender;
+        if (borrower == staker) revert ErrorSelfVouching();
+
+        // Check if this staker is already vouching for this borrower
+        // If they are already vouching then update the existing vouch record
+        // If this is a new vouch then insert a new Vouch record
+        Index memory index = voucherIndexes[borrower][staker];
         if (index.isSet) {
+            // Update existing record checking that the new trust amount is
+            // not less than the amount of stake currently locked by the borrower
             Vouch storage vouch = vouchers[borrower][index.idx];
             if (trustAmount < vouch.locked) revert TrustAmountTooSmall();
             vouch.amount = trustAmount;
         } else {
-            voucherIndexes[borrower][msg.sender] = Index(true, vouchers[borrower].length);
-            vouchers[borrower].push(Vouch(msg.sender, trustAmount, 0, 0));
+            // Get the new index that this vouch is going to be inserted at
+            // Then update the voucher indexes for this borrower as well as
+            // Adding the Vouch the the vouchers array for this staker
+            uint256 voucherIndex = vouchers[borrower].length;
+            voucherIndexes[borrower][staker] = Index(true, voucherIndex);
+            vouchers[borrower].push(Vouch(staker, trustAmount, 0, 0));
+
+            // Add the voucherIndex of this new vouch to the vouchees array for this
+            // staker then update the voucheeIndexes with the voucheeIndex
+            uint256 voucheeIndex = vouchees[staker].length;
+            vouchees[staker].push(Vouchee(borrower, voucherIndex));
+            voucheeIndexes[borrower][staker] = Index(true, voucheeIndex);
         }
 
-        emit LogUpdateTrust(msg.sender, borrower, trustAmount);
+        emit LogUpdateTrust(staker, borrower, trustAmount);
     }
 
     /**
@@ -481,14 +531,21 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function cancelVouch(address staker, address borrower) public onlyMember(msg.sender) whenNotPaused {
         if (staker != msg.sender && borrower != msg.sender) revert AuthFailed();
 
-        Index memory index = voucherIndexes[borrower][staker];
-        if (!index.isSet) revert VoucherNotFound();
+        Index memory voucherIndex = voucherIndexes[borrower][staker];
+        if (!voucherIndex.isSet) revert VoucherNotFound();
 
-        Vouch storage vouch = vouchers[borrower][index.idx];
+        // Check that the locked amount for this vouch is 0
+        Vouch storage vouch = vouchers[borrower][voucherIndex.idx];
         if (vouch.locked > 0) revert LockedStakeNonZero();
 
-        vouchers[borrower][index.idx] = vouchers[borrower][vouchers[borrower].length - 1];
+        // Remove borrower from vouchers array
+        vouchers[borrower][voucherIndex.idx] = vouchers[borrower][vouchers[borrower].length - 1];
         vouchers[borrower].pop();
+
+        // Remove borrower from vouchee array
+        Index memory voucheeIndex = voucheeIndexes[borrower][staker];
+        vouchees[borrower][voucheeIndex.idx] = vouchees[borrower][vouchees[borrower].length - 1];
+        vouchees[borrower].pop();
 
         emit LogCancelVouch(staker, borrower);
     }
@@ -668,6 +725,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
                 innerAmount = _min(locked, remaining);
                 // Storage writes
                 stakers[vouch.staker].locked -= innerAmount;
+
                 vouch.locked -= innerAmount;
                 vouch.lastUpdated = uint64(block.number);
             }

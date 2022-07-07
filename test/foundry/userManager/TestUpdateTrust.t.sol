@@ -50,13 +50,6 @@ contract TestUpdateTrust is TestUserManagerBase {
         vm.stopPrank();
     }
 
-    function testCannotOnZeroAddress() public {
-        vm.startPrank(MEMBER);
-        vm.expectRevert(UserManager.AddressZero.selector);
-        userManager.updateTrust(address(0), 123);
-        vm.stopPrank();
-    }
-
     function testCannotOnSelf() public {
         vm.startPrank(MEMBER);
         vm.expectRevert(UserManager.ErrorSelfVouching.selector);

@@ -23,5 +23,7 @@ describe("Minting and redeeming uToken", () => {
 
     context("Minting uToken", () => {
         before(beforeContext);
+        it("can mint and recieve uDAI");
+        it("can redeem uDAI for DAI")
     });
 });
