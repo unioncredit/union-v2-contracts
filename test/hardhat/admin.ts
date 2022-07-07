@@ -5,7 +5,7 @@ import {ethers} from "hardhat";
 import deploy, {Contracts} from "../../deploy";
 import config from "../../deploy/config";
 
-describe("Owner/Admin functions", () => {
+describe("Owner/Admin permissions", () => {
     let signers: Signer[];
     let deployer: Signer;
     let deployerAddress: string;

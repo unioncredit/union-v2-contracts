@@ -23,9 +23,30 @@ describe("Borrowing and repaying", () => {
 
     context("Member borrows from credit line", () => {
         before(beforeContext);
+        it("cannot borrow with no available credit");
+        it("cannot borrow with no DAI in reserves");
+        it("locks stakers (in \"first in\" order)");
+        it("cannot borrow if overdue");
+    });
+
+    context("Borrowing interest/accounting", () => {
+        before(beforeContext);
+        it("moves fee to reserves");
+        it("increases total borrows");
+        it("changes uToken rate");
+        it("Interest is accrued but not backed");
     });
 
     context("Member repays debt", () => {
         before(beforeContext);
-    })
+        it("cannot repay 0");
+        it("repaying less than interest doesn't update last repaid");
+        it("unlocks stakers (in \"first in first out\" order)");
+    });
+    
+    context("Repay interest/accounting", () => {
+        before(beforeContext);
+        it("reduces total borrows");
+        it("changes uToken rate");
+    });
 });
