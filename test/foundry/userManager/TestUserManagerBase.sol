@@ -44,7 +44,10 @@ contract TestUserManagerBase is TestWrapper {
         vm.stopPrank();
 
         daiMock.mint(MEMBER, 100 ether);
+        daiMock.mint(address(this), 100 ether);
+        
         vm.prank(MEMBER);
+        daiMock.approve(address(userManager), type(uint256).max);
         daiMock.approve(address(userManager), type(uint256).max);
     }
 }

@@ -401,27 +401,30 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     /**
      *  @dev Get frozen coin age
-     *  @param  borrower Address of borrower
+     *  @param  staker Address of staker
      *  @param  pastBlocks Number of blocks past to calculate coinAge from
      *          coinage = min(block.number - lastUpdated, pastBlocks) * amount
      */
-    // TODO: borrower should be staker
-    // TODO: vouchers should be stakers vouches given
-    //
-    // Loop through stakers borrowers
-    // Look up each Vouch for the borrower
-    function getFrozenInfo(address borrower, uint256 pastBlocks)
+    function getFrozenInfo(address staker, uint256 pastBlocks)
         external
         view
         returns (uint256 totalFrozen, uint256 frozenCoinage)
     {
         uint256 overdueBlocks = uToken.overdueBlocks();
-        uint256 vouchersLength = vouchers[borrower].length;
-        for (uint256 i = 0; i < vouchersLength; i++) {
-            uint256 lastUpdated = vouchers[borrower][i].lastUpdated;
+        uint256 voucheesLength = vouchees[staker].length;
+        // Loop through all of the stakers vouchees sum their total
+        // locked balance and sum their total frozenCoinage
+        for (uint256 i = 0; i < voucheesLength; i++) {
+            // Get the vouchee record and look up the borrowers voucher record
+            // to get the locked amount and lastUpdate block number
+            Vouchee memory vouchee = vouchees[staker][i];
+            Vouch memory vouch = vouchers[vouchee.borrower][vouchee.voucherIndex];
+
+            uint256 lastUpdated = vouch.lastUpdated;
             uint256 diff = block.number - lastUpdated;
+
             if (overdueBlocks < diff) {
-                uint96 locked = vouchers[borrower][i].locked;
+                uint96 locked = vouch.locked;
                 totalFrozen += locked;
                 if (pastBlocks >= diff) {
                     frozenCoinage += (locked * diff);
@@ -709,31 +712,46 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             uint96 innerAmount;
 
             if (lock) {
-                uint96 stakerOutstanding = stakers[vouch.staker].locked;
+                // Look up the staker and determine how much unlock stake they
+                // have available for the borrower to borrow. If there is 0
+                // then continue to the next voucher in the array
+                uint96 stakerLocked = stakers[vouch.staker].locked;
                 uint96 stakerStakedAmount = stakers[vouch.staker].stakedAmount;
-                uint96 availableStake = stakerStakedAmount - stakerOutstanding;
+                uint96 availableStake = stakerStakedAmount - stakerLocked;
                 uint96 lockAmount = _min(availableStake, vouch.amount - vouch.locked);
                 if (lockAmount == 0) continue;
+
+                // Calculate the amount to add to the lock then
+                // add the extra amount to lock to the stakers locked amount
+                // and also update the vouches locked amount and lastUpdated block
                 innerAmount = _min(remaining, lockAmount);
-                // Storage writes
-                stakers[vouch.staker].locked = stakerOutstanding + innerAmount;
+                stakers[vouch.staker].locked = stakerLocked + innerAmount;
                 vouch.locked += innerAmount;
                 vouch.lastUpdated = uint64(block.number);
             } else {
+                // Look up how much this vouch has locked. If it is 0 then
+                // continue to the next voucher. Then calculate the amount to
+                // unlock which is the min of the vouches lock and what is
+                // remaining to unlock
                 uint96 locked = vouch.locked;
                 if (locked == 0) continue;
                 innerAmount = _min(locked, remaining);
-                // Storage writes
-                stakers[vouch.staker].locked -= innerAmount;
 
+                // Update the stored locked values and last updated block
+                stakers[vouch.staker].locked -= innerAmount;
                 vouch.locked -= innerAmount;
                 vouch.lastUpdated = uint64(block.number);
             }
 
             remaining -= innerAmount;
+            // If there is no remaining amount to lock/unlock
+            // we can stop looping through vouchers
             if (remaining <= 0) break;
         }
-
+  
+        // If we have looped through all the available vouchers for this
+        // borrower and we still have a remaining amount then we have to
+        // revert as there is not enough vouchers to lock/unlock
         if (remaining > 0) revert LockedRemaining();
     }
 

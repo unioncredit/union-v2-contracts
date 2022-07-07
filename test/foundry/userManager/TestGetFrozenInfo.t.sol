@@ -9,30 +9,27 @@ contract TestGetFrozenInfo is TestUserManagerBase {
 
     function setUp() public override {
         super.setUp();
-        for (uint256 i = 0; i < MEMBERS.length; i++) {
-            vm.prank(ADMIN);
-            userManager.addMember(MEMBERS[i]);
-            daiMock.mint(MEMBERS[i], stakeAmount);
+        vm.startPrank(ADMIN);
+        userManager.addMember(address(this));
+        vm.stopPrank();
 
-            vm.startPrank(MEMBERS[i]);
-            daiMock.approve(address(userManager), type(uint256).max);
-            userManager.stake(stakeAmount);
-            userManager.updateTrust(ACCOUNT, stakeAmount);
-            vm.stopPrank();
-        }
+        userManager.stake(stakeAmount);
+        userManager.updateTrust(ACCOUNT, stakeAmount);
     }
 
-    function testGetFrozenInfo(uint96 lockAmount) public {
+    function testGetFrozenInfo() public {
+        uint96 lockAmount = 10;
         uint256 creditLimit = userManager.getCreditLimit(ACCOUNT);
         vm.assume(lockAmount <= creditLimit);
-        vm.startPrank(address(userManager.uToken()));
         uint256 blockNumberBefore = block.number;
+
+        vm.startPrank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
         vm.stopPrank();
 
         vm.roll(block.number + 10);
         uint256 blockNumberAfter = block.number;
-        (uint256 totalFrozen, uint256 frozenCoinage) = userManager.getFrozenInfo(ACCOUNT, block.number + 1);
+        (uint256 totalFrozen, uint256 frozenCoinage) = userManager.getFrozenInfo(address(this), block.number + 1);
         uint256 diff = blockNumberAfter - blockNumberBefore;
 
         assertEq(totalFrozen, lockAmount);
@@ -42,12 +39,13 @@ contract TestGetFrozenInfo is TestUserManagerBase {
     function testGetFrozenInfoPastBlocks(uint96 lockAmount) public {
         uint256 creditLimit = userManager.getCreditLimit(ACCOUNT);
         vm.assume(lockAmount <= creditLimit);
+
         vm.startPrank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
         vm.stopPrank();
 
         vm.roll(block.number + 10);
-        (uint256 totalFrozen, uint256 frozenCoinage) = userManager.getFrozenInfo(ACCOUNT, 1);
+        (uint256 totalFrozen, uint256 frozenCoinage) = userManager.getFrozenInfo(address(this), 1);
 
         assertEq(totalFrozen, lockAmount);
         assertEq(frozenCoinage, lockAmount);
