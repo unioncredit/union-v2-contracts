@@ -22,7 +22,9 @@ export interface Helpers {
     getVouchingAmounts: (borrower: Signer, ...args: Signer[]) => Promise<BigNumber[]>;
     getCreditLimits: (...args: Signer[]) => Promise<BigNumber[]>;
     updateTrust: (staker: Signer, borrower: Signer, amount: BigNumberish) => Promise<ContractTransaction>;
+    cancelVouch: (staker: Signer, borrower: Signer, from?: Signer) => Promise<ContractTransaction>;
     borrow: (borrower: Signer, amount: BigNumberish) => Promise<ContractTransaction>;
+    repayFull: (borrower: Signer) => Promise<ContractTransaction>;
     stake: (amount: BigNumberish, ...accounts: Signer[]) => Promise<void>;
     withOverdueblocks: (blocks: BigNumberish, fn: () => Promise<void>) => Promise<void>;
 }
@@ -87,8 +89,25 @@ export const createHelpers = (contracts: Contracts): Helpers => {
         return contracts.userManager.connect(staker).updateTrust(borrowerAddress, amount);
     };
 
+    const cancelVouch = async (staker: Signer, borrower: Signer, from?: Signer) => {
+        const stakerAddress = await staker.getAddress();
+        const borrowerAddress = await borrower.getAddress();
+        return contracts.userManager.connect(from || staker).cancelVouch(stakerAddress, borrowerAddress);
+    };
+
     const borrow = async (borrower: Signer, amount: BigNumberish) => {
         return contracts.uToken.connect(borrower).borrow(amount);
+    };
+
+    const repayFull = async (borrower: Signer) => {
+        const borrowerAddress = await borrower.getAddress();
+        const owed = await contracts.uToken.borrowBalanceView(borrowerAddress);
+        const daiBalance = await contracts.dai.balanceOf(borrowerAddress);
+        if (daiBalance.lt(owed) && "mint" in contracts.dai) {
+            await contracts.dai.mint(borrowerAddress, owed.mul(1100).div(1000));
+        }
+        await contracts.dai.connect(borrower).approve(contracts.uToken.address, ethers.constants.MaxUint256);
+        return contracts.uToken.connect(borrower).repayBorrow(ethers.constants.MaxUint256);
     };
 
     const stake = async (stakeAmount: BigNumberish, ...accounts: Signer[]) => {
@@ -117,7 +136,9 @@ export const createHelpers = (contracts: Contracts): Helpers => {
         getRewardsMultipliers,
         getCreditLimits,
         updateTrust,
+        cancelVouch,
         borrow,
+        repayFull,
         stake,
         withOverdueblocks
     };

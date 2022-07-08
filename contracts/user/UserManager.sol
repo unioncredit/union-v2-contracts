@@ -539,17 +539,19 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (!voucherIndex.isSet) revert VoucherNotFound();
 
         // Check that the locked amount for this vouch is 0
-        Vouch storage vouch = vouchers[borrower][voucherIndex.idx];
+        Vouch memory vouch = vouchers[borrower][voucherIndex.idx];
         if (vouch.locked > 0) revert LockedStakeNonZero();
 
         // Remove borrower from vouchers array
         vouchers[borrower][voucherIndex.idx] = vouchers[borrower][vouchers[borrower].length - 1];
         vouchers[borrower].pop();
+        delete voucherIndexes[borrower][staker];
 
         // Remove borrower from vouchee array
         Index memory voucheeIndex = voucheeIndexes[borrower][staker];
-        vouchees[borrower][voucheeIndex.idx] = vouchees[borrower][vouchees[borrower].length - 1];
-        vouchees[borrower].pop();
+        vouchees[staker][voucheeIndex.idx] = vouchees[staker][vouchees[staker].length - 1];
+        vouchees[staker].pop();
+        delete voucheeIndexes[borrower][staker];
 
         emit LogCancelVouch(staker, borrower);
     }
@@ -633,7 +635,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      */
     function unstake(uint96 amount) external whenNotPaused nonReentrant {
         Staker storage staker = stakers[msg.sender];
-
         if (staker.stakedAmount - staker.locked < amount) revert InsufficientBalance();
 
         comptroller.withdrawRewards(msg.sender, stakingToken);
