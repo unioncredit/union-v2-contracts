@@ -1,11 +1,11 @@
 import {expect} from "chai";
-import {Signer} from "ethers";
+import {BigNumber, BigNumberish, Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
 import {ethers} from "hardhat";
 
 import deploy, {Contracts} from "../../deploy";
 import config from "../../deploy/config";
-import {createHelpers, Helpers} from "../utils";
+import {createHelpers, Helpers, roll} from "../utils";
 
 describe("Borrowing and repaying", () => {
     let signers: Signer[];
@@ -81,23 +81,58 @@ describe("Borrowing and repaying", () => {
     });
 
     context("Borrowing interest/accounting", () => {
-        before(beforeContext);
-        it("moves fee to reserves");
-        it("increases total borrows");
-        it("changes uToken rate");
-        it("Interest is accrued but not backed");
+        let minBorrow: BigNumberish;
+        before(async () => {
+            await beforeContext();
+            await contracts.uToken.addReserves(mintAmount);
+            await helpers.updateTrust(staker, borrower, mintAmount);
+            minBorrow = await contracts.uToken.minBorrow();
+        });
+        it("moves fee to reserves", async () => {
+            const totalReservesBefore = await contracts.uToken.totalReserves();
+            const fee = await contracts.uToken.calculatingFee(minBorrow);
+            await helpers.borrow(borrower, minBorrow);
+            const totalReservesAfter = await contracts.uToken.totalReserves();
+            expect(totalReservesAfter.sub(totalReservesBefore)).eq(fee);
+        });
+        it("increases total borrows", async () => {
+            const totalBorrowsBefore = await contracts.uToken.totalBorrows();
+            await helpers.borrow(borrower, minBorrow);
+            const totalBorrowsAfter = await contracts.uToken.totalBorrows();
+            const borrowAmount = await helpers.borrowWithFee(minBorrow as BigNumber);
+            expect(totalBorrowsAfter.sub(totalBorrowsBefore)).gte(borrowAmount);
+        });
+        it("Interest is accrued", async () => {
+            const totalBorrowsBefore = await contracts.uToken.totalBorrows();
+            await roll(10);
+            await contracts.uToken.accrueInterest();
+            const totalBorrowsAfter = await contracts.uToken.totalBorrows();
+            expect(totalBorrowsAfter).gt(totalBorrowsBefore);
+        });
     });
 
     context("Member repays debt", () => {
-        before(beforeContext);
-        it("cannot repay 0");
-        it("repaying less than interest doesn't update last repaid");
-        it('unlocks stakers (in "first in first out" order)');
-    });
-
-    context("Repay interest/accounting", () => {
-        before(beforeContext);
-        it("reduces total borrows");
-        it("changes uToken rate");
+        before(async () => {
+            await beforeContext();
+            await contracts.uToken.addReserves(mintAmount);
+            await helpers.updateTrust(staker, borrower, mintAmount);
+            await helpers.borrow(borrower, borrowAmount);
+        });
+        it("cannot repay 0", async () => {
+            const resp = contracts.uToken.repayBorrow(0);
+            await expect(resp).to.be.revertedWith("AmountZero()");
+        });
+        it("repaying less than interest doesn't update last repaid", async () => {
+            const [lastRepayBefore] = await helpers.getBorrowed(borrower);
+            await helpers.repay(borrower, 1);
+            const [lastRepayAfter] = await helpers.getBorrowed(borrower);
+            expect(lastRepayBefore).eq(lastRepayAfter);
+        });
+        it('unlocks stakers (in "first in first out" order)', async () => {
+            const [, , lockedBefore] = await helpers.getVouchByIndex(borrower, 0);
+            await helpers.repayFull(borrower);
+            const [, , lockedAfter] = await helpers.getVouchByIndex(borrower, 0);
+            expect(lockedBefore).gt(lockedAfter);
+        });
     });
 });
