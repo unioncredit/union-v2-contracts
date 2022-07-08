@@ -3,16 +3,14 @@ pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 /**
  * @title Controller component
  * @dev For easy access to any core components
  */
-abstract contract Controller is Initializable, UUPSUpgradeable, AccessControlUpgradeable {
-    bytes32 public constant ROLE_ADMIN = keccak256("ROLE_ADMIN");
-
-    mapping(address => address) private _admins;
+abstract contract Controller is Initializable, UUPSUpgradeable {
+    address public admin;
+    address public pendingAdmin;
     // slither-disable-next-line uninitialized-state
     bool private _paused;
     // slither-disable-next-line uninitialized-state
@@ -45,7 +43,7 @@ abstract contract Controller is Initializable, UUPSUpgradeable, AccessControlUpg
     }
 
     modifier onlyAdmin() {
-        require(hasRole(ROLE_ADMIN, msg.sender), "Controller: not admin");
+        require(admin == msg.sender, "Controller: not admin");
         _;
     }
 
@@ -58,9 +56,8 @@ abstract contract Controller is Initializable, UUPSUpgradeable, AccessControlUpg
     function __Controller_init(address admin_) public initializer {
         require(admin_ != address(0), "Controller: address zero");
         _paused = false;
-        _admins[admin_] = admin_;
+        admin = admin_;
         __UUPSUpgradeable_init();
-        _setupRole(ROLE_ADMIN, admin_);
         pauseGuardian = admin_;
     }
 
@@ -71,19 +68,21 @@ abstract contract Controller is Initializable, UUPSUpgradeable, AccessControlUpg
      * @param account Account address
      */
     function isAdmin(address account) public view returns (bool) {
-        return hasRole(ROLE_ADMIN, account);
+        return account == admin;
     }
 
     /**
-     * @dev Add a new admin account
+     * @dev set new admin account
      * @param account Account address
      */
-    function addAdmin(address account) public onlyAdmin {
+    function setPendingAdmin(address account) public onlyAdmin {
         require(account != address(0), "Controller: address zero");
-        require(_admins[account] == address(0), "Controller: admin already existed");
+        pendingAdmin = account;
+    }
 
-        _admins[account] = account;
-        _setupRole(ROLE_ADMIN, account);
+    function acceptAdmin() public {
+        require(pendingAdmin == msg.sender, "Controller: not pending admin");
+        admin = pendingAdmin;
     }
 
     /**
@@ -92,14 +91,6 @@ abstract contract Controller is Initializable, UUPSUpgradeable, AccessControlUpg
      */
     function setGuardian(address account) public onlyAdmin {
         pauseGuardian = account;
-    }
-
-    /**
-     * @dev Renouce the admin from the sender's address
-     */
-    function renounceAdmin() public {
-        renounceRole(ROLE_ADMIN, msg.sender);
-        delete _admins[msg.sender];
     }
 
     /**
