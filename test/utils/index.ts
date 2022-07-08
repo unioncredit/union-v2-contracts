@@ -21,6 +21,8 @@ export interface Helpers {
     getRewardsMultipliers: (...args: Signer[]) => Promise<BigNumber[]>;
     getVouchingAmounts: (borrower: Signer, ...args: Signer[]) => Promise<BigNumber[]>;
     getCreditLimits: (...args: Signer[]) => Promise<BigNumber[]>;
+    getVouch: (staker: Signer, borrower: Signer) => Promise<["string", BigNumberish, BigNumberish, BigNumberish]>;
+    borrowWithFee: (amount: BigNumber) => Promise<BigNumber>;
     updateTrust: (staker: Signer, borrower: Signer, amount: BigNumberish) => Promise<ContractTransaction>;
     cancelVouch: (staker: Signer, borrower: Signer, from?: Signer) => Promise<ContractTransaction>;
     borrow: (borrower: Signer, amount: BigNumberish) => Promise<ContractTransaction>;
@@ -80,6 +82,20 @@ export const createHelpers = (contracts: Contracts): Helpers => {
         );
     };
 
+    const getVouch = async (staker: Signer, borrower: Signer) => {
+        const borrowerAddress = await borrower.getAddress();
+        const stakerAddress = await staker.getAddress();
+        const [, index] = await contracts.userManager.voucherIndexes(borrowerAddress, stakerAddress);
+        const [s, amount, locked, lastUpdate] = await contracts.userManager.vouchers(borrowerAddress, index);
+        return [s, amount, locked, lastUpdate] as ["string", BigNumberish, BigNumberish, BigNumberish];
+    };
+
+    const borrowWithFee = async (amount: BigNumber) => {
+        const originationFee = await contracts.uToken.originationFee();
+        const WAD = await contracts.uToken.WAD();
+        return amount.add(amount.mul(originationFee).div(WAD));
+    };
+
     /** ---------------------------------------------------------
      * Payable Functions
      * ------------------------------------------------------- */
@@ -135,6 +151,8 @@ export const createHelpers = (contracts: Contracts): Helpers => {
         getVouchingAmounts,
         getRewardsMultipliers,
         getCreditLimits,
+        getVouch,
+        borrowWithFee,
         updateTrust,
         cancelVouch,
         borrow,
