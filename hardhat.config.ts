@@ -2,7 +2,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
-import "solidity-coverage"
+import "solidity-coverage";
 
 export default {
     networks: {
@@ -26,5 +26,6 @@ export default {
             }
         ]
     },
-    paths: {cache: "hh-cache", tests: "./test/"}
+    paths: {cache: "hh-cache", tests: "./test/"},
+    mocha: {timeout: 400000000000}
 };
