@@ -289,7 +289,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         unionToken = unionToken_;
         stakingToken = stakingToken_;
         newMemberFee = 10**18; // Set the default membership fee
-        maxStakeAmount = 5000e18;
+        maxStakeAmount = 10_000e18;
         maxOverdue = maxOverdue_;
         effectiveCount = effectiveCount_;
     }

@@ -1,4 +1,3 @@
-import {expect} from "chai";
 import {Signer} from "ethers";
 import {formatUnits, parseUnits} from "ethers/lib/utils";
 import {ethers} from "hardhat";
@@ -21,6 +20,9 @@ describe("Max gas tests", () => {
 
     const beforeContext = async (accountCount: number) => {
         contracts = await deploy({...config.main, admin: deployerAddress}, deployer);
+
+        let spinner = ora(`Creating ${accountCount} wallets`).start();
+
         accounts = Array(accountCount)
             .fill(0)
             .map(() => {
@@ -28,11 +30,17 @@ describe("Max gas tests", () => {
                 return wallet.connect(ethers.provider);
             });
 
+        spinner.stop();
+
+        spinner = ora("Setting up accounts").start();
+
         for (const account of accounts) {
             const addr = await account.getAddress();
             contracts.userManager.addMember(addr);
             deployer.sendTransaction({to: addr, value: parseUnits("1")});
         }
+
+        spinner.stop();
     };
 
     context("updateTrust has constant gas cost", () => {
@@ -121,6 +129,50 @@ describe("Max gas tests", () => {
             spinner.stop();
 
             console.log(`Gas used: ${resp.gasUsed}`);
+        });
+    });
+    context("get frozen info", () => {
+        before(async () => await beforeContext(1000));
+        it("getFrozenInfo", async () => {
+            const trustAmount = parseUnits("1");
+            const staker = accounts[0];
+            const stakerAddress = await staker.getAddress();
+
+            await contracts.uToken.setMinBorrow(0);
+            await contracts.uToken.setOverdueBlocks(0);
+
+            if ("mint" in contracts.dai) {
+                const stakeAmount = parseUnits("10000");
+                await contracts.dai.mint(stakerAddress, stakeAmount.add(stakeAmount));
+                await contracts.dai.connect(staker).approve(contracts.userManager.address, ethers.constants.MaxUint256);
+                await contracts.userManager.connect(staker).stake(stakeAmount);
+                await contracts.dai.connect(staker).approve(contracts.uToken.address, ethers.constants.MaxUint256);
+                await contracts.uToken.connect(staker).addReserves(stakeAmount);
+            }
+
+            const str = (n: number) => `Processing accounts: ${n}/${accounts.length}`;
+
+            let spinner = ora(str(0)).start();
+
+            for (let i = 0; i < accounts.length; i++) {
+                const account = accounts[i];
+                const addr = await account.getAddress();
+                await contracts.userManager.addMember(addr);
+
+                if (stakerAddress !== addr) {
+                    await contracts.userManager.connect(staker).updateTrust(addr, trustAmount);
+                    const creditLimit = await contracts.userManager.getCreditLimit(addr);
+                    const borrowAmount = creditLimit.mul(950).div(1000);
+                    await contracts.uToken.connect(account).borrow(borrowAmount);
+                }
+
+                spinner.text = str(i);
+            }
+
+            spinner.stop();
+
+            const gasUsed = await contracts.userManager.estimateGas.getFrozenInfo(stakerAddress, 0);
+            console.log(`Gas used: ${gasUsed}`);
         });
     });
 });
