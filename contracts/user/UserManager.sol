@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -35,18 +35,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint96 locked;
         // block number of last update
         uint64 lastUpdated;
-    }
-
-    // TODO: this is going to take up 2 slots because for whateve reason
-    // adddress don't pack in structs even though they are only 20 bytes
-    // so we can probably do this return abi.encodePacked(borrower, uint32(i));
-    // and store that instead which would fit in one slot once we have a test
-    // suite up and running we can update this
-    struct Vouchee {
-        // address of borrower
-        address borrower;
-        // vouchees index in the vouchers Vouch array
-        uint256 voucherIndex;
     }
 
     struct Staker {
@@ -139,7 +127,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     /**
      *  @dev Staker (staker) mapped to vouches given (borrower)
      */
-    mapping(address => Vouchee[]) public vouchees;
+    mapping(address => bytes32[]) public vouchees;
 
     /**
      * @dev Borrower mapped to Staker mapped to index in vochee array
@@ -417,8 +405,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         for (uint256 i = 0; i < voucheesLength; i++) {
             // Get the vouchee record and look up the borrowers voucher record
             // to get the locked amount and lastUpdate block number
-            Vouchee memory vouchee = vouchees[staker][i];
-            Vouch memory vouch = vouchers[vouchee.borrower][vouchee.voucherIndex];
+            (address borrower, uint96 voucherIndex) = _vouchee(vouchees[staker][i]);
+            Vouch memory vouch = vouchers[borrower][voucherIndex];
 
             uint256 lastUpdated = vouch.lastUpdated;
             uint256 diff = block.number - lastUpdated;
@@ -515,7 +503,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             // Add the voucherIndex of this new vouch to the vouchees array for this
             // staker then update the voucheeIndexes with the voucheeIndex
             uint256 voucheeIndex = vouchees[staker].length;
-            vouchees[staker].push(Vouchee(borrower, voucherIndex));
+            vouchees[staker].push(_vouchee(borrower, uint96(voucherIndex)));
             voucheeIndexes[borrower][staker] = Index(true, voucheeIndex);
         }
 
@@ -764,5 +752,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     function _min(uint96 a, uint96 b) private pure returns (uint96) {
         if (a < b) return a;
         return b;
+    }
+
+    function _vouchee(address addr, uint96 n) private pure returns (bytes32) {
+        return bytes32(abi.encodePacked(addr, n));
+    }
+
+    function _vouchee(bytes32 b) private pure returns (address addr, uint96 n) {
+        addr = address(bytes20(b));
+        n = uint96(bytes12(bytes20(uint160(2**160 - 1)) & (b << 160)));
     }
 }
