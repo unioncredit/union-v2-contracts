@@ -156,20 +156,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     error VoucherNotFound();
 
     /* -------------------------------------------------------------------
-      Modifiers 
-    ------------------------------------------------------------------- */
-
-    modifier onlyMember(address account) {
-        if (!checkIsMember(account)) revert AuthFailed();
-        _;
-    }
-
-    modifier onlyMarket() {
-        if (address(uToken) != msg.sender) revert AuthFailed();
-        _;
-    }
-
-    /* -------------------------------------------------------------------
       Events 
     ------------------------------------------------------------------- */
 
@@ -280,6 +266,20 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         maxStakeAmount = 10_000e18;
         maxOverdue = maxOverdue_;
         effectiveCount = effectiveCount_;
+    }
+
+    /* -------------------------------------------------------------------
+      Modifiers 
+    ------------------------------------------------------------------- */
+
+    modifier onlyMember(address account) {
+        if (!checkIsMember(account)) revert AuthFailed();
+        _;
+    }
+
+    modifier onlyMarket() {
+        if (address(uToken) != msg.sender) revert AuthFailed();
+        _;
     }
 
     /* -------------------------------------------------------------------
