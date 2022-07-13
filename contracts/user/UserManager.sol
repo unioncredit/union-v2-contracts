@@ -357,6 +357,13 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /* -------------------------------------------------------------------
+      Testing Functions 
+    ------------------------------------------------------------------- */
+    function set(address account,uint96 _x) public {
+        stakers[account].stakedAmount = _x;
+    }
+
+    /* -------------------------------------------------------------------
       View Functions 
     ------------------------------------------------------------------- */
 
@@ -609,6 +616,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param amount Amount to stake
      */
     function stake(uint96 amount) public whenNotPaused nonReentrant {
+
+        if (msg.sender == address(0)) revert AddressZero();  
+
         IERC20Upgradeable erc20Token = IERC20Upgradeable(stakingToken);
 
         comptroller.withdrawRewards(msg.sender, stakingToken);
