@@ -1,55 +1,148 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
-pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "../interfaces/IMoneyMarketAdapter.sol";
-import "../Controller.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {IMoneyMarketAdapter} from "../interfaces/IMoneyMarketAdapter.sol";
+import {Controller} from "../Controller.sol";
 
 contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
+    /* -------------------------------------------------------------------
+      Storage 
+    ------------------------------------------------------------------- */
+
+    /**
+     * @dev The address of the AssetManager
+     */
     address public assetManager;
+
+    /**
+     * @dev Mapping of token address to floor balance
+     */
     mapping(address => uint256) public override floorMap;
+
+    /**
+     * @dev Mapping of token address to ceiling balance
+     */
     mapping(address => uint256) public override ceilingMap;
 
-    modifier checkTokenSupported(address tokenAddress) {
-        require(_supportsToken(tokenAddress), "PureTokenAdapter: token not supported");
-        _;
-    }
-
-    modifier onlyAssetManager() {
-        require(msg.sender == assetManager, "PureTokenAdapter: only asset manager can call");
-        _;
-    }
+    /* -------------------------------------------------------------------
+      Constructor/Initializer 
+    ------------------------------------------------------------------- */
 
     function __PureTokenAdapter_init(address _assetManager) public initializer {
         Controller.__Controller_init(msg.sender);
         assetManager = _assetManager;
     }
 
+    /* -------------------------------------------------------------------
+      Modifiers 
+    ------------------------------------------------------------------- */
+
+    /**
+     * @dev Check supplied token address is supported
+     */
+    modifier checkTokenSupported(address tokenAddress) {
+        require(_supportsToken(tokenAddress), "PureTokenAdapter: token not supported");
+        _;
+    }
+
+    /**
+     * @dev Check sender is the asset manager
+     */
+    modifier onlyAssetManager() {
+        require(msg.sender == assetManager, "PureTokenAdapter: only asset manager can call");
+        _;
+    }
+
+    /* -------------------------------------------------------------------
+      Setter Functions 
+    ------------------------------------------------------------------- */
+
+    /**
+     * @dev Set the asset manager contract
+     * @param _assetManager The AssetManager
+     */
     function setAssetManager(address _assetManager) external onlyAdmin {
         assetManager = _assetManager;
     }
 
+    /**
+     * @dev Set the floor balance for this token.
+     * When assets are deposited into adapters the floors are filled first
+     * @param tokenAddress The Token address
+     * @param floor Floor balance
+     */
     function setFloor(address tokenAddress, uint256 floor) external onlyAdmin {
         floorMap[tokenAddress] = floor;
     }
 
+    /**
+     * @dev Set the ceiling balance for this token.
+     * @dev The ceiling is the max balance we want to be managed by this adapter
+     * @param tokenAddress The Token address
+     * @param ceiling Ceiling balance
+     */
     function setCeiling(address tokenAddress, uint256 ceiling) external onlyAdmin {
         ceilingMap[tokenAddress] = ceiling;
     }
 
+    /* -------------------------------------------------------------------
+      View Functions  
+    ------------------------------------------------------------------- */
+
+    /**
+     * @dev Get the underlying market rate
+     * @dev The PureAdapter doesn't have an underlying market so we return 0
+     */
     function getRate(address) external pure override returns (uint256) {
         return 0;
     }
+
+    /**
+     * @dev Get total supply of this Contracts
+     * @param tokenAddress The token to check supply for
+     */
+    function getSupply(address tokenAddress) external view override returns (uint256) {
+        return _getSupply(tokenAddress);
+    }
+
+    /**
+     * @dev Get total supply of this Contracts including any balance that has been
+     * deposited into the underlying market. As the PureAdapter doesn't have an underlying
+     * market this is the same as getSupply
+     * @param tokenAddress The token to check supply for
+     */
+    function getSupplyView(address tokenAddress) external view override returns (uint256) {
+        return _getSupply(tokenAddress);
+    }
+
+    /**
+     * @dev Check if this token is supported
+     * @param tokenAddress The token to check
+     */
+    function supportsToken(address tokenAddress) external view override returns (bool) {
+        return _supportsToken(tokenAddress);
+    }
+
+    /* -------------------------------------------------------------------
+      Core Functions  
+    ------------------------------------------------------------------- */
 
     // solhint-disable-next-line no-empty-blocks
     function deposit(address tokenAddress) external view override checkTokenSupported(tokenAddress) {
         // Don't have to do anything because AssetManager already transfered tokens here
     }
 
+    /**
+     * @dev Withdraw tokens from this adapter
+     * @dev Only callable by the AssetManager
+     * @param tokenAddress Token to withdraw
+     * @param recipient Recieved by
+     * @param tokenAmount Amount of tokens to withdraw
+     */
     function withdraw(
         address tokenAddress,
         address recipient,
@@ -59,6 +152,12 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
         token.safeTransfer(recipient, tokenAmount);
     }
 
+    /**
+     * @dev Withdraw entire balance of this token
+     * @dev Only callable by AssetManager
+     * @param tokenAddress Token to withdraw
+     * @param recipient Recieved by
+     */
     function withdrawAll(address tokenAddress, address recipient)
         external
         override
@@ -69,25 +168,22 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
         token.safeTransfer(recipient, token.balanceOf(address(this)));
     }
 
+    /**
+     * @dev Claim tokens from this contract
+     * @dev Only callable by the AssetManager
+     */
     function claimTokens(address tokenAddress, address recipient) external override onlyAssetManager {
         _claimTokens(tokenAddress, recipient);
     }
 
-    function getSupply(address tokenAddress) external view override returns (uint256) {
-        IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
-        return token.balanceOf(address(this));
+    // solhint-disable-next-line no-empty-blocks
+    function claimRewards(address tokenAddress) external override onlyAdmin {
+        // Pure manager has no rewards
     }
 
-    function getSupplyView(address tokenAddress) external view override returns (uint256) {
-        IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
-        return token.balanceOf(address(this));
-    }
-
-    function supportsToken(address tokenAddress) external view override returns (bool) {
-        return _supportsToken(tokenAddress);
-    }
-
-    function claimRewards(address tokenAddress) external override onlyAdmin {}
+    /* -------------------------------------------------------------------
+      Internal Functions 
+    ------------------------------------------------------------------- */
 
     function _supportsToken(address tokenAddress) internal view returns (bool) {
         return tokenAddress != address(0) && IERC20Upgradeable(tokenAddress).balanceOf(address(this)) >= 0; // simple check if the token is ERC20 compatible
@@ -97,5 +193,10 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         uint256 balance = token.balanceOf(address(this));
         token.safeTransfer(recipient, balance);
+    }
+
+    function _getSupply(address tokenAddress) internal view returns (uint256) {
+        IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
+        return token.balanceOf(address(this));
     }
 }
