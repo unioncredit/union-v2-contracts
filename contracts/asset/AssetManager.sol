@@ -1,43 +1,71 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
-pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "../Controller.sol";
-import "../interfaces/IMarketRegistry.sol";
-import "../interfaces/IMoneyMarketAdapter.sol";
-import "../interfaces/IAssetManager.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {Controller} from "../Controller.sol";
+import {IMarketRegistry} from "../interfaces/IMarketRegistry.sol";
+import {IMoneyMarketAdapter} from "../interfaces/IMoneyMarketAdapter.sol";
+import {IAssetManager} from "../interfaces/IAssetManager.sol";
 
 /**
  *  @title AssetManager
- *  @dev Manage the token assets deposited by components and admins, and invest tokens to the integrated underlying lending protocols.
+ *  @author Union
+ *  @dev  Manage the token assets deposited by components and admins, and invest
+ *        tokens to the integrated underlying lending protocols.
  */
 contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
 
-    IMoneyMarketAdapter[] public moneyMarkets;
-    mapping(address => bool) public supportedMarkets;
-    address[] public supportedTokensList;
-    //record admin or userManager balance
-    mapping(address => mapping(address => uint256)) public balances; //1 user 2 token
-    mapping(address => uint256) public totalPrincipal; //total stake amount
+    /* -------------------------------------------------------------------
+      Storage 
+    ------------------------------------------------------------------- */
+
+    /**
+     * @dev Address of market registry
+     */
     address public marketRegistry;
-    // slither-disable-next-line uninitialized-state
-    uint256[] public withdrawSeq; // Priority sequence of money market indices for processing withdraws
 
-    modifier checkMarketSupported(address token) {
-        require(isMarketSupported(token), "AssetManager: unsupported token");
-        _;
-    }
+    /**
+     * @dev Withdraw Seuqence
+     * @dev Priority sequence of money market indices for processing withdraws
+     */
+    uint256[] public withdrawSeq;
 
-    modifier onlyAuth(address token) {
-        require(_isUToken(msg.sender, token) || _isUserManager(msg.sender, token), "AssetManager: unauthed sender");
-        _;
-    }
+    /**
+     * @dev Record admin or userManager balance
+     * @dev Maps user to token to balance
+     */
+    mapping(address => mapping(address => uint256)) public balances;
+
+    /**
+     * @dev Total balance of a token
+     * @dev Maps token to balance (deposited)
+     */
+    mapping(address => uint256) public totalPrincipal;
+
+    /**
+     * @dev Supported markets
+     * @dev Mapping of tokens to boolean (isSupported)
+     */
+    mapping(address => bool) public supportedMarkets;
+
+    /**
+     * @dev Money Market Adapters
+     */
+    IMoneyMarketAdapter[] public moneyMarkets;
+
+    /**
+     * @dev Supported tokens
+     */
+    address[] public supportedTokensList;
+
+    /* -------------------------------------------------------------------
+      Events 
+    ------------------------------------------------------------------- */
 
     /**
      *  @dev Emit when making a deposit
@@ -61,6 +89,10 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      */
     event LogRebalance(address tokenAddress, uint256[] percentages);
 
+    /* -------------------------------------------------------------------
+      Constructor/Initializer 
+    ------------------------------------------------------------------- */
+
     function __AssetManager_init(address _marketRegistry) public initializer {
         require(_marketRegistry != address(0), "AssetManager: marketRegistry can not be zero");
         Controller.__Controller_init(msg.sender);
@@ -68,10 +100,32 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         marketRegistry = _marketRegistry;
     }
 
+    /* -------------------------------------------------------------------
+      Modifiers 
+    ------------------------------------------------------------------- */
+
+    modifier checkMarketSupported(address token) {
+        require(isMarketSupported(token), "AssetManager: unsupported token");
+        _;
+    }
+
+    modifier onlyAuth(address token) {
+        require(_isUToken(msg.sender, token) || _isUserManager(msg.sender, token), "AssetManager: unauthed sender");
+        _;
+    }
+
+    /* -------------------------------------------------------------------
+      Setters 
+    ------------------------------------------------------------------- */
+
     function setMarketRegistry(address _marketRegistry) external onlyAdmin {
         require(_marketRegistry != address(0), "AssetManager: marketRegistry can not be zero");
         marketRegistry = _marketRegistry;
     }
+
+    /* -------------------------------------------------------------------
+      View Functions 
+    ------------------------------------------------------------------- */
 
     /**
      *  @dev Get the balance of asset manager, plus the total amount of tokens deposited to all the underlying lending protocols
@@ -140,6 +194,42 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     function isMarketSupported(address tokenAddress) public view override returns (bool) {
         return supportedMarkets[tokenAddress];
     }
+
+    /**
+     *  @dev Get the number of supported underlying protocols.
+     *  @return MoneyMarkets length
+     */
+    function moneyMarketsCount() external view override returns (uint256) {
+        return moneyMarkets.length;
+    }
+
+    /**
+     *  @dev Get the count of supported tokens
+     *  @return Number of supported tokens
+     */
+    function supportedTokensCount() external view override returns (uint256) {
+        return supportedTokensList.length;
+    }
+
+    /**
+     *  @dev Get the supported lending protocol
+     *  @param tokenAddress ERC20 token address
+     *  @param marketId MoneyMarkets array index
+     *  @return rate tokenSupply, rate(compound is supplyRatePerBlock 1e18, aave is supplyRatePerYear 1e27)
+     */
+    function getMoneyMarket(address tokenAddress, uint256 marketId)
+        external
+        view
+        override
+        returns (uint256 rate, uint256 tokenSupply)
+    {
+        rate = moneyMarkets[marketId].getRate(tokenAddress);
+        tokenSupply += moneyMarkets[marketId].getSupplyView(tokenAddress);
+    }
+
+    /* -------------------------------------------------------------------
+      Core Functions 
+    ------------------------------------------------------------------- */
 
     /**
      *  @dev Deposit tokens to AssetManager, and those tokens will be passed along to adapters to deposit to integrated asset protocols if any is available.
@@ -257,6 +347,9 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         return true;
     }
 
+    /**
+     * @dev Write of Debt
+     */
     function debtWriteOff(address token, uint256 amount) external override {
         require(balances[msg.sender][token] >= amount, "AssetManager: balance not enough");
         balances[msg.sender][token] -= amount;
@@ -352,6 +445,9 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         }
     }
 
+    /**
+     * @dev Replace existing money markets
+     */
     function overwriteAdapters(address[] calldata adapters) external onlyAdmin {
         uint256 adaptersLength = adapters.length;
         moneyMarkets = new IMoneyMarketAdapter[](adaptersLength);
@@ -467,37 +563,9 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         moneyMarket.claimTokens(tokenAddress, recipient);
     }
 
-    /**
-     *  @dev Get the number of supported underlying protocols.
-     *  @return MoneyMarkets length
-     */
-    function moneyMarketsCount() external view override returns (uint256) {
-        return moneyMarkets.length;
-    }
-
-    /**
-     *  @dev Get the count of supported tokens
-     *  @return Number of supported tokens
-     */
-    function supportedTokensCount() external view override returns (uint256) {
-        return supportedTokensList.length;
-    }
-
-    /**
-     *  @dev Get the supported lending protocol
-     *  @param tokenAddress ERC20 token address
-     *  @param marketId MoneyMarkets array index
-     *  @return rate tokenSupply, rate(compound is supplyRatePerBlock 1e18, aave is supplyRatePerYear 1e27)
-     */
-    function getMoneyMarket(address tokenAddress, uint256 marketId)
-        external
-        view
-        override
-        returns (uint256 rate, uint256 tokenSupply)
-    {
-        rate = moneyMarkets[marketId].getRate(tokenAddress);
-        tokenSupply += moneyMarkets[marketId].getSupplyView(tokenAddress);
-    }
+    /* -------------------------------------------------------------------
+      Internal Functions 
+    ------------------------------------------------------------------- */
 
     function _checkSenderBalance(
         address sender,
