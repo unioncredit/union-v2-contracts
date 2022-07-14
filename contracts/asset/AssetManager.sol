@@ -320,9 +320,11 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         if (selfBalance > 0) {
             uint256 withdrawAmount = selfBalance < remaining ? selfBalance : remaining;
             remaining -= withdrawAmount;
+            // TODO: sketchy pattern
             IERC20Upgradeable(token).safeTransfer(account, withdrawAmount);
         }
 
+        // TODO: if remaining is already 0 we should skip this
         if (isMarketSupported(token)) {
             uint256 withdrawSeqLength = withdrawSeq.length;
             // iterate markets according to defined sequence and withdraw
