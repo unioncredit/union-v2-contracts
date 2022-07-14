@@ -73,13 +73,13 @@ contract MarketRegistry is Controller {
       Modifiers 
     ------------------------------------------------------------------- */
 
-    modifier newToken(address token) {
-        require(tokens[token].uToken == address(0), "MarketRegistry: has already exist this uToken");
+    modifier newUToken(address token) {
+        require(tokens[token].uToken == address(0), "MarketRegistry: uToken already added");
         _;
     }
 
     modifier newUserManager(address token) {
-        require(tokens[token].userManager == address(0), "MarketRegistry: has already exist this userManager");
+        require(tokens[token].userManager == address(0), "MarketRegistry: userManager already added");
         _;
     }
 
@@ -112,7 +112,7 @@ contract MarketRegistry is Controller {
      * @param token The underlying token e.g DAI
      * @param uToken the address of the uToken contract
      */
-    function addUToken(address token, address uToken) public newToken(token) onlyAdmin {
+    function addUToken(address token, address uToken) public newUToken(token) onlyAdmin {
         require(token != address(0) && uToken != address(0), "MarketRegistry: token and uToken can not be zero");
         uTokenList.add(uToken);
         tokens[token].uToken = uToken;
