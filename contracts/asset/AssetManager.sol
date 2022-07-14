@@ -396,19 +396,6 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     }
 
     /**
-     *  @dev For a give token set allowance for all integrated money markets
-     *  @param tokenAddress ERC20 token address
-     */
-    function approveAllMarketsMax(address tokenAddress) public override onlyAdmin {
-        IERC20Upgradeable poolToken = IERC20Upgradeable(tokenAddress);
-        uint256 moneyMarketsLength = moneyMarkets.length;
-        for (uint256 i = 0; i < moneyMarketsLength; i++) {
-            poolToken.safeApprove(address(moneyMarkets[i]), 0);
-            poolToken.safeApprove(address(moneyMarkets[i]), type(uint256).max);
-        }
-    }
-
-    /**
      *  @dev Add a new adapter for the underlying lending protocol
      *  @param adapterAddress adapter address
      */
@@ -454,13 +441,15 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     }
 
     /**
-     * @dev Replace existing money markets
+     *  @dev For a give token set allowance for all integrated money markets
+     *  @param tokenAddress ERC20 token address
      */
-    function overwriteAdapters(address[] calldata adapters) external onlyAdmin {
-        uint256 adaptersLength = adapters.length;
-        moneyMarkets = new IMoneyMarketAdapter[](adaptersLength);
-        for (uint256 i = 0; i < adaptersLength; i++) {
-            moneyMarkets[i] = IMoneyMarketAdapter(adapters[i]);
+    function approveAllMarketsMax(address tokenAddress) public override onlyAdmin {
+        IERC20Upgradeable poolToken = IERC20Upgradeable(tokenAddress);
+        uint256 moneyMarketsLength = moneyMarkets.length;
+        for (uint256 i = 0; i < moneyMarketsLength; i++) {
+            poolToken.safeApprove(address(moneyMarkets[i]), 0);
+            poolToken.safeApprove(address(moneyMarkets[i]), type(uint256).max);
         }
     }
 
