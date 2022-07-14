@@ -13,6 +13,8 @@ contract FixedInterestRateModel is Ownable, IInterestRateModel {
       Storage 
     ------------------------------------------------------------------- */
 
+    bool public constant isInterestRateModel = true;
+
     /**
      * @dev Maximum borrow rate that can ever be applied (0.005% / block)
      */

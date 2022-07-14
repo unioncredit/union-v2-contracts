@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import {TestWrapper} from "./TestWrapper.sol";
 import {MarketRegistry} from "union-v1.5-contracts/market/MarketRegistry.sol";
 
-contract TestUserManagerBase is TestWrapper {
+contract TestMarketRegistry is TestWrapper {
     MarketRegistry public marketRegistry;
 
     function setUp() public virtual {
