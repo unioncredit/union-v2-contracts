@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {TestWrapper} from "../TestWrapper.sol";
+import {TestWrapper} from "./TestWrapper.sol";
 import {PureTokenAdapter} from "union-v1.5-contracts/asset/PureTokenAdapter.sol";
 
 contract TestPureTokenAdapter is TestWrapper {
@@ -83,8 +83,8 @@ contract TestPureTokenAdapter is TestWrapper {
         pureToken.deposit(address(pureToken));
     }
 
-    function testWithdraw(address recipient, uint256 amount) public {
-        vm.assume(recipient != address(0));
+    function testWithdraw(uint256 amount) public {
+        address recipient = address(123);
         daiMock.mint(address(pureToken), amount);
         assertEq(daiMock.balanceOf(recipient), 0);
         vm.prank(pureToken.assetManager());
@@ -92,15 +92,15 @@ contract TestPureTokenAdapter is TestWrapper {
         assertEq(daiMock.balanceOf(recipient), amount);
     }
 
-    function testCannotWithdrawNonAssetManager(address recipient, uint256 amount) public {
-        vm.assume(recipient != address(0));
+    function testCannotWithdrawNonAssetManager(uint256 amount) public {
+        address recipient = address(123);
         daiMock.mint(address(pureToken), amount);
         vm.expectRevert("PureTokenAdapter: only asset manager can call");
         pureToken.withdraw(address(daiMock), recipient, amount);
     }
 
-    function testWithdrawAll(address recipient, uint256 amount) public {
-        vm.assume(recipient != address(0));
+    function testWithdrawAll(uint256 amount) public {
+        address recipient = address(123);
         daiMock.mint(address(pureToken), amount);
         assertEq(daiMock.balanceOf(recipient), 0);
         vm.prank(pureToken.assetManager());
@@ -122,7 +122,7 @@ contract TestPureTokenAdapter is TestWrapper {
         pureToken.claimTokens(address(daiMock), recipient);
         assertEq(daiMock.balanceOf(recipient), amount);
     }
-    
+
     function testCannotClaimTokensNonAssetManager(address recipient, uint256 amount) public {
         daiMock.mint(address(pureToken), amount);
         vm.expectRevert("PureTokenAdapter: only asset manager can call");
@@ -133,5 +133,4 @@ contract TestPureTokenAdapter is TestWrapper {
         // nothing to assert just check this passes
         pureToken.claimRewards(address(daiMock));
     }
-
 }

@@ -7,6 +7,7 @@ import {UnionTokenMock} from "union-v1.5-contracts/mocks/UnionTokenMock.sol";
 import {FaucetERC20} from "union-v1.5-contracts/mocks/FaucetERC20.sol";
 import {ComptrollerMock} from "union-v1.5-contracts/mocks/ComptrollerMock.sol";
 import {UTokenMock} from "union-v1.5-contracts/mocks/UTokenMock.sol";
+import {MarketRegistryMock} from "union-v1.5-contracts/mocks/MarketRegistryMock.sol";
 
 contract TestWrapper is Test {
     AssetManagerMock public assetManagerMock;
@@ -14,6 +15,7 @@ contract TestWrapper is Test {
     FaucetERC20 public daiMock;
     ComptrollerMock public comptrollerMock;
     UTokenMock public uTokenMock;
+    MarketRegistryMock public marketRegistryMock;
 
     function deployProxy(address implementation, bytes memory signature) public returns (address) {
         UUPSProxy proxy = new UUPSProxy(implementation, address(0), signature);
@@ -26,5 +28,6 @@ contract TestWrapper is Test {
         daiMock = new FaucetERC20("MockDAI", "MDAI");
         comptrollerMock = new ComptrollerMock();
         uTokenMock = new UTokenMock();
+        marketRegistryMock = new MarketRegistryMock();
     }
 }

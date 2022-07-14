@@ -147,9 +147,9 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param tokenAddress ERC20 token address
      *  @return loanAmount Amount can be borrowed
      */
-    function getLoanableAmount(address tokenAddress) public view override returns (uint256 loanAmount) {
+    function getLoanableAmount(address tokenAddress) public view override returns (uint256) {
         uint256 poolBalance = getPoolBalance(tokenAddress);
-        loanAmount = poolBalance > totalPrincipal[tokenAddress] ? poolBalance - totalPrincipal[tokenAddress] : 0;
+        return poolBalance > totalPrincipal[tokenAddress] ? poolBalance - totalPrincipal[tokenAddress] : 0;
     }
 
     /**
@@ -157,8 +157,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param tokenAddress ERC20 token address
      *  @return tokenSupply Total market balance
      */
-    function totalSupply(address tokenAddress) public override returns (uint256 tokenSupply) {
-        tokenSupply = 0;
+    function totalSupply(address tokenAddress) public override returns (uint256) {
+        uint256 tokenSupply = 0;
         if (isMarketSupported(tokenAddress)) {
             uint256 moneyMarketsLength = moneyMarkets.length;
             for (uint256 i = 0; i < moneyMarketsLength; i++) {
@@ -167,6 +167,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
                 }
             }
         }
+        return tokenSupply;
     }
 
     /**
@@ -175,7 +176,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @return tokenSupply Total market balance
      */
     function totalSupplyView(address tokenAddress) public view override returns (uint256 tokenSupply) {
-        tokenSupply = 0;
+        uint256 tokenSupply = 0;
         if (isMarketSupported(tokenAddress)) {
             uint256 moneyMarketsLength = moneyMarkets.length;
             for (uint256 i = 0; i < moneyMarketsLength; i++) {
@@ -184,6 +185,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
                 }
             }
         }
+        return tokenSupply;
     }
 
     /**
@@ -376,6 +378,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         bool isExist = false;
         uint256 index;
         uint256 supportedTokensLength = supportedTokensList.length;
+        // TODO: maintain a mapping of adapter => index rather than doing this
+        // lookup
         for (uint256 i = 0; i < supportedTokensLength; i++) {
             if (tokenAddress == address(supportedTokensList[i])) {
                 isExist = true;
@@ -411,6 +415,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     function addAdapter(address adapterAddress) external override onlyAdmin {
         bool isExist = false;
         uint256 moneyMarketsLength = moneyMarkets.length;
+        // TODO: maintain a mapping of adapter => index rather than doing this
+        // lookup
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             if (adapterAddress == address(moneyMarkets[i])) isExist = true;
         }
@@ -431,6 +437,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         bool isExist = false;
         uint256 index;
         uint256 moneyMarketsLength = moneyMarkets.length;
+        // TODO: maintain a mapping of adapter => index rather than doing this
+        // lookup
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             if (adapterAddress == address(moneyMarkets[i])) {
                 isExist = true;
