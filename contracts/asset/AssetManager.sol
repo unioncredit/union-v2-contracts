@@ -499,11 +499,10 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         uint256 percentagesLength = percentages.length;
         require(percentagesLength + 1 == moneyMarketsLength, "AssetManager: percentages error");
 
+        // Loop through each money market and withdraw all the tokens
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             IMoneyMarketAdapter moneyMarket = moneyMarkets[i];
-            if (!moneyMarket.supportsToken(tokenAddress)) {
-                continue;
-            }
+            if (!moneyMarket.supportsToken(tokenAddress)) continue;
             moneyMarket.withdrawAll(tokenAddress, address(this));
         }
 
@@ -511,18 +510,15 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
 
         for (uint256 i = 0; i < percentagesLength; i++) {
             IMoneyMarketAdapter moneyMarket = moneyMarkets[i];
-            if (!moneyMarket.supportsToken(tokenAddress)) {
-                continue;
-            }
+            if (!moneyMarket.supportsToken(tokenAddress)) continue;
             uint256 amountToDeposit = (tokenSupply * percentages[i]) / 10000;
-            if (amountToDeposit == 0) {
-                continue;
-            }
+            if (amountToDeposit == 0) continue;
             token.safeTransfer(address(moneyMarket), amountToDeposit);
             moneyMarket.deposit(tokenAddress);
         }
 
         uint256 remainingTokens = token.balanceOf(address(this));
+
         IMoneyMarketAdapter lastMoneyMarket = moneyMarkets[moneyMarketsLength - 1];
         if (lastMoneyMarket.supportsToken(tokenAddress) && remainingTokens > 0) {
             token.safeTransfer(address(lastMoneyMarket), remainingTokens);
