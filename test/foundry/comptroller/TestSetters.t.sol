@@ -37,7 +37,7 @@ contract TestSetters is TestComptrollerBase {
 
     function testCannotUpdateTotalStakedNotUserManager() public {
       marketRegistryMock.setTokens(address(1), address(1));
-      vm.expectRevert("UnionToken: only user manager can call");
+      vm.expectRevert("Comptroller: only user manager can call");
       comptroller.updateTotalStaked(address(daiMock), 1);
     }
 }

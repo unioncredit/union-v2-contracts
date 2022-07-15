@@ -47,10 +47,6 @@ contract UnionTokenMock is ERC20VotesComp, ERC20Burnable {
 
     function _mint(address account, uint256 amount) internal override(ERC20, ERC20Votes) {
         super._mint(account, amount);
-        require(block.timestamp >= mintingAllowedAfter, "minting not allowed yet");
-
-        // record the mint
-        mintingAllowedAfter = minimumTimeBetweenMints + block.timestamp;
     }
 
     function _burn(address account, uint256 amount) internal override(ERC20, ERC20Votes) {

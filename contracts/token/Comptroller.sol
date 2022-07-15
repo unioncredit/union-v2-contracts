@@ -69,7 +69,7 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     modifier onlyUserManager(address token) {
-        require(msg.sender == _getUserManager(token), "UnionToken: only user manager can call");
+        require(msg.sender == _getUserManager(token), "Comptroller: only user manager can call");
         _;
     }
 
