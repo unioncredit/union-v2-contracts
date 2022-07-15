@@ -11,7 +11,7 @@ contract TestComptrollerBase is TestWrapper {
 
         deployMocks();
 
-        uint256 halfDecayPoint = 1_000_000 ether;
+        uint256 halfDecayPoint = 1000000;
 
         comptroller = Comptroller(
             deployProxy(

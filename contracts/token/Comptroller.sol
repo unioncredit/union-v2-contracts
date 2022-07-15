@@ -198,7 +198,7 @@ contract Comptroller is Controller, IComptroller {
      *  @param effectiveTotalStake Effective total stake
      *  @return Inflation amount, div totalSupply is the inflation rate
      */
-    function inflationPerBlock(uint256 effectiveTotalStake) internal view returns (uint256) {
+    function inflationPerBlock(uint256 effectiveTotalStake) public view returns (uint256) {
         return _inflationPerBlock(effectiveTotalStake);
     }
 
