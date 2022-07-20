@@ -1,5 +1,4 @@
-[default]
-src = 'src'
+[profile.default]
 out = 'out'
 src = 'contracts'
 test = 'test/foundry'

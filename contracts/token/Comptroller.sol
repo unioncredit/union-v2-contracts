@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -69,7 +69,7 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     modifier onlyUserManager(address token) {
-        require(msg.sender == _getUserManager(token), "UnionToken: only user manager can call");
+        require(msg.sender == _getUserManager(token), "Comptroller: only user manager can call");
         _;
     }
 
@@ -198,7 +198,7 @@ contract Comptroller is Controller, IComptroller {
      *  @param effectiveTotalStake Effective total stake
      *  @return Inflation amount, div totalSupply is the inflation rate
      */
-    function inflationPerBlock(uint256 effectiveTotalStake) internal view returns (uint256) {
+    function inflationPerBlock(uint256 effectiveTotalStake) public view returns (uint256) {
         return _inflationPerBlock(effectiveTotalStake);
     }
 

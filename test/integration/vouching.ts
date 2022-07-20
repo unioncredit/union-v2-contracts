@@ -97,9 +97,31 @@ describe("Vouching", () => {
     });
 
     context("Cancel vouch", () => {
-        before(beforeContext);
-        it("only staker or borrower can cancel vouch");
-        it("cannot cancel a vouch with locked amount");
-        it("cancelling vouch removes member from vouchers array and correctly re-indexes");
+        let staker: Signer;
+        let borrower: Signer;
+
+        before(async () => {
+            await beforeContext();
+            staker = signers[0];
+            borrower = signers[1];
+            await helpers.updateTrust(staker, borrower, trustAmount);
+            await helpers.stake(trustAmount, staker);
+        });
+        it("only staker or borrower can cancel vouch", async () => {
+            const resp = helpers.cancelVouch(staker, borrower, signers[3]);
+            await expect(resp).to.be.revertedWith("AuthFailed()");
+        });
+        it("cannot cancel a vouch with locked amount", async () => {
+            const [creditLimit] = await helpers.getCreditLimits(borrower);
+            await helpers.borrow(borrower, creditLimit.mul(900).div(1000));
+            const resp = helpers.cancelVouch(staker, borrower, staker);
+            await expect(resp).to.be.revertedWith("LockedStakeNonZero()");
+        });
+        it("cancelling vouch removes member from vouchers array and correctly re-indexes", async () => {
+            await helpers.repayFull(borrower);
+            await helpers.cancelVouch(staker, borrower, staker);
+            const [vouchAmount] = await helpers.getVouchingAmounts(borrower, staker);
+            expect(vouchAmount).eq(0);
+        });
     });
 });
