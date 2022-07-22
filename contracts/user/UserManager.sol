@@ -667,15 +667,18 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (!index.isSet) revert VoucherNotFound();
         Vouch storage vouch = vouchers[borrower][index.idx];
 
-        if (amount > vouch.locked) revert ExceedsLocked();
+        if (amount > vouch.locked || amount > stakers[staker].locked) revert ExceedsLocked();
 
         // update staker staked amount
         stakers[staker].stakedAmount -= amount;
+        stakers[staker].locked -= amount;
         totalStaked -= amount;
 
         // update vouch trust amount
         vouch.lastUpdated = uint64(block.number);
         vouch.amount -= amount;
+        vouch.locked -= amount;
+
         if (vouch.amount == 0) {
             cancelVouch(staker, borrower);
         }
