@@ -98,20 +98,22 @@ contract TestUToken is TestWrapper {
         assertEq(uToken.borrowBalanceView(ALICE), borrowed + interest);
     }
 
-    function testRepayBorrow() public {
+    function testRepayBorrow(uint256 borrowAmount) public {
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+
         vm.startPrank(ALICE);
 
-        uToken.borrow(1 ether);
+        uToken.borrow(borrowAmount);
 
-        uint256 initialBorrow = uToken.borrowBalanceView(ALICE);
-        assertEq(initialBorrow, 1 ether + ORIGINATION_FEE);
+        uint256 borrowed = uToken.borrowBalanceView(ALICE);
+        assertEq(borrowed, borrowAmount + (ORIGINATION_FEE * borrowAmount) / 1 ether);
 
         vm.roll(block.number + 1);
 
         // Get the interest amount
         uint256 interest = uToken.calculatingInterest(ALICE);
 
-        uint256 repayAmount = initialBorrow + interest;
+        uint256 repayAmount = borrowed + interest;
 
         daiMock.approve(address(uToken), repayAmount);
 
@@ -122,10 +124,12 @@ contract TestUToken is TestWrapper {
         assertEq(0, uToken.borrowBalanceView(ALICE));
     }
 
-    function testRepayBorrowWhenOverdue() public {
+    function testRepayBorrowWhenOverdue(uint256 borrowAmount) public {
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+
         vm.startPrank(ALICE);
 
-        uToken.borrow(1 ether);
+        uToken.borrow(borrowAmount);
 
         // fast forward to overdue block
         vm.roll(block.number + OVERDUE_BLOCKS + 1);
@@ -147,11 +151,13 @@ contract TestUToken is TestWrapper {
         assertEq(0, uToken.borrowBalanceView(ALICE));
     }
 
-    function testRepayBorrowOnBehalf() public {
+    function testRepayBorrowOnBehalf(uint256 borrowAmount) public {
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+
         // Alice borrows first
         vm.startPrank(ALICE);
 
-        uToken.borrow(1 ether);
+        uToken.borrow(borrowAmount);
 
         vm.stopPrank();
 
