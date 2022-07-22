@@ -1,0 +1,26 @@
+name: build and test
+
+on: [pull_request]
+
+jobs:
+    buildAndTest:
+        name: Run Foundry Tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  submodules: recursive
+            - uses: actions/setup-node@v2
+              with:
+                  node-version: 14
+
+            - name: Install Dependencies
+              run: yarn install
+
+            - name: Install Foundry
+              uses: foundry-rs/foundry-toolchain@v1
+              with:
+                  version: nightly
+
+            - name: Run Tests
+              run: forge test
