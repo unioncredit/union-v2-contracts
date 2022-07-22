@@ -9,16 +9,16 @@ contract TestUToken is TestWrapper {
     address public constant ALICE = address(2);
     address public constant BOB = address(3);
 
-    uint256 internal constant originationFee = 0.01 ether;
-    uint256 borrowInterestPerBlock = 0.000001 ether; //0.0001%
+    uint256 internal constant ORIGINATION_FEE = 0.01 ether;
+    uint256 internal constant MIN_BORROW = 1 ether;
+    uint256 internal constant MAX_BORROW = 100 ether;
+    uint256 internal constant BORROW_INTEREST_PER_BLOCK = 0.000001 ether; //0.0001%
+    uint256 internal constant OVERDUE_BLOCKS = 10;
 
     function setUp() public virtual {
         uint256 initialExchangeRateMantissa = 1 ether;
         uint256 reserveFactorMantissa = 0.5 ether;
         uint256 debtCeiling = 1000 ether;
-        uint256 maxBorrow = 100 ether;
-        uint256 minBorrow = 1 ether;
-        uint256 overdueBlocks = 10;
         address uTokenLogic = address(new UToken());
 
         deployMocks();
@@ -33,11 +33,11 @@ contract TestUToken is TestWrapper {
                     address(daiMock),
                     initialExchangeRateMantissa,
                     reserveFactorMantissa,
-                    originationFee,
+                    ORIGINATION_FEE,
                     debtCeiling,
-                    maxBorrow,
-                    minBorrow,
-                    overdueBlocks,
+                    MAX_BORROW,
+                    MIN_BORROW,
+                    OVERDUE_BLOCKS,
                     ADMIN
                 )
             )
@@ -56,15 +56,19 @@ contract TestUToken is TestWrapper {
         userManagerMock.setIsMember(true);
     }
 
-    function testGetAssetManager(address assetManager) public {
-        // vm.assume(assetManager != address(0));
+    function testSetAssetManager(address assetManager) public {
+        vm.assume(assetManager != address(0));
+        vm.startPrank(ADMIN);
+        uToken.setAssetManager(assetManager);
+        vm.stopPrank();
+
         address uTokenAssetMgr = uToken.assetManager();
-        assertEq(uTokenAssetMgr, address(assetManagerMock));
+        assertEq(uTokenAssetMgr, assetManager);
     }
 
     function testSupplyRate() public {
         uint256 reserveFactorMantissa = uToken.reserveFactorMantissa();
-        uint256 expectSupplyRate = (borrowInterestPerBlock * (1 ether - reserveFactorMantissa)) / 1 ether;
+        uint256 expectSupplyRate = (BORROW_INTEREST_PER_BLOCK * (1 ether - reserveFactorMantissa)) / 1 ether;
         assertEq(expectSupplyRate, uToken.supplyRatePerBlock());
     }
 
@@ -75,20 +79,23 @@ contract TestUToken is TestWrapper {
         uToken.borrow(1 ether);
     }
 
-    function testBorrowFeeAndInterest() public {
+    function testBorrowFeeAndInterest(uint256 borrowAmount) public {
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+
         vm.startPrank(ALICE);
-        uToken.borrow(1 ether);
+        uToken.borrow(borrowAmount);
         vm.stopPrank();
 
         uint256 borrowed = uToken.borrowBalanceView(ALICE);
         // borrowed amount should only include origination fee
-        assertEq(borrowed, 1 ether + originationFee);
+        assertEq(borrowed, borrowAmount + (ORIGINATION_FEE * borrowAmount) / 1 ether);
 
         // advance 1 more block
         vm.roll(block.number + 1);
 
         // borrowed amount should now include interest
-        assertEq(uToken.borrowBalanceView(ALICE), borrowed + (borrowed * borrowInterestPerBlock) / 1 ether);
+        uint256 interest = uToken.calculatingInterest(ALICE);
+        assertEq(uToken.borrowBalanceView(ALICE), borrowed + interest);
     }
 
     function testRepayBorrow() public {
@@ -97,7 +104,7 @@ contract TestUToken is TestWrapper {
         uToken.borrow(1 ether);
 
         uint256 initialBorrow = uToken.borrowBalanceView(ALICE);
-        assertEq(initialBorrow, 1 ether + originationFee);
+        assertEq(initialBorrow, 1 ether + ORIGINATION_FEE);
 
         vm.roll(block.number + 1);
 
@@ -120,9 +127,8 @@ contract TestUToken is TestWrapper {
 
         uToken.borrow(1 ether);
 
-        uint256 overdueBlocks = uToken.overdueBlocks();
         // fast forward to overdue block
-        vm.roll(block.number + overdueBlocks + 1);
+        vm.roll(block.number + OVERDUE_BLOCKS + 1);
 
         assertTrue(uToken.checkIsOverdue(ALICE));
 
