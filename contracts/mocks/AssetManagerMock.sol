@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "../interfaces/IAssetManager.sol";
 
 contract AssetManagerMock is IAssetManager {
@@ -8,12 +10,15 @@ contract AssetManagerMock is IAssetManager {
         bool isSupported;
     }
 
-    function getPoolBalance(address) public view override returns (uint256) {
-        return 0;
+    function getPoolBalance(address tokenAddress) public view returns (uint256) {
+        return IERC20(tokenAddress).balanceOf(address(this));
     }
 
-    function getLoanableAmount(address) public view override returns (uint256) {
-        return 0;
+    function getLoanableAmount(address tokenAddress) public view returns (uint256) {
+        // uint256 poolBalance = getPoolBalance(tokenAddress);
+        // if (poolBalance > totalPrincipal[tokenAddress]) return poolBalance - totalPrincipal[tokenAddress];
+        // return 0;
+        return getPoolBalance(tokenAddress);
     }
 
     function totalSupply(address) public pure override returns (uint256) {
