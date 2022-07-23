@@ -8,55 +8,61 @@ contract TestStakeAndUnstake is TestUserManagerBase {
         super.setUp();
     }
 
-    function testCannotStakeAboveLimit() public {
+    function testCannotStakeAboveLimit(uint96 amount) public {
+        vm.assume(amount > 10000 ether);
         vm.expectRevert(UserManager.StakeLimitReached.selector);
-        userManager.stake(1000000000 ether);
+        userManager.stake(amount);
     }
 
-    function testCannotStakeWhenDepositFailed() public {
+    function testCannotStakeWhenDepositFailed(uint96 amount) public {
+        vm.assume(amount <= 100 ether);
         vm.mockCall(
             address(assetManagerMock),
-            abi.encodeWithSelector(AssetManager.deposit.selector, daiMock, 1 ether),
+            abi.encodeWithSelector(AssetManager.deposit.selector, daiMock, amount),
             abi.encode(false)
         );
         vm.expectRevert(UserManager.AssetManagerDepositFailed.selector);
-        userManager.stake(1 ether);
+        userManager.stake(amount);
         vm.clearMockedCalls();
     }
 
-    function testStake() public {
+    function testStake(uint96 amount) public {
+        vm.assume(amount <= 100 ether);
         vm.prank(MEMBER);
-        userManager.stake(1 ether);
+        userManager.stake(amount);
         uint256 stakeAmount = userManager.getStakerBalance(MEMBER);
-        assertEq(stakeAmount, 1 ether);
+        assertEq(stakeAmount, amount);
     }
 
-    function testCannotUnstakeAboveStake() public {
+    function testCannotUnstakeAboveStake(uint96 amount) public {
+        vm.assume(amount <= 100 ether);
         vm.startPrank(MEMBER);
-        userManager.stake(1 ether);
+        userManager.stake(amount);
         vm.expectRevert(UserManager.InsufficientBalance.selector);
-        userManager.unstake(10 ether);
+        userManager.unstake(amount + 1);
         vm.stopPrank();
     }
 
-    function testCannotUnstakeWhenWithdrawFailed() public {
+    function testCannotUnstakeWhenWithdrawFailed(uint96 amount) public {
+        vm.assume(amount <= 100 ether);
         vm.startPrank(MEMBER);
-        userManager.stake(1 ether);
+        userManager.stake(amount);
         vm.mockCall(
             address(assetManagerMock),
-            abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, MEMBER, 1 ether),
+            abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, MEMBER, amount),
             abi.encode(false)
         );
         vm.expectRevert(UserManager.AssetManagerWithdrawFailed.selector);
-        userManager.unstake(1 ether);
+        userManager.unstake(amount);
         vm.stopPrank();
         vm.clearMockedCalls();
     }
 
-    function testUnstake() public {
+    function testUnstake(uint96 amount) public {
+        vm.assume(amount <= 100 ether);
         vm.startPrank(MEMBER);
-        userManager.stake(1 ether);
-        userManager.unstake(1 ether);
+        userManager.stake(amount);
+        userManager.unstake(amount);
         uint256 stakeAmount = userManager.getStakerBalance(MEMBER);
         assertEq(stakeAmount, 0);
         vm.stopPrank();

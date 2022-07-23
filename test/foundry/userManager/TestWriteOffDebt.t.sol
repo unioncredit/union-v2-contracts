@@ -25,43 +25,51 @@ contract TestWriteOffDebt is TestUserManagerBase {
         userManager.debtWriteOff(staker, borrower, 0);
     }
 
-    function testCannotWriteOffDebtNoOverdue() public {
+    function testCannotWriteOffDebtNoOverdue(uint96 amount) public {
+        vm.assume(amount > 0);
         vm.mockCall(
             address(uTokenMock),
             abi.encodeWithSelector(UToken.checkIsOverdue.selector, borrower),
             abi.encode(false)
         );
         vm.expectRevert(UserManager.NotOverdue.selector);
-        userManager.debtWriteOff(staker, borrower, 1 ether);
+        userManager.debtWriteOff(staker, borrower, amount);
         vm.clearMockedCalls();
     }
 
-    function testCannotWriteOffDebtNoAuth() public {
+    function testCannotWriteOffDebtNoAuth(uint96 amount) public {
+        vm.assume(amount > 0);
         vm.prank(address(3));
         vm.roll(1);
         vm.expectRevert(UserManager.AuthFailed.selector);
-        userManager.debtWriteOff(staker, borrower, 1 ether);
+        userManager.debtWriteOff(staker, borrower, amount);
     }
 
-    function testCannotVoucherNotFound() public {
+    function testCannotVoucherNotFound(uint96 amount) public {
+        vm.assume(amount > 0);
         vm.prank(address(3));
         vm.expectRevert(UserManager.VoucherNotFound.selector);
-        userManager.debtWriteOff(address(3), borrower, 1 ether);
+        userManager.debtWriteOff(address(3), borrower, amount);
     }
 
-    function testCannotWriteOffDebtExceedsLocked() public {
+    function testCannotWriteOffDebtExceedsLocked(uint96 amount) public {
+        vm.assume(amount > 0);
         vm.prank(staker);
         vm.expectRevert(UserManager.ExceedsLocked.selector);
-        userManager.debtWriteOff(staker, borrower, 10000 ether);
+        userManager.debtWriteOff(staker, borrower, amount);
     }
 
-    function testDebtWriteOffPart() public {
+    function testDebtWriteOffPart(uint96 amount) public {
+        vm.assume(amount > 0 && amount < 100 ether);
         vm.prank(address(uTokenMock));
-        userManager.updateLocked(borrower, 50 ether, true);
+        userManager.updateLocked(borrower, amount, true);
         vm.prank(staker);
-        userManager.debtWriteOff(staker, borrower, 50 ether);
+        userManager.debtWriteOff(staker, borrower, amount);
         uint256 stakeAmount = userManager.getStakerBalance(staker);
-        assertEq(stakeAmount, 50 ether);
+        assertEq(stakeAmount, 100 ether - amount);
+
+        (bool isSet, ) = userManager.voucherIndexes(borrower, staker);
+        assertEq(isSet, true);
     }
 
     function testDebtWriteOffAll() public {
@@ -71,5 +79,8 @@ contract TestWriteOffDebt is TestUserManagerBase {
         userManager.debtWriteOff(staker, borrower, 100 ether);
         uint256 stakeAmount = userManager.getStakerBalance(staker);
         assertEq(stakeAmount, 0);
+
+        (bool isSet, ) = userManager.voucherIndexes(borrower, staker);
+        assertEq(isSet, false);
     }
 }

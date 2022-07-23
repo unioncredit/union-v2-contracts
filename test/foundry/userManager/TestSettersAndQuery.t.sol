@@ -11,21 +11,21 @@ contract TestSettersAndQuery is TestUserManagerBase {
         vm.stopPrank();
     }
 
-    function testCannotSetMaxStakeAmountNotAdmin() public {
+    function testCannotSetMaxStakeAmountNotAdmin(uint96 amount) public {
         vm.expectRevert("Controller: not admin");
-        userManager.setMaxStakeAmount(1);
+        userManager.setMaxStakeAmount(amount);
     }
 
-    function testSetMaxStakeAmount() public {
+    function testSetMaxStakeAmount(uint96 amount) public {
         vm.prank(ADMIN);
-        userManager.setMaxStakeAmount(123);
+        userManager.setMaxStakeAmount(amount);
         uint256 maxStakeAmount = userManager.maxStakeAmount();
-        assertEq(maxStakeAmount, 123);
+        assertEq(maxStakeAmount, amount);
     }
 
-    function testCannotSetUTokenNotAdmin() public {
+    function testCannotSetUTokenNotAdmin(address uToken) public {
         vm.expectRevert("Controller: not admin");
-        userManager.setUToken(address(3));
+        userManager.setUToken(uToken);
     }
 
     function testCannotSetUTokenZeroAddress() public {
@@ -34,58 +34,60 @@ contract TestSettersAndQuery is TestUserManagerBase {
         userManager.setUToken(address(0));
     }
 
-    function testSetUToken() public {
+    function testSetUToken(address uToken) public {
+        vm.assume(uToken != address(0));
         vm.prank(ADMIN);
-        userManager.setUToken(address(4));
+        userManager.setUToken(uToken);
         address uToken = address(userManager.uToken());
-        assertEq(uToken, address(4));
+        assertEq(uToken, uToken);
     }
 
-    function testCannotSetNewMemberFeeNotAdmin() public {
+    function testCannotSetNewMemberFeeNotAdmin(uint96 amount) public {
         vm.expectRevert("Controller: not admin");
-        userManager.setNewMemberFee(123);
+        userManager.setNewMemberFee(amount);
     }
 
-    function testSetNewMemberFee() public {
+    function testSetNewMemberFee(uint96 amount) public {
         vm.prank(ADMIN);
-        userManager.setNewMemberFee(123);
+        userManager.setNewMemberFee(amount);
         uint256 newMemberFee = userManager.newMemberFee();
-        assertEq(newMemberFee, 123);
+        assertEq(newMemberFee, amount);
     }
 
-    function testCannotSetMaxOverdueNotAdmin() public {
+    function testCannotSetMaxOverdueNotAdmin(uint96 amount) public {
         vm.expectRevert("Controller: not admin");
-        userManager.setMaxOverdue(123);
+        userManager.setMaxOverdue(amount);
     }
 
-    function testSetMaxOverdue() public {
+    function testSetMaxOverdue(uint96 amount) public {
         vm.prank(ADMIN);
-        userManager.setMaxOverdue(123);
+        userManager.setMaxOverdue(amount);
         uint256 maxOverdue = userManager.maxOverdue();
-        assertEq(maxOverdue, 123);
+        assertEq(maxOverdue, amount);
     }
 
-    function testCannotSetEffectiveCountNotAdmin() public {
+    function testCannotSetEffectiveCountNotAdmin(uint256 count) public {
         vm.expectRevert("Controller: not admin");
-        userManager.setEffectiveCount(2);
+        userManager.setEffectiveCount(count);
     }
 
-    function testSetEffectiveCount() public {
+    function testSetEffectiveCount(uint256 count) public {
+        vm.assume(count > 0 && count < 100);
         vm.prank(ADMIN);
-        userManager.setEffectiveCount(2);
+        userManager.setEffectiveCount(count);
         uint256 effectiveCount = userManager.effectiveCount();
-        assertEq(effectiveCount, 2);
+        assertEq(effectiveCount, count);
     }
 
-    function testCannotAddMemberNotAdmin() public {
+    function testCannotAddMemberNotAdmin(address account) public {
         vm.expectRevert("Controller: not admin");
-        userManager.addMember(ACCOUNT);
+        userManager.addMember(account);
     }
 
-    function testAddMember() public {
+    function testAddMember(address account) public {
         vm.prank(ADMIN);
-        userManager.addMember(ACCOUNT);
-        bool isMember = userManager.checkIsMember(ACCOUNT);
+        userManager.addMember(account);
+        bool isMember = userManager.checkIsMember(account);
         assertEq(isMember, true);
     }
 
@@ -109,17 +111,19 @@ contract TestSettersAndQuery is TestUserManagerBase {
         assertEq(vouchingAmount, 100 ether);
     }
 
-    function testGetLockedStake() public {
+    function testGetLockedStake(uint96 amount) public {
+        vm.assume(amount <= 100 ether);
         vm.prank(address(uTokenMock));
-        userManager.updateLocked(ACCOUNT, 50 ether, true);
+        userManager.updateLocked(ACCOUNT, amount, true);
         uint256 lockedStake = userManager.getLockedStake(MEMBER, ACCOUNT);
-        assertEq(lockedStake, 50 ether);
+        assertEq(lockedStake, amount);
     }
 
-    function testGetTotalLockedStake() public {
+    function testGetTotalLockedStake(uint96 amount) public {
+        vm.assume(amount <= 100 ether);
         vm.prank(address(uTokenMock));
-        userManager.updateLocked(ACCOUNT, 50 ether, true);
+        userManager.updateLocked(ACCOUNT, amount, true);
         uint256 lockedStake = userManager.getTotalLockedStake(MEMBER);
-        assertEq(lockedStake, 50 ether);
+        assertEq(lockedStake, amount);
     }
 }
