@@ -17,8 +17,7 @@ contract TestRegister is TestUserManagerBase {
         userManager.registerMember(ACCOUNT);
     }
 
-    //Members without a take are not valid
-    function testCannotRegisterNotEnoughStakers2() public {
+    function testCannotReigsterWithZeroVouchStakers() public {
         vm.prank(ADMIN);
         userManager.setEffectiveCount(1);
         vm.prank(MEMBER);
