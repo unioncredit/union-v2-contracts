@@ -14,10 +14,10 @@ contract TestUToken is TestWrapper {
     uint256 internal constant MAX_BORROW = 100 ether;
     uint256 internal constant BORROW_INTEREST_PER_BLOCK = 0.000001 ether; //0.0001%
     uint256 internal constant OVERDUE_BLOCKS = 10;
+    uint256 internal constant RESERVE_FACTOR = 0.5 ether;
+    uint256 internal constant INIT_EXCHANGE_RATE = 1 ether;
 
     function setUp() public virtual {
-        uint256 initialExchangeRateMantissa = 1 ether;
-        uint256 reserveFactorMantissa = 0.5 ether;
         uint256 debtCeiling = 1000 ether;
         address uTokenLogic = address(new UToken());
 
@@ -31,8 +31,8 @@ contract TestUToken is TestWrapper {
                     "UTokenMock",
                     "UTM",
                     address(daiMock),
-                    initialExchangeRateMantissa,
-                    reserveFactorMantissa,
+                    INIT_EXCHANGE_RATE,
+                    RESERVE_FACTOR,
                     ORIGINATION_FEE,
                     debtCeiling,
                     MAX_BORROW,
@@ -88,13 +88,15 @@ contract TestUToken is TestWrapper {
 
         uint256 borrowed = uToken.borrowBalanceView(ALICE);
         // borrowed amount should only include origination fee
-        assertEq(borrowed, borrowAmount + (ORIGINATION_FEE * borrowAmount) / 1 ether);
+        uint256 fees = (ORIGINATION_FEE * borrowAmount) / 1 ether;
+        assertEq(borrowed, borrowAmount + fees);
 
         // advance 1 more block
         vm.roll(block.number + 1);
 
         // borrowed amount should now include interest
-        uint256 interest = uToken.calculatingInterest(ALICE);
+        uint256 interest = ((borrowAmount + fees) * BORROW_INTEREST_PER_BLOCK) / 1 ether;
+
         assertEq(uToken.borrowBalanceView(ALICE), borrowed + interest);
     }
 
@@ -176,17 +178,90 @@ contract TestUToken is TestWrapper {
         assertEq(0, uToken.borrowBalanceView(ALICE));
     }
 
-    function testMintUToken() public {}
+    function testMintUToken(uint256 mintAmount) public {
+        vm.assume(mintAmount > 0 && mintAmount <= 100 ether);
 
-    function testRedeemUToken() public {}
+        assertEq(INIT_EXCHANGE_RATE, uToken.exchangeRateStored());
 
-    function testRedeemUnderlying() public {}
+        vm.startPrank(ALICE);
+        daiMock.approve(address(uToken), mintAmount);
+        uToken.mint(mintAmount);
 
-    function testAddReserve() public {}
+        uint256 totalRedeemable = uToken.totalRedeemable();
+        assertEq(mintAmount, totalRedeemable);
 
-    function testRemoveReserve() public {}
+        uint256 balance = uToken.balanceOf(ALICE);
+        uint256 totalSupply = uToken.totalSupply();
+        assertEq(balance, totalSupply);
 
-    function testUpdateOverdue() public {}
+        uint256 currExchangeRate = uToken.exchangeRateStored();
+        assertEq(balance, (mintAmount * 1 ether) / currExchangeRate);
+    }
 
-    function testBatchUpdateOverdue() public {}
+    function testRedeemUToken(uint256 mintAmount) public {
+        vm.assume(mintAmount > 0 && mintAmount <= 100 ether);
+
+        vm.startPrank(ALICE);
+
+        daiMock.approve(address(uToken), mintAmount);
+        uToken.mint(mintAmount);
+
+        uint256 uBalance = uToken.balanceOf(ALICE);
+        uint256 daiBalance = daiMock.balanceOf(ALICE);
+
+        assertEq(uBalance, mintAmount);
+
+        uToken.redeem(uBalance);
+        uBalance = uToken.balanceOf(ALICE);
+        assertEq(0, uBalance);
+
+        uint256 daiBalanceAfter = daiMock.balanceOf(ALICE);
+        assertEq(daiBalanceAfter, daiBalance + mintAmount);
+    }
+
+    function testRedeemUnderlying(uint256 mintAmount) public {
+        vm.assume(mintAmount > 0 && mintAmount <= 100 ether);
+
+        vm.startPrank(ALICE);
+
+        daiMock.approve(address(uToken), mintAmount);
+        uToken.mint(mintAmount);
+
+        uint256 uBalance = uToken.balanceOf(ALICE);
+        uint256 daiBalance = daiMock.balanceOf(ALICE);
+
+        assertEq(uBalance, mintAmount);
+
+        uToken.redeemUnderlying(mintAmount);
+        uBalance = uToken.balanceOf(ALICE);
+        assertEq(0, uBalance);
+
+        uint256 daiBalanceAfter = daiMock.balanceOf(ALICE);
+        assertEq(daiBalanceAfter, daiBalance + mintAmount);
+    }
+
+    function testAddAndRemoveReserve(uint256 addReserveAmount) public {
+        vm.assume(addReserveAmount > 0 && addReserveAmount <= 100 ether);
+
+        uint256 totalReserves = uToken.totalReserves();
+        assertEq(0, totalReserves);
+
+        vm.startPrank(ALICE);
+
+        daiMock.approve(address(uToken), addReserveAmount);
+        uToken.addReserves(addReserveAmount);
+
+        vm.stopPrank();
+
+        totalReserves = uToken.totalReserves();
+        assertEq(totalReserves, addReserveAmount);
+
+        uint256 daiBalanceBefore = daiMock.balanceOf(ALICE);
+
+        vm.startPrank(ADMIN);
+
+        uToken.removeReserves(ALICE, addReserveAmount);
+        uint256 daiBalanceAfter = daiMock.balanceOf(ALICE);
+        assertEq(daiBalanceAfter, daiBalanceBefore + addReserveAmount);
+    }
 }
