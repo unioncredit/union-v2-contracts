@@ -15,9 +15,6 @@ contract AssetManagerMock is IAssetManager {
     }
 
     function getLoanableAmount(address tokenAddress) public view returns (uint256) {
-        // uint256 poolBalance = getPoolBalance(tokenAddress);
-        // if (poolBalance > totalPrincipal[tokenAddress]) return poolBalance - totalPrincipal[tokenAddress];
-        // return 0;
         return getPoolBalance(tokenAddress);
     }
 
