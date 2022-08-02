@@ -43,10 +43,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint96 locked;
     }
 
-    // TODO: this can be packed into 1 slot
     struct Index {
         bool isSet;
-        uint256 idx;
+        uint128 idx;
     }
 
     /* -------------------------------------------------------------------
@@ -100,7 +99,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     /**
      *  @dev Total amount of stake frozen
-     *  TODO:
+     *  TODO: add back update total frozen function
      */
     uint256 public totalFrozen;
 
@@ -497,14 +496,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             // Then update the voucher indexes for this borrower as well as
             // Adding the Vouch the the vouchers array for this staker
             uint256 voucherIndex = vouchers[borrower].length;
-            voucherIndexes[borrower][staker] = Index(true, voucherIndex);
+            voucherIndexes[borrower][staker] = Index(true, uint128(voucherIndex));
             vouchers[borrower].push(Vouch(staker, trustAmount, 0, 0));
 
             // Add the voucherIndex of this new vouch to the vouchees array for this
             // staker then update the voucheeIndexes with the voucheeIndex
             uint256 voucheeIndex = vouchees[staker].length;
             vouchees[staker].push(_vouchee(borrower, uint96(voucherIndex)));
-            voucheeIndexes[borrower][staker] = Index(true, voucheeIndex);
+            voucheeIndexes[borrower][staker] = Index(true, uint128(voucheeIndex));
         }
 
         emit LogUpdateTrust(staker, borrower, trustAmount);
