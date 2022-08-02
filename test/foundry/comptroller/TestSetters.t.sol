@@ -23,7 +23,7 @@ contract TestSetters is TestComptrollerBase {
     function testUpdateTotalStaked(uint256 amount) public {
       vm.assume(amount != 0 && amount < 1_000_000 ether);
 
-      marketRegistryMock.setTokens(address(this), address(this));
+      comptroller.setUserManager(address(daiMock), address(this));
       uint256 previousBlock = block.number;
       assertEq(comptroller.gLastUpdatedBlock(), block.number);
       assertEq(comptroller.gInflationIndex(), comptroller.INIT_INFLATION_INDEX());
@@ -36,7 +36,7 @@ contract TestSetters is TestComptrollerBase {
     }
 
     function testCannotUpdateTotalStakedNotUserManager() public {
-      marketRegistryMock.setTokens(address(1), address(1));
+      comptroller.setUserManager(address(daiMock), address(1));
       vm.expectRevert("Comptroller: only user manager can call");
       comptroller.updateTotalStaked(address(daiMock), 1);
     }
