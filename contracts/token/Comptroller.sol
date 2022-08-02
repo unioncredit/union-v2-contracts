@@ -64,17 +64,11 @@ contract Comptroller is Controller, IComptroller {
 
     IMarketRegistry public marketRegistry;
 
-    //1 address account, 2 address token
+    // Map account to token to Info
     mapping(address => mapping(address => Info)) public users;
 
-    /* -------------------------------------------------------------------
-      Modifiers 
-    ------------------------------------------------------------------- */
-
-    modifier onlyUserManager(address token) {
-        require(msg.sender == address(_getUserManager(token)), "Comptroller: only user manager can call");
-        _;
-    }
+    // map token address to UserManager
+    mapping(address => address) public userManagers;
 
     /* -------------------------------------------------------------------
       Events 
@@ -105,12 +99,25 @@ contract Comptroller is Controller, IComptroller {
     }
 
     /* -------------------------------------------------------------------
+      Modifiers 
+    ------------------------------------------------------------------- */
+
+    modifier onlyUserManager(address token) {
+        require(msg.sender == address(_getUserManager(token)), "Comptroller: only user manager can call");
+        _;
+    }
+
+    /* -------------------------------------------------------------------
       Setters 
     ------------------------------------------------------------------- */
 
     function setHalfDecayPoint(uint256 point) public onlyAdmin {
         require(point != 0, "Comptroller: halfDecayPoint can not be zero");
         halfDecayPoint = point;
+    }
+
+    function setUserManager(address token, address userManager) public onlyAdmin {
+        userManagers[token] = userManager;
     }
 
     /* -------------------------------------------------------------------
@@ -334,9 +341,12 @@ contract Comptroller is Controller, IComptroller {
     }
 
     function _getUserManager(address token) internal view returns (IUserManager) {
-        // Caching the user manager here would save future calls a bunch of gas
-        // Or maybe we just have a different pattern entirely
-        (, address userManager) = marketRegistry.tokens(token);
+        address userManager = userManagers[token];
+        if (userManager != address(0)) {
+            return IUserManager(userManager);
+        }
+
+        (, userManager) = marketRegistry.tokens(token);
         return IUserManager(userManager);
     }
 
