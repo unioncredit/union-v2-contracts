@@ -116,6 +116,7 @@ contract TestPureTokenAdapter is TestWrapper {
 
     function testClaimTokens(address recipient, uint256 amount) public {
         vm.assume(recipient != address(0));
+        vm.assume(amount < 1000 ether);
         daiMock.mint(address(pureToken), amount);
         assertEq(daiMock.balanceOf(recipient), 0);
         vm.prank(pureToken.assetManager());
