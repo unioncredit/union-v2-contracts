@@ -15,7 +15,7 @@ import "../interfaces/IUserManager.sol";
  *  @title Comptroller
  *  @dev  For the time being, only the reward calculation of a single
  *        token is supported, and the contract needs to be revised after
- *       determining the reward calculation scheme of multiple tokens
+ *        determining the reward calculation scheme of multiple tokens
  */
 contract Comptroller is Controller, IComptroller {
     using WadRayMath for uint256;
@@ -48,26 +48,54 @@ contract Comptroller is Controller, IComptroller {
       Storage 
     ------------------------------------------------------------------- */
 
+    /**
+     * @dev Initial inflation index
+     */
     uint256 public constant INIT_INFLATION_INDEX = 10**18;
 
+    /**
+     * @dev Non member reward multiplier rate (75%)
+     */
     uint256 public constant nonMemberRatio = 75 * 10**16; // 75%;
 
-    uint256 public constant memberRatio = 10**18; // 100%;
+    /**
+     * @dev Member reward multiplier rate (100%)
+     */
+    uint256 public constant memberRatio = 10**18;
 
+    /**
+     * @dev Half decay point to reduce rewards at
+     */
     uint256 public halfDecayPoint;
 
-    uint256 public gInflationIndex; // store the latest inflation index
+    /**
+     * @dev store the latest inflation index
+     */
+    uint256 public gInflationIndex;
 
-    uint256 public gLastUpdatedBlock; // block number when updating the inflation index
+    /**
+     * @dev block number when updating the inflation index
+     */
+    uint256 public gLastUpdatedBlock;
 
+    /**
+     * @dev $UNION token contract
+     */
     IERC20Upgradeable public unionToken;
 
+    /**
+     * @dev Market registry contract
+     */
     IMarketRegistry public marketRegistry;
 
-    // Map account to token to Info
+    /**
+     * @dev Map account to token to Info
+     */
     mapping(address => mapping(address => Info)) public users;
 
-    // map token address to UserManager
+    /**
+     * @dev map token address to UserManager
+     */
     mapping(address => address) public userManagers;
 
     /* -------------------------------------------------------------------
@@ -111,11 +139,18 @@ contract Comptroller is Controller, IComptroller {
       Setters 
     ------------------------------------------------------------------- */
 
+    /**
+     * @dev Set the half decay point
+     */
     function setHalfDecayPoint(uint256 point) public onlyAdmin {
         require(point != 0, "Comptroller: halfDecayPoint can not be zero");
         halfDecayPoint = point;
     }
 
+    /**
+     * @dev Optionally store userManager contract address in storage mapping
+     *      In order to reduce gas costs
+     */
     function setUserManager(address token, address userManager) public onlyAdmin {
         userManagers[token] = userManager;
     }
@@ -257,6 +292,14 @@ contract Comptroller is Controller, IComptroller {
        Internal Functions 
     ------------------------------------------------------------------- */
 
+    /**
+     *  @dev Calculate currently unclaimed rewards
+     *  @param account Account address
+     *  @param token Staking token address
+     *  @param futureBlocks Future blocks
+     *  @param userManagerState User manager global state
+     *  @return Unclaimed rewards
+     */
     function _calculateRewardsByBlocks(
         address account,
         address token,
@@ -403,9 +446,7 @@ contract Comptroller is Controller, IComptroller {
         bool isMember_
     ) internal pure returns (uint256) {
         if (isMember_) {
-            // TODO: you can't have a frozen amount that is greater than stake because interest is no
-            // longer backed...
-            if (userStaked == 0 || totalFrozen_ >= lockedStake || totalFrozen_ >= userStaked) {
+            if (userStaked == 0 || totalFrozen_ >= lockedStake) {
                 return memberRatio;
             }
 
