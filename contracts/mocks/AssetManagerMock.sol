@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "../interfaces/IAssetManager.sol";
 
 contract AssetManagerMock is IAssetManager {
@@ -8,12 +10,12 @@ contract AssetManagerMock is IAssetManager {
         bool isSupported;
     }
 
-    function getPoolBalance(address) public view override returns (uint256) {
-        return 0;
+    function getPoolBalance(address tokenAddress) public view returns (uint256) {
+        return IERC20(tokenAddress).balanceOf(address(this));
     }
 
-    function getLoanableAmount(address) public view override returns (uint256) {
-        return 0;
+    function getLoanableAmount(address tokenAddress) public view returns (uint256) {
+        return getPoolBalance(tokenAddress);
     }
 
     function totalSupply(address) public pure override returns (uint256) {
@@ -28,15 +30,28 @@ contract AssetManagerMock is IAssetManager {
         return false;
     }
 
-    function deposit(address, uint256) external override returns (bool) {
+    function deposit(address token, uint256 amount) external override returns (bool) {
+        require(amount > 0, "AssetManager: amount can not be zero");
+
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
+
         return true;
     }
 
     function withdraw(
-        address,
-        address,
-        uint256
+        address token,
+        address account,
+        uint256 amount
     ) external override returns (bool) {
+        uint256 remaining = amount;
+
+        // If there are tokens in Asset Manager then transfer them on priority
+        uint256 selfBalance = IERC20(token).balanceOf(address(this));
+        if (selfBalance > 0) {
+            uint256 withdrawAmount = selfBalance < remaining ? selfBalance : remaining;
+            remaining -= withdrawAmount;
+            IERC20(token).transfer(account, withdrawAmount);
+        }
         return true;
     }
 
