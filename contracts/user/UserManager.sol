@@ -670,11 +670,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
         // update staker staked amount
         stakers[staker].stakedAmount -= amount;
+        stakers[staker].locked -= amount;
         totalStaked -= amount;
 
         // update vouch trust amount
         vouch.lastUpdated = uint64(block.number);
         vouch.amount -= amount;
+        vouch.locked -= amount;
+
         if (vouch.amount == 0) {
             cancelVouch(staker, borrower);
         }
