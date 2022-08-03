@@ -139,7 +139,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     ------------------------------------------------------------------- */
 
     error AccrueInterestFailed();
-    error AddressZero();
     error AmountExceedGlobalMax();
     error AmountExceedMaxBorrow();
     error AmountLessMinBorrow();
@@ -245,7 +244,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         address admin_
     ) public initializer {
         if (initialExchangeRateMantissa_ == 0) revert InitExchangeRateNotZero();
-        if (address(underlying_) == address(0)) revert AddressZero();
         if (reserveFactorMantissa_ > RESERVE_FACTORY_MAX_MANTISSA) revert ReserveFactoryExceedLimit();
         Controller.__Controller_init(admin_);
         ERC20Upgradeable.__ERC20_init(name_, symbol_);
@@ -272,7 +270,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  Accept claims only from the admin
      */
     function setAssetManager(address assetManager_) external onlyAdmin {
-        if (assetManager_ == address(0)) revert AddressZero();
         assetManager = assetManager_;
     }
 
@@ -281,7 +278,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  Accept claims only from the admin
      */
     function setUserManager(address userManager_) external onlyAdmin {
-        if (userManager_ == address(0)) revert AddressZero();
         userManager = userManager_;
     }
 
@@ -336,7 +332,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param newInterestRateModel_ New interest rate model address
      */
     function setInterestRateModel(address newInterestRateModel_) external override onlyAdmin {
-        if (newInterestRateModel_ == address(0)) revert AddressZero();
         address oldInterestRateModel = address(interestRateModel);
         address newInterestRateModel = newInterestRateModel_;
         if (!IInterestRateModel(newInterestRateModel).isInterestRateModel()) revert ContractNotInterestModel();
