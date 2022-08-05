@@ -27,7 +27,7 @@ contract TestStakeAndUnstake is TestUserManagerBase {
     }
 
     function testStake(uint96 amount) public {
-        vm.assume(amount <= 100 ether);
+        vm.assume(amount <= 100 ether && amount > 0);
         vm.prank(MEMBER);
         userManager.stake(amount);
         uint256 stakeAmount = userManager.getStakerBalance(MEMBER);
@@ -35,7 +35,7 @@ contract TestStakeAndUnstake is TestUserManagerBase {
     }
 
     function testCannotUnstakeAboveStake(uint96 amount) public {
-        vm.assume(amount <= 100 ether);
+        vm.assume(amount <= 100 ether && amount > 0);
         vm.startPrank(MEMBER);
         userManager.stake(amount);
         vm.expectRevert(UserManager.InsufficientBalance.selector);
@@ -44,7 +44,7 @@ contract TestStakeAndUnstake is TestUserManagerBase {
     }
 
     function testCannotUnstakeWhenWithdrawFailed(uint96 amount) public {
-        vm.assume(amount <= 100 ether);
+        vm.assume(amount <= 100 ether && amount > 0);
         vm.startPrank(MEMBER);
         userManager.stake(amount);
         vm.mockCall(
@@ -59,7 +59,7 @@ contract TestStakeAndUnstake is TestUserManagerBase {
     }
 
     function testUnstake(uint96 amount) public {
-        vm.assume(amount <= 100 ether);
+        vm.assume(amount <= 100 ether && amount > 0);
         vm.startPrank(MEMBER);
         userManager.stake(amount);
         userManager.unstake(amount);
