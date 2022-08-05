@@ -25,18 +25,6 @@ contract TestWriteOffDebt is TestUserManagerBase {
         userManager.debtWriteOff(staker, borrower, 0);
     }
 
-    function testCannotWriteOffDebtNoOverdue(uint96 amount) public {
-        vm.assume(amount > 0);
-        vm.mockCall(
-            address(uTokenMock),
-            abi.encodeWithSelector(UToken.checkIsOverdue.selector, borrower),
-            abi.encode(false)
-        );
-        vm.expectRevert(UserManager.NotOverdue.selector);
-        userManager.debtWriteOff(staker, borrower, amount);
-        vm.clearMockedCalls();
-    }
-
     function testCannotWriteOffDebtNoAuth(uint96 amount) public {
         vm.assume(amount > 0);
         vm.prank(address(3));
