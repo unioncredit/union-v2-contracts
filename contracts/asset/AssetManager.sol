@@ -494,20 +494,26 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         uint256 moneyMarketsLength = moneyMarkets.length;
         uint256 percentagesLength = percentages.length;
-        require(percentagesLength + 1 == moneyMarketsLength, "AssetManager: percentages error");
+
+        IMoneyMarketAdapter[] memory supportedMoneyMarkets = new IMoneyMarketAdapter[](moneyMarketsLength);
+        uint256 supportedMoneyMarketsSize;
 
         // Loop through each money market and withdraw all the tokens
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             IMoneyMarketAdapter moneyMarket = moneyMarkets[i];
             if (!moneyMarket.supportsToken(tokenAddress)) continue;
             moneyMarket.withdrawAll(tokenAddress, address(this));
+
+            supportedMoneyMarkets[supportedMoneyMarketsSize] = moneyMarket;
+            supportedMoneyMarketsSize++;
         }
+
+        require(percentagesLength + 1 == supportedMoneyMarketsSize, "AssetManager: percentages error");
 
         uint256 tokenSupply = token.balanceOf(address(this));
 
         for (uint256 i = 0; i < percentagesLength; i++) {
-            IMoneyMarketAdapter moneyMarket = moneyMarkets[i];
-            if (!moneyMarket.supportsToken(tokenAddress)) continue;
+            IMoneyMarketAdapter moneyMarket = supportedMoneyMarkets[i];
             uint256 amountToDeposit = (tokenSupply * percentages[i]) / 10000;
             if (amountToDeposit == 0) continue;
             token.safeTransfer(address(moneyMarket), amountToDeposit);
@@ -516,9 +522,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
 
         uint256 remainingTokens = token.balanceOf(address(this));
 
-        IMoneyMarketAdapter lastMoneyMarket = moneyMarkets[moneyMarketsLength - 1];
+        IMoneyMarketAdapter lastMoneyMarket = supportedMoneyMarkets[supportedMoneyMarketsSize - 1];
         if (remainingTokens > 0) {
-            require(lastMoneyMarket.supportsToken(tokenAddress), "AssetManager: token not supported");
             token.safeTransfer(address(lastMoneyMarket), remainingTokens);
             lastMoneyMarket.deposit(tokenAddress);
         }

@@ -112,25 +112,6 @@ interface IAssetManager {
     function rebalance(address tokenAddress, uint256[] calldata percentages) external;
 
     /**
-     *  @dev Claim the tokens left on AssetManager balance, in case there are tokens get stuck here.
-     *  @param tokenAddress ERC20 token address
-     *  @param recipient Recipient address
-     */
-    function claimTokens(address tokenAddress, address recipient) external;
-
-    /**
-     *  @dev Claim the tokens stuck in the integrated adapters
-     *  @param index MoneyMarkets array index
-     *  @param tokenAddress ERC20 token address
-     *  @param recipient Recipient address
-     */
-    function claimTokensFromAdapter(
-        uint256 index,
-        address tokenAddress,
-        address recipient
-    ) external;
-
-    /**
      *  @dev Get the number of supported underlying protocols.
      *  @return MoneyMarkets length
      */
