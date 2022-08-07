@@ -40,7 +40,7 @@ describe("Test deployment configs", () => {
             expect(isAdmin).eq(true);
         });
         it("has the correct maxOverdue", async () => {
-            const maxOverdue = await contracts.userManager.maxOverdue();
+            const maxOverdue = await contracts.userManager.maxOverdueBlocks();
             expect(maxOverdue).eq(config.main.userManager.maxOverdue);
         });
         it("has the correct effectiveCount", async () => {

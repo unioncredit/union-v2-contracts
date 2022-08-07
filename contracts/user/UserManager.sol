@@ -229,11 +229,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     event LogSetMaxStakeAmount(uint256 oldMaxStakeAmount, uint256 newMaxStakeAmount);
 
     /**
-     *  @dev set max overdue
-     *  @param oldMaxOverdue Old value
-     *  @param newMaxOverdue New value
+     *  @dev set max overdue blocks
+     *  @param oldMaxOverdueBlocks Old value
+     *  @param newMaxOverdueBlocks New value
      */
-    event LogSetMaxOverdue(uint256 oldMaxOverdue, uint256 newMaxOverdue);
+    event LogSetMaxOverdueBlocks(uint256 oldMaxOverdueBlocks, uint256 newMaxOverdueBlocks);
 
     /**
      *  @dev set effective count
@@ -320,14 +320,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev set New max overdue value
-     * Emits {LogSetMaxOverdue} event
-     * @param _maxOverdue New maxOverdueBlocks value
+     * @dev set New max overdue blocks 
+     * Emits {LogSetMaxOverdueBlocks} event
+     * @param _maxOverdueBlocks New maxOverdueBlocks value
      */
-    function setMaxOverdue(uint256 _maxOverdueBlocks) public onlyAdmin {
-        uint256 oldMaxOverdue = maxOverdueBlocks;
+    function setMaxOverdueBlocks(uint256 _maxOverdueBlocks) public onlyAdmin {
+        uint256 oldMaxOverdueBlocks = maxOverdueBlocks;
         maxOverdueBlocks = _maxOverdueBlocks;
-        emit LogSetMaxOverdue(oldMaxOverdue, _maxOverdue);
+        emit LogSetMaxOverdueBlocks(oldMaxOverdueBlocks, _maxOverdueBlocks);
     }
 
     /**

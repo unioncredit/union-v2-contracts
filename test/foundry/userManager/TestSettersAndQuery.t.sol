@@ -56,13 +56,13 @@ contract TestSettersAndQuery is TestUserManagerBase {
 
     function testCannotSetMaxOverdueNotAdmin(uint96 amount) public {
         vm.expectRevert("Controller: not admin");
-        userManager.setMaxOverdue(amount);
+        userManager.setMaxOverdueBlocks(amount);
     }
 
     function testSetMaxOverdue(uint96 amount) public {
         vm.prank(ADMIN);
-        userManager.setMaxOverdue(amount);
-        uint256 maxOverdue = userManager.maxOverdue();
+        userManager.setMaxOverdueBlocks(amount);
+        uint256 maxOverdue = userManager.maxOverdueBlocks();
         assertEq(maxOverdue, amount);
     }
 
