@@ -11,6 +11,7 @@
         "format:check": "prettier --check 'contracts/**/*.sol'",
         "hh:compile": "yarn hardhat compile",
         "hh:test": "yarn hardhat test",
+        "hh:sim": "yarn hardhat test --config hardhat-sim.config.ts",
         "f:compile": "forge build",
         "f:test": "forge test",
         "clean": "forge clean && yarn hardhat clean",

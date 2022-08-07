@@ -26,6 +26,6 @@ export default {
             }
         ]
     },
-    paths: {cache: "hh-cache", tests: "./test/"},
+    paths: {cache: "hh-cache", tests: "./test/integration"},
     mocha: {timeout: 400000000000}
 };
