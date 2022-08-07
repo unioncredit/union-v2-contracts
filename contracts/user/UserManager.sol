@@ -106,7 +106,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     /**
      *  @dev Max blocks can be overdue for
      */
-    uint256 public maxOverdue;
+    uint256 public maxOverdueBlocks;
 
     /**
      *  @dev Union Stakers
@@ -252,7 +252,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         address stakingToken_,
         address comptroller_,
         address admin_,
-        uint256 maxOverdue_,
+        uint256 maxOverdueBlocks_,
         uint256 effectiveCount_
     ) public initializer {
         Controller.__Controller_init(admin_);
@@ -263,7 +263,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         stakingToken = stakingToken_;
         newMemberFee = 10**18; // Set the default membership fee
         maxStakeAmount = 10_000e18;
-        maxOverdue = maxOverdue_;
+        maxOverdueBlocks = maxOverdueBlocks_;
         effectiveCount = effectiveCount_;
     }
 
@@ -322,11 +322,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     /**
      * @dev set New max overdue value
      * Emits {LogSetMaxOverdue} event
-     * @param _maxOverdue New maxOverdue value
+     * @param _maxOverdue New maxOverdueBlocks value
      */
-    function setMaxOverdue(uint256 _maxOverdue) public onlyAdmin {
-        uint256 oldMaxOverdue = maxOverdue;
-        maxOverdue = _maxOverdue;
+    function setMaxOverdue(uint256 _maxOverdueBlocks) public onlyAdmin {
+        uint256 oldMaxOverdue = maxOverdueBlocks;
+        maxOverdueBlocks = _maxOverdueBlocks;
         emit LogSetMaxOverdue(oldMaxOverdue, _maxOverdue);
     }
 
@@ -460,7 +460,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     ------------------------------------------------------------------- */
 
     /**
-     *  @dev Add member
+     *  @dev Manually add union members and bypass all the requirements of `registerMember`
      *  Only accepts calls from the admin
      *  Emit {LogAddMember} event
      *  @param account Member address
@@ -471,7 +471,10 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Update the trust amount for exisitng members.
+     *  @dev  Update the trust amount for exisitng members.
+     *  @dev  Trust is the amount of the underlying token you would in theory be
+     *        happy to lend to another member. Vouch is derived from trust and stake.
+     *        Vouch is the minimum of trust and staked amount.
      *  Emits {LogUpdateTrust} event
      *  @param borrower Account address
      *  @param trustAmount Trust amount
@@ -529,12 +532,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         Vouch memory vouch = vouchers[borrower][voucherIndex.idx];
         if (vouch.locked > 0) revert LockedStakeNonZero();
 
-        // Remove borrower from vouchers array
+        // Remove borrower from vouchers array by moving the last item into the position
+        // of the index being removed and then poping the last item off the array
         vouchers[borrower][voucherIndex.idx] = vouchers[borrower][vouchers[borrower].length - 1];
         vouchers[borrower].pop();
         delete voucherIndexes[borrower][staker];
 
-        // Remove borrower from vouchee array
+        // Remove borrower from vouchee array by moving the last item into the position
+        // of the index being removed and then poping the last item off the array
         Index memory voucheeIndex = voucheeIndexes[borrower][staker];
         vouchees[staker][voucheeIndex.idx] = vouchees[staker][vouchees[staker].length - 1];
         vouchees[staker].pop();
@@ -544,7 +549,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Apply for a membership using a signed permit
+     *  @notice Register a a member using a signed permit
+     *  @dev See registerMember
      *  @param newMember New member address
      *  @param value Amount approved by permit
      *  @param deadline Timestamp for when the permit expires
@@ -566,8 +572,10 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Apply for membership, and burn UnionToken as application fees
-     *  Emits {LogRegisterMember} event
+     *  @notice Register a a member, and burn an application fees
+     *  @dev    In order to register as a member an address must be recieving x amount
+     *          of vouches greater than 0 from stakers. x is defined by `effectiveCount`
+     *          Emits {LogRegisterMember} event
      *  @param newMember New member address
      */
     function registerMember(address newMember) public virtual whenNotPaused {
@@ -575,6 +583,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
         uint256 count = 0;
         uint256 vouchersLength = vouchers[newMember].length;
+
+        // Loop through all the vouchers to count how many active vouches there
+        // are that are greater than 0. Vouch is the min of stake and trust
         for (uint256 i = 0; i < vouchersLength; i++) {
             Vouch memory vouch = vouchers[newMember][i];
             Staker memory staker = stakers[vouch.staker];
@@ -591,7 +602,10 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Stake staking token to earn rewards from the comptroller
+     *  @notice Stake staking tokens 
+     *  @dev    Stake is used to underwrite loans and becomes locked if a
+     *          member a staker has vouched for borrows against it. 
+     *          Stake also earns rewards from the comptroller
      *  Emits a {LogStake} event.
      *  @param amount Amount to stake
      */
@@ -616,12 +630,17 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Unstake staking token from comptroller
+     *  @notice Unstake staking token 
+     *  @dev    Tokens can only be unstaked if they are not locked. ie a
+     *          vouchee is not borrowing against them.
      *  Emits {LogUnstake} event
      *  @param amount Amount to unstake
      */
     function unstake(uint96 amount) external whenNotPaused nonReentrant {
         Staker storage staker = stakers[msg.sender];
+
+        // Stakers can only unstaked stake balance that is unlocked. Stake balance
+        // becomes locked when it is used to underwrite a borrow.
         if (staker.stakedAmount - staker.locked < amount) revert InsufficientBalance();
 
         comptroller.withdrawRewards(msg.sender, stakingToken);
@@ -644,8 +663,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Write off a borrowers debt
-     *  Emits {LogDebtWriteOff} event
+     *  @notice Write off a borrowers debt
+     *  @dev    Used the stakers locked stake to write off the loan, transfering the
+     *          Stake to the AssetManager and adjusting balances in the AssetManager
+     *          and the UToken to repay the principal
+     *  @dev    Emits {LogDebtWriteOff} event
      *  @param borrower address of borrower
      *  @param amount amount to writeoff
      */
@@ -658,7 +680,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         if (!uToken.checkIsOverdue(borrower)) revert NotOverdue();
         uint256 overdueBlocks = uToken.overdueBlocks();
         uint256 lastRepay = uToken.getLastRepay(borrower);
-        if (block.number <= lastRepay + overdueBlocks + maxOverdue) {
+
+        // This function is only callable by the public if the loan is overdue by 
+        // overdue blocks + maxOverdueBlocks. This stops the system being left with
+        // debt that is overdue indefinitely and no ability to do anything about it.
+        if (block.number <= lastRepay + overdueBlocks + maxOverdueBlocks) {
             if (staker != msg.sender) revert AuthFailed();
         }
 
@@ -682,6 +708,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             cancelVouch(staker, borrower);
         }
 
+        // Notify the AssetManager and the UToken market of the debt write off
+        // so they can adjust their balances accordingly
         IAssetManager(assetManager).debtWriteOff(stakingToken, uint256(amount));
         uToken.debtWriteOff(borrower, uint256(amount));
 
@@ -689,8 +717,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Borrowing from the market
-     *  @param amount Borrow amount
+     *  @notice Borrowing from the market
+     *  @dev    Locks/Unlocks the borrowers stakers staked amounts in a first in
+     *          First out order. Meaning the members that vouched for this borrower
+     *          first will be the first members to get their stake locked or unlocked
+     *          following a borrow or repayment.
+     *  @param borrower The address of the borrower
+     *  @param amount Lock/Unlock amount
+     *  @param lock If the amount is being locked or unlocked 
      */
     function updateLocked(
         address borrower,
