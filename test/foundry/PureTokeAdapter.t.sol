@@ -114,23 +114,8 @@ contract TestPureTokenAdapter is TestWrapper {
         pureToken.withdrawAll(address(daiMock), recipient);
     }
 
-    function testClaimTokens(address recipient, uint256 amount) public {
-        vm.assume(recipient != address(0));
-        daiMock.mint(address(pureToken), amount);
-        assertEq(daiMock.balanceOf(recipient), 0);
-        vm.prank(pureToken.assetManager());
-        pureToken.claimTokens(address(daiMock), recipient);
-        assertEq(daiMock.balanceOf(recipient), amount);
-    }
-
-    function testCannotClaimTokensNonAssetManager(address recipient, uint256 amount) public {
-        daiMock.mint(address(pureToken), amount);
-        vm.expectRevert("PureTokenAdapter: only asset manager can call");
-        pureToken.claimTokens(address(daiMock), recipient);
-    }
-
     function testClaimRewards() public {
         // nothing to assert just check this passes
-        pureToken.claimRewards(address(daiMock));
+        pureToken.claimRewards(address(daiMock), address(0));
     }
 }

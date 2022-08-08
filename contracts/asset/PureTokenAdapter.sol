@@ -1,3 +1,4 @@
+        // Note: if you are using this as a template
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
@@ -168,16 +169,8 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
         token.safeTransfer(recipient, token.balanceOf(address(this)));
     }
 
-    /**
-     * @dev Claim tokens from this contract
-     * @dev Only callable by the AssetManager
-     */
-    function claimTokens(address tokenAddress, address recipient) external override onlyAssetManager {
-        _claimTokens(tokenAddress, recipient);
-    }
-
     // solhint-disable-next-line no-empty-blocks
-    function claimRewards(address tokenAddress) external override onlyAdmin {
+    function claimRewards(address tokenAddress, address recipient) external override onlyAdmin {
         // Pure manager has no rewards
     }
 
@@ -189,12 +182,6 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
         // Check if balanceOf reverst as a simple check to see if the token is ERC20 compatible
         // this is obviosly not a flawless check but it is good enough for the intention here
         return tokenAddress != address(0) && IERC20Upgradeable(tokenAddress).balanceOf(address(this)) >= 0;
-    }
-
-    function _claimTokens(address tokenAddress, address recipient) private {
-        IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
-        uint256 balance = token.balanceOf(address(this));
-        token.safeTransfer(recipient, balance);
     }
 
     function _getSupply(address tokenAddress) internal view returns (uint256) {
