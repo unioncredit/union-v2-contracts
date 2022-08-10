@@ -491,8 +491,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     function rebalance(address tokenAddress, uint256[] calldata percentages)
         external
         override
-        checkMarketSupported(tokenAddress)
         onlyAdmin
+        checkMarketSupported(tokenAddress)
     {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         uint256 moneyMarketsLength = moneyMarkets.length;

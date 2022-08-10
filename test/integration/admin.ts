@@ -94,7 +94,7 @@ describe("Owner/Admin permissions", () => {
             await expect(resp).to.be.revertedWith("Controller: not admin");
         });
     });
-    
+
     context("Comptroller", () => {
         before(beforeContext);
         it("setHalfDecayPoint cannot be called by non owner", async () => {
@@ -102,12 +102,47 @@ describe("Owner/Admin permissions", () => {
             await expect(resp).to.be.revertedWith("Controller: not admin");
         });
     });
-    
+
     context("AssetManager", () => {
         before(beforeContext);
-        it("<FUNCTION> cannot be called by non owner");
+        it("setMarketRegistry cannot be called by non owner", async () => {
+            const resp = contracts.assetManager.connect(nonAdmin).setMarketRegistry(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("addToken cannot be called by non owner", async () => {
+            const resp = contracts.assetManager.connect(nonAdmin).addToken(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("removeToken cannot be called by non owner", async () => {
+            const resp = contracts.assetManager.connect(nonAdmin).removeToken(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("addAdapter cannot be called by non owner", async () => {
+            const resp = contracts.assetManager.connect(nonAdmin).addAdapter(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("removeAdapter cannot be called by non owner", async () => {
+            const resp = contracts.assetManager.connect(nonAdmin).removeAdapter(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("approveAllMarketsMax cannot be called by non owner", async () => {
+            const resp = contracts.assetManager.connect(nonAdmin).approveAllMarketsMax(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("approveAllTokensMax cannot be called by non owner", async () => {
+            const resp = contracts.assetManager.connect(nonAdmin).approveAllTokensMax(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("changeWithdrawSequence cannot be called by non owner", async () => {
+            const resp = contracts.assetManager.connect(nonAdmin).changeWithdrawSequence([]);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("rebalance cannot be called by non owner", async () => {
+            const resp = contracts.assetManager.connect(nonAdmin).rebalance(deployerAddress, []);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
     });
-    
+
     context("PureTokenAdapter", () => {
         before(beforeContext);
         it("<FUNCTION> cannot be called by non owner");
