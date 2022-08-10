@@ -97,7 +97,10 @@ describe("Owner/Admin permissions", () => {
     
     context("Comptroller", () => {
         before(beforeContext);
-        it("<FUNCTION> cannot be called by non owner");
+        it("setHalfDecayPoint cannot be called by non owner", async () => {
+            const resp = contracts.comptroller.connect(nonAdmin).setHalfDecayPoint(0);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
     });
     
     context("AssetManager", () => {
