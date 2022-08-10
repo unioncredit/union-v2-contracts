@@ -53,7 +53,46 @@ describe("Owner/Admin permissions", () => {
 
     context("UToken", () => {
         before(beforeContext);
-        it("<FUNCTION> cannot be called by non owner");
+        it("setAssetManager cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).setAssetManager(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("setUserManager cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).setUserManager(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("setOriginationFee cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).setOriginationFee(0);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("setDebtCeiling cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).setDebtCeiling(0);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("setMinBorrow cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).setMinBorrow(0);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("setMaxBorrow cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).setMaxBorrow(0);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("setOverdueBlocks cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).setOverdueBlocks(0);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("setInterestRateModel cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).setInterestRateModel(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("setReserveFactor cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).setReserveFactor(0);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("removeReserves cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).removeReserves(deployerAddress, 0);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
     });
     
     context("Comptroller", () => {
