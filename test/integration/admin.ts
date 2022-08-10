@@ -145,6 +145,21 @@ describe("Owner/Admin permissions", () => {
 
     context("PureTokenAdapter", () => {
         before(beforeContext);
-        it("<FUNCTION> cannot be called by non owner");
+        it("setAssetManager cannot be called by non owner", async () => {
+            const resp = contracts.adapters.pureToken.connect(nonAdmin).setAssetManager(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("setFloor cannot be called by non owner", async () => {
+            const resp = contracts.adapters.pureToken.connect(nonAdmin).setFloor(deployerAddress, 0);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("setCeiling cannot be called by non owner", async () => {
+            const resp = contracts.adapters.pureToken.connect(nonAdmin).setCeiling(deployerAddress, 0);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
+        it("claimRewards cannot be called by non owner", async () => {
+            const resp = contracts.adapters.pureToken.connect(nonAdmin).claimRewards(deployerAddress);
+            await expect(resp).to.be.revertedWith("Controller: not admin");
+        });
     });
 });
