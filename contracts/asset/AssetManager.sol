@@ -123,6 +123,15 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         marketRegistry = _marketRegistry;
     }
 
+    /**
+     *  @dev Set withdraw sequence
+     *  @param newSeq priority sequence of money market indices to be used while withdrawing
+     */
+    function setWithdrawSequence(uint256[] calldata newSeq) external override onlyAdmin {
+        require(newSeq.length == withdrawSeq.length, "!parity");
+        withdrawSeq = newSeq;
+    }
+
     /* -------------------------------------------------------------------
       View Functions 
     ------------------------------------------------------------------- */
@@ -462,15 +471,6 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
             poolToken.safeApprove(adapterAddress, 0);
             poolToken.safeApprove(adapterAddress, type(uint256).max);
         }
-    }
-
-    /**
-     *  @dev Set withdraw sequence
-     *  @param newSeq priority sequence of money market indices to be used while withdrawing
-     */
-    function changeWithdrawSequence(uint256[] calldata newSeq) external override onlyAdmin {
-        require(newSeq.length == withdrawSeq.length, "!parity");
-        withdrawSeq = newSeq;
     }
 
     /**

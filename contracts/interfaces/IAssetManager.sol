@@ -102,7 +102,7 @@ interface IAssetManager {
      *  @dev Set withdraw sequence
      *  @param newSeq priority sequence of money market indices to be used while withdrawing
      */
-    function changeWithdrawSequence(uint256[] calldata newSeq) external;
+    function setWithdrawSequence(uint256[] calldata newSeq) external;
 
     /**
      *  @dev Rebalance the tokens between integrated lending protocols
