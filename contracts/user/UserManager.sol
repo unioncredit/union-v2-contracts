@@ -137,7 +137,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
       Errors 
     ------------------------------------------------------------------- */
 
-    error AddressZero();
     error AuthFailed();
     error ErrorSelfVouching();
     error TrustAmountLtLocked();
@@ -302,7 +301,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      * @param uToken_ UToken contract address
      */
     function setUToken(address uToken_) public onlyAdmin {
-        if (uToken_ == address(0)) revert AddressZero();
         uToken = IUToken(uToken_);
         emit LogSetUToken(uToken_);
     }
