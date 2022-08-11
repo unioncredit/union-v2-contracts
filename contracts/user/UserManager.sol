@@ -4,7 +4,6 @@ pragma solidity 0.8.11;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
 
 import "../Controller.sol";
 import "../interfaces/IAssetManager.sol";
@@ -12,7 +11,6 @@ import "../interfaces/ICreditLimitModel.sol";
 import "../interfaces/IUserManager.sol";
 import "../interfaces/IComptroller.sol";
 import "../interfaces/IUnionToken.sol";
-import "../interfaces/IDai.sol";
 import "../interfaces/IUToken.sol";
 
 /**
@@ -318,7 +316,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev set New max overdue blocks 
+     * @dev set New max overdue blocks
      * Emits {LogSetMaxOverdueBlocks} event
      * @param _maxOverdueBlocks New maxOverdueBlocks value
      */
@@ -600,9 +598,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @notice Stake staking tokens 
+     *  @notice Stake staking tokens
      *  @dev    Stake is used to underwrite loans and becomes locked if a
-     *          member a staker has vouched for borrows against it. 
+     *          member a staker has vouched for borrows against it.
      *          Stake also earns rewards from the comptroller
      *  Emits a {LogStake} event.
      *  @param amount Amount to stake
@@ -628,7 +626,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @notice Unstake staking token 
+     *  @notice Unstake staking token
      *  @dev    Tokens can only be unstaked if they are not locked. ie a
      *          vouchee is not borrowing against them.
      *  Emits {LogUnstake} event
@@ -679,7 +677,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint256 overdueBlocks = uToken.overdueBlocks();
         uint256 lastRepay = uToken.getLastRepay(borrower);
 
-        // This function is only callable by the public if the loan is overdue by 
+        // This function is only callable by the public if the loan is overdue by
         // overdue blocks + maxOverdueBlocks. This stops the system being left with
         // debt that is overdue indefinitely and no ability to do anything about it.
         if (block.number <= lastRepay + overdueBlocks + maxOverdueBlocks) {
@@ -722,7 +720,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *          following a borrow or repayment.
      *  @param borrower The address of the borrower
      *  @param amount Lock/Unlock amount
-     *  @param lock If the amount is being locked or unlocked 
+     *  @param lock If the amount is being locked or unlocked
      */
     function updateLocked(
         address borrower,
