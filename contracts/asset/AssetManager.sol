@@ -1,14 +1,14 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {Controller} from "../Controller.sol";
+import {IAssetManager} from "../interfaces/IAssetManager.sol";
 import {IMarketRegistry} from "../interfaces/IMarketRegistry.sol";
 import {IMoneyMarketAdapter} from "../interfaces/IMoneyMarketAdapter.sol";
-import {IAssetManager} from "../interfaces/IAssetManager.sol";
+import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 /**
  *  @title AssetManager
@@ -123,6 +123,15 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         marketRegistry = _marketRegistry;
     }
 
+    /**
+     *  @dev Set withdraw sequence
+     *  @param newSeq priority sequence of money market indices to be used while withdrawing
+     */
+    function setWithdrawSequence(uint256[] calldata newSeq) external override onlyAdmin {
+        require(newSeq.length == withdrawSeq.length, "!parity");
+        withdrawSeq = newSeq;
+    }
+
     /* -------------------------------------------------------------------
       View Functions 
     ------------------------------------------------------------------- */
@@ -234,7 +243,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     ------------------------------------------------------------------- */
 
     /**
-     *  @dev Deposit tokens to AssetManager, and those tokens will be passed along to adapters to deposit to integrated asset protocols if any is available.
+     *  @dev  Deposit tokens to AssetManager, and those tokens will be passed along to
+     *        adapters to deposit to integrated asset protocols if any is available.
      *  @param token ERC20 token address
      *  @param amount ERC20 token address
      *  @return Deposited amount
@@ -275,7 +285,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
             // assumption: less liquid markets provide more yield
             // iterate markets in reverse to optimize for yield
             // do this only if floors are filled i.e. min liquidity satisfied
-            // dposit in the market where ceiling is not being exceeded
+            // deposit in the market where ceiling is not being exceeded
             for (uint256 j = moneyMarketsLength; j > 0 && remaining; j--) {
                 IMoneyMarketAdapter moneyMarket = moneyMarkets[j - 1];
                 if (!moneyMarket.supportsToken(token)) continue;
@@ -320,11 +330,9 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         if (selfBalance > 0) {
             uint256 withdrawAmount = selfBalance < remaining ? selfBalance : remaining;
             remaining -= withdrawAmount;
-            // TODO: sketchy pattern
             IERC20Upgradeable(token).safeTransfer(account, withdrawAmount);
         }
 
-        // TODO: if remaining is already 0 we should skip this
         if (isMarketSupported(token)) {
             uint256 withdrawSeqLength = withdrawSeq.length;
             // iterate markets according to defined sequence and withdraw
@@ -380,8 +388,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         bool isExist = false;
         uint256 index;
         uint256 supportedTokensLength = supportedTokensList.length;
-        // TODO: maintain a mapping of adapter => index rather than doing this
-        // lookup
+
         for (uint256 i = 0; i < supportedTokensLength; i++) {
             if (tokenAddress == address(supportedTokensList[i])) {
                 isExist = true;
@@ -404,8 +411,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     function addAdapter(address adapterAddress) external override onlyAdmin {
         bool isExist = false;
         uint256 moneyMarketsLength = moneyMarkets.length;
-        // TODO: maintain a mapping of adapter => index rather than doing this
-        // lookup
+
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             if (adapterAddress == address(moneyMarkets[i])) isExist = true;
         }
@@ -426,8 +432,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         bool isExist = false;
         uint256 index;
         uint256 moneyMarketsLength = moneyMarkets.length;
-        // TODO: maintain a mapping of adapter => index rather than doing this
-        // lookup
+
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             if (adapterAddress == address(moneyMarkets[i])) {
                 isExist = true;
@@ -469,14 +474,6 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     }
 
     /**
-     *  @dev Set withdraw sequence
-     *  @param newSeq priority sequence of money market indices to be used while withdrawing
-     */
-    function changeWithdrawSequence(uint256[] calldata newSeq) external override onlyAdmin {
-        withdrawSeq = newSeq;
-    }
-
-    /**
      * @dev Take all the supply of `tokenAddress` and redistribute it according to `percentages`.
      *
      * Rejects if the token is not supported.
@@ -497,20 +494,26 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         uint256 moneyMarketsLength = moneyMarkets.length;
         uint256 percentagesLength = percentages.length;
-        require(percentagesLength + 1 == moneyMarketsLength, "AssetManager: percentages error");
+
+        IMoneyMarketAdapter[] memory supportedMoneyMarkets = new IMoneyMarketAdapter[](moneyMarketsLength);
+        uint256 supportedMoneyMarketsSize;
 
         // Loop through each money market and withdraw all the tokens
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             IMoneyMarketAdapter moneyMarket = moneyMarkets[i];
             if (!moneyMarket.supportsToken(tokenAddress)) continue;
             moneyMarket.withdrawAll(tokenAddress, address(this));
+
+            supportedMoneyMarkets[supportedMoneyMarketsSize] = moneyMarket;
+            supportedMoneyMarketsSize++;
         }
+
+        require(percentagesLength + 1 == supportedMoneyMarketsSize, "AssetManager: percentages error");
 
         uint256 tokenSupply = token.balanceOf(address(this));
 
         for (uint256 i = 0; i < percentagesLength; i++) {
-            IMoneyMarketAdapter moneyMarket = moneyMarkets[i];
-            if (!moneyMarket.supportsToken(tokenAddress)) continue;
+            IMoneyMarketAdapter moneyMarket = supportedMoneyMarkets[i];
             uint256 amountToDeposit = (tokenSupply * percentages[i]) / 10000;
             if (amountToDeposit == 0) continue;
             token.safeTransfer(address(moneyMarket), amountToDeposit);
@@ -519,43 +522,13 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
 
         uint256 remainingTokens = token.balanceOf(address(this));
 
-        IMoneyMarketAdapter lastMoneyMarket = moneyMarkets[moneyMarketsLength - 1];
-        if (lastMoneyMarket.supportsToken(tokenAddress) && remainingTokens > 0) {
+        IMoneyMarketAdapter lastMoneyMarket = supportedMoneyMarkets[supportedMoneyMarketsSize - 1];
+        if (remainingTokens > 0) {
             token.safeTransfer(address(lastMoneyMarket), remainingTokens);
             lastMoneyMarket.deposit(tokenAddress);
         }
 
-        //In order to prevent dust from being stored in the market
-        require(token.balanceOf(address(this)) < 10000, "AssetManager: there are remaining funds in the fund pool");
-
         emit LogRebalance(tokenAddress, percentages);
-    }
-
-    /**
-     *  @dev Claim the tokens left on AssetManager balance, in case there are tokens get stuck here.
-     *  @param tokenAddress ERC20 token address
-     *  @param recipient Recipient address
-     */
-    function claimTokens(address tokenAddress, address recipient) external override onlyAdmin {
-        require(recipient != address(0), "AssetManager:recipient cant be 0");
-        IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
-        uint256 balance = token.balanceOf(address(this));
-        token.safeTransfer(recipient, balance);
-    }
-
-    /**
-     *  @dev Claim the tokens stuck in the integrated adapters
-     *  @param index MoneyMarkets array index
-     *  @param tokenAddress ERC20 token address
-     *  @param recipient Recipient address
-     */
-    function claimTokensFromAdapter(
-        uint256 index,
-        address tokenAddress,
-        address recipient
-    ) external override onlyAdmin {
-        IMoneyMarketAdapter moneyMarket = moneyMarkets[index];
-        moneyMarket.claimTokens(tokenAddress, recipient);
     }
 
     /* -------------------------------------------------------------------

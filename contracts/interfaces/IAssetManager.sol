@@ -102,7 +102,7 @@ interface IAssetManager {
      *  @dev Set withdraw sequence
      *  @param newSeq priority sequence of money market indices to be used while withdrawing
      */
-    function changeWithdrawSequence(uint256[] calldata newSeq) external;
+    function setWithdrawSequence(uint256[] calldata newSeq) external;
 
     /**
      *  @dev Rebalance the tokens between integrated lending protocols
@@ -110,25 +110,6 @@ interface IAssetManager {
      *  @param percentages Proportion
      */
     function rebalance(address tokenAddress, uint256[] calldata percentages) external;
-
-    /**
-     *  @dev Claim the tokens left on AssetManager balance, in case there are tokens get stuck here.
-     *  @param tokenAddress ERC20 token address
-     *  @param recipient Recipient address
-     */
-    function claimTokens(address tokenAddress, address recipient) external;
-
-    /**
-     *  @dev Claim the tokens stuck in the integrated adapters
-     *  @param index MoneyMarkets array index
-     *  @param tokenAddress ERC20 token address
-     *  @param recipient Recipient address
-     */
-    function claimTokensFromAdapter(
-        uint256 index,
-        address tokenAddress,
-        address recipient
-    ) external;
 
     /**
      *  @dev Get the number of supported underlying protocols.

@@ -59,8 +59,6 @@ contract AssetManagerMock is IAssetManager {
 
     function removeToken(address) external override {}
 
-    function claimTokens(address, address) external override {}
-
     function addAdapter(address) external override {}
 
     function removeAdapter(address) external override {}
@@ -69,15 +67,9 @@ contract AssetManagerMock is IAssetManager {
 
     function approveAllTokensMax(address) external override {}
 
-    function changeWithdrawSequence(uint256[] calldata) external override {}
+    function setWithdrawSequence(uint256[] calldata) external override {}
 
     function rebalance(address, uint256[] calldata) external override {}
-
-    function claimTokensFromAdapter(
-        uint256,
-        address,
-        address
-    ) external override {}
 
     function moneyMarketsCount() external view override returns (uint256) {
         return 0;

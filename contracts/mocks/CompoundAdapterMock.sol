@@ -23,12 +23,6 @@ contract CompoundAdapterMock is Initializable {
         ceilingMap[tokenAddress] = ceiling;
     }
 
-    function claimTokens(address tokenAddress, address recipient) external {
-        IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
-        uint256 balance = token.balanceOf(address(this));
-        token.transfer(recipient, balance);
-    }
-
     function supportsToken(address) external view returns (bool) {
         return isSupport;
     }
