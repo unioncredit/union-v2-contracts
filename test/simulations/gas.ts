@@ -82,7 +82,7 @@ describe("Max gas tests", () => {
     });
 
     context("borrow max gas cost", () => {
-        before(async () => await beforeContext(500));
+        before(async () => await beforeContext(100));
         it("updateTrust", async () => {
             const trustAmount = parseUnits("1");
             const stakeAmount = parseUnits("1");
@@ -132,7 +132,7 @@ describe("Max gas tests", () => {
         });
     });
     context("get frozen info", () => {
-        before(async () => await beforeContext(1000));
+        before(async () => await beforeContext(100));
         it("getFrozenInfo", async () => {
             const trustAmount = parseUnits("1");
             const staker = accounts[0];
