@@ -130,6 +130,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      */
     mapping(address => mapping(address => Index)) public voucheeIndexes;
 
+    /**
+     * @dev Stakers frozen amounts
+     */
+    mapping(address => uint256) public memberFrozen;
+
     /* -------------------------------------------------------------------
       Errors 
     ------------------------------------------------------------------- */
@@ -388,14 +393,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *          coin age = min(block.number - lastUpdated, pastBlocks) * amount
      */
     function getFrozenInfo(address staker, uint256 pastBlocks)
-        external
+        public
         view
-        returns (uint256 totalFrozen, uint256 frozenCoinAge)
+        returns (uint256 memberTotalFrozen, uint256 memberFrozenCoinAge)
     {
         uint256 overdueBlocks = uToken.overdueBlocks();
         uint256 voucheesLength = vouchees[staker].length;
         // Loop through all of the stakers vouchees sum their total
-        // locked balance and sum their total frozenCoinAge
+        // locked balance and sum their total memberFrozenCoinAge
         for (uint256 i = 0; i < voucheesLength; i++) {
             // Get the vouchee record and look up the borrowers voucher record
             // to get the locked amount and lastUpdate block number
@@ -407,11 +412,11 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
             if (overdueBlocks < diff) {
                 uint96 locked = vouch.locked;
-                totalFrozen += locked;
+                memberTotalFrozen += locked;
                 if (pastBlocks >= diff) {
-                    frozenCoinAge += (locked * diff);
+                    memberFrozenCoinAge += (locked * diff);
                 } else {
-                    frozenCoinAge += (locked * pastBlocks);
+                    memberFrozenCoinAge += (locked * pastBlocks);
                 }
             }
         }
@@ -773,6 +778,26 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         // borrower and we still have a remaining amount then we have to
         // revert as there is not enough vouchers to lock/unlock
         if (remaining > 0) revert LockedRemaining();
+    }
+
+    /**
+     * @dev Update the frozen info for a single staker
+     * @param staker Staker address
+     * @param pastBlocks The past blocks
+     * @return  memberTotalFrozen Total frozen amount for this staker
+     *          memberFrozenCoinAge Total frozen coin age for this staker
+     */
+    function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256) {
+        (uint256 memberTotalFrozen, uint256 memberFrozenCoinAge) = getFrozenInfo(staker, pastBlocks);
+
+        // Cache the current member frozen to a varaible then update it with
+        // the latest value. Then we need to update the total frozen by resetting
+        // the previous frozen amount for this staker and adding the new frozen amount
+        uint256 memberFrozenBefore = memberFrozen[staker];
+        memberFrozen[staker] = memberTotalFrozen;
+        totalFrozen = totalFrozen - memberFrozenBefore + memberTotalFrozen;
+
+        return (memberTotalFrozen, memberFrozenCoinAge);
     }
 
     /* -------------------------------------------------------------------

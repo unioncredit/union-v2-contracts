@@ -188,25 +188,18 @@ contract Comptroller is Controller, IComptroller {
     ) public view override returns (uint256) {
         IUserManager userManager = _getUserManager(token);
 
-        // Lookup global state from UserManager
-        UserManagerState memory userManagerState = _getUserManagerState(userManager);
-
         // Lookup account stataddress accounte from UserManager
         (
             UserManagerAccountState memory userManagerAccountState,
             Info memory userInfo,
             uint256 pastBlocks
-        ) = _getUserInfo(userManager, account, token, futureBlocks);
+        ) = _getUserInfoView(userManager, account, token, futureBlocks);
+
+        // Lookup global state from UserManager
+        UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
         return
-            _calculateRewardsByBlocks(
-                account,
-                token,
-                pastBlocks,
-                userInfo,
-                userManagerState,
-                userManagerAccountState
-            );
+            _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, userManagerState, userManagerAccountState);
     }
 
     /**
@@ -246,15 +239,15 @@ contract Comptroller is Controller, IComptroller {
     {
         IUserManager userManager = _getUserManager(token);
 
-        // Lookup global state from UserManager
-        UserManagerState memory userManagerState = _getUserManagerState(userManager);
-
         // Lookup account state from UserManager
         (
             UserManagerAccountState memory userManagerAccountState,
             Info memory userInfo,
             uint256 pastBlocks
         ) = _getUserInfo(userManager, account, token, 0);
+
+        // Lookup global state from UserManager
+        UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
         uint256 amount = _calculateRewardsByBlocks(
             account,
@@ -321,7 +314,7 @@ contract Comptroller is Controller, IComptroller {
         return userManagerState;
     }
 
-    function _getUserInfo(
+    function _getUserInfoView(
         IUserManager userManager,
         address account,
         address token,
@@ -346,6 +339,34 @@ contract Comptroller is Controller, IComptroller {
         UserManagerAccountState memory userManagerAccountState;
         (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinage) = userManager
             .getFrozenInfo(account, pastBlocks);
+
+        return (userManagerAccountState, userInfo, pastBlocks);
+    }
+
+    function _getUserInfo(
+        IUserManager userManager,
+        address account,
+        address token,
+        uint256 futureBlocks
+    )
+        internal
+        returns (
+            UserManagerAccountState memory,
+            Info memory,
+            uint256
+        )
+    {
+        Info memory userInfo = users[account][token];
+        uint256 lastUpdatedBlock = userInfo.updatedBlock;
+        if (block.number < lastUpdatedBlock) {
+            lastUpdatedBlock = block.number;
+        }
+
+        uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
+
+        UserManagerAccountState memory userManagerAccountState;
+        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinage) = userManager
+            .updateFrozenInfo(account, pastBlocks);
 
         return (userManagerAccountState, userInfo, pastBlocks);
     }
