@@ -186,31 +186,27 @@ contract Comptroller is Controller, IComptroller {
         address token,
         uint256 futureBlocks
     ) public view override returns (uint256) {
-        IUserManager userManagerContract = _getUserManager(token);
+        IUserManager userManager = _getUserManager(token);
 
         // Lookup global state from UserManager
-        UserManagerState memory userManagerState;
+        UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
-        userManagerState.totalFrozen = userManagerContract.totalFrozen();
-        userManagerState.totalStaked = userManagerContract.totalStaked() - userManagerState.totalFrozen;
-        if (userManagerState.totalStaked < 1e18) {
-            userManagerState.totalStaked = 1e18;
-        }
+        // Lookup account stataddress accounte from UserManager
+        (
+            UserManagerAccountState memory userManagerAccountState,
+            Info memory userInfo,
+            uint256 pastBlocks
+        ) = _getUserInfo(userManager, account, token, futureBlocks);
 
-        // Calculate past blocks
-        Info memory userInfo = users[account][token];
-        uint256 lastUpdatedBlock = userInfo.updatedBlock;
-        if (block.number < lastUpdatedBlock) {
-            lastUpdatedBlock = block.number;
-        }
-
-        uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
-
-        UserManagerAccountState memory userManagerAccountState;
-        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinage) = userManagerContract
-            .getFrozenInfo(account, pastBlocks);
-
-        return _calculateRewardsByBlocks(account, token, futureBlocks, userManagerState, userManagerAccountState);
+        return
+            _calculateRewardsByBlocks(
+                account,
+                token,
+                pastBlocks,
+                userInfo,
+                userManagerState,
+                userManagerAccountState
+            );
     }
 
     /**
@@ -248,31 +244,26 @@ contract Comptroller is Controller, IComptroller {
         onlyUserManager(token)
         returns (uint256)
     {
-        IUserManager userManagerContract = _getUserManager(token);
+        IUserManager userManager = _getUserManager(token);
 
         // Lookup global state from UserManager
-        UserManagerState memory userManagerState;
+        UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
-        userManagerState.totalFrozen = userManagerContract.totalFrozen();
-        userManagerState.totalStaked = userManagerContract.totalStaked() - userManagerState.totalFrozen;
-        if (userManagerState.totalStaked < 1e18) {
-            userManagerState.totalStaked = 1e18;
-        }
+        // Lookup account state from UserManager
+        (
+            UserManagerAccountState memory userManagerAccountState,
+            Info memory userInfo,
+            uint256 pastBlocks
+        ) = _getUserInfo(userManager, account, token, 0);
 
-        // Calculate past blocks
-        Info memory userInfo = users[account][token];
-        uint256 lastUpdatedBlock = userInfo.updatedBlock;
-        if (block.number < lastUpdatedBlock) {
-            lastUpdatedBlock = block.number;
-        }
-
-        uint256 pastBlocks = block.number - lastUpdatedBlock;
-
-        UserManagerAccountState memory userManagerAccountState;
-        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinage) = userManagerContract
-            .getFrozenInfo(account, pastBlocks);
-
-        uint256 amount = _calculateRewardsByBlocks(account, token, 0, userManagerState, userManagerAccountState);
+        uint256 amount = _calculateRewardsByBlocks(
+            account,
+            token,
+            pastBlocks,
+            userInfo,
+            userManagerState,
+            userManagerAccountState
+        );
 
         // update the global states
         uint256 totalStaked_ = userManagerState.totalStaked - userManagerState.totalFrozen;
@@ -318,18 +309,57 @@ contract Comptroller is Controller, IComptroller {
        Internal Functions 
     ------------------------------------------------------------------- */
 
+    function _getUserManagerState(IUserManager userManager) internal view returns (UserManagerState memory) {
+        UserManagerState memory userManagerState;
+
+        userManagerState.totalFrozen = userManager.totalFrozen();
+        userManagerState.totalStaked = userManager.totalStaked() - userManagerState.totalFrozen;
+        if (userManagerState.totalStaked < 1e18) {
+            userManagerState.totalStaked = 1e18;
+        }
+
+        return userManagerState;
+    }
+
+    function _getUserInfo(
+        IUserManager userManager,
+        address account,
+        address token,
+        uint256 futureBlocks
+    )
+        internal
+        view
+        returns (
+            UserManagerAccountState memory,
+            Info memory,
+            uint256
+        )
+    {
+        Info memory userInfo = users[account][token];
+        uint256 lastUpdatedBlock = userInfo.updatedBlock;
+        if (block.number < lastUpdatedBlock) {
+            lastUpdatedBlock = block.number;
+        }
+
+        uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
+
+        UserManagerAccountState memory userManagerAccountState;
+        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinage) = userManager
+            .getFrozenInfo(account, pastBlocks);
+
+        return (userManagerAccountState, userInfo, pastBlocks);
+    }
+
     /**
      *  @dev Calculate currently unclaimed rewards
      *  @param account Account address
      *  @param token Staking token address
-     *  @param futureBlocks Future blocks
      *  @param userManagerState User manager global state
      *  @return Unclaimed rewards
      */
     function _calculateRewardsByBlocks(
         address account,
         address token,
-        uint256 futureBlocks,
         uint256 pastBlocks,
         Info memory userInfo,
         UserManagerState memory userManagerState,
