@@ -675,7 +675,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint96 amount
     ) public {
         if (amount == 0) revert AmountZero();
-        if (!uToken.checkIsOverdue(borrower)) revert NotOverdue();
         uint256 overdueBlocks = uToken.overdueBlocks();
         uint256 lastRepay = uToken.getLastRepay(borrower);
 
