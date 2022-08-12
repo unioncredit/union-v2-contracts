@@ -34,7 +34,6 @@ contract TestWrapper is Test {
         uTokenMock = new UTokenMock();
         marketRegistryMock = new MarketRegistryMock();
         userManagerMock = new UserManagerMock();
-
         uint256 borrowInterestPerBlock = 0.000001 ether; //0.0001%
         interestRateMock = new FixedInterestRateModelMock(borrowInterestPerBlock);
     }

@@ -18,7 +18,7 @@ contract UserManagerMock {
     uint256 public totalLockedStake;
     uint256 public totalFrozenAmount;
 
-    function __UserManager_init() public {
+    constructor() {
         newMemberFee = 10**18; // Set the default membership fee
     }
 
