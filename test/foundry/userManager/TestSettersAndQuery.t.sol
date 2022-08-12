@@ -28,12 +28,6 @@ contract TestSettersAndQuery is TestUserManagerBase {
         userManager.setUToken(uToken);
     }
 
-    function testCannotSetUTokenZeroAddress() public {
-        vm.prank(ADMIN);
-        vm.expectRevert(UserManager.AddressZero.selector);
-        userManager.setUToken(address(0));
-    }
-
     function testSetUToken(address uToken) public {
         vm.assume(uToken != address(0));
         vm.prank(ADMIN);
