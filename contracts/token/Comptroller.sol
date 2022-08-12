@@ -302,6 +302,9 @@ contract Comptroller is Controller, IComptroller {
        Internal Functions 
     ------------------------------------------------------------------- */
 
+    /**
+     * @dev Get UserManager global state values
+     */
     function _getUserManagerState(IUserManager userManager) internal view returns (UserManagerState memory) {
         UserManagerState memory userManagerState;
 
@@ -314,6 +317,13 @@ contract Comptroller is Controller, IComptroller {
         return userManagerState;
     }
 
+    /**
+     * @dev Get UserManager user specific state (view function does NOT update UserManage state)
+     * @param userManager UserManager contract
+     * @param account Account address
+     * @param token Token address
+     * @param futureBlocks Blocks in the future
+     */
     function _getUserInfoView(
         IUserManager userManager,
         address account,
@@ -343,6 +353,13 @@ contract Comptroller is Controller, IComptroller {
         return (userManagerAccountState, userInfo, pastBlocks);
     }
 
+    /**
+     * @dev Get UserManager user specific state (function does update UserManage state)
+     * @param userManager UserManager contract
+     * @param account Account address
+     * @param token Token address
+     * @param futureBlocks Blocks in the future
+     */
     function _getUserInfo(
         IUserManager userManager,
         address account,
@@ -450,6 +467,11 @@ contract Comptroller is Controller, IComptroller {
         return (curInflationIndex - startInflationIndex).wadMul(effectiveStakeAmount).wadMul(inflationIndex);
     }
 
+    /**
+     * @dev Get the UserManager contract. First try and load it from state
+     * if it has been previously saved and fallback to loading it from the marketRegistry
+     * @return userManager contract
+     */
     function _getUserManager(address token) internal view returns (IUserManager) {
         address userManager = userManagers[token];
         if (userManager != address(0)) {
