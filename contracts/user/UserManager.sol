@@ -96,7 +96,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
     /**
      *  @dev Total amount of stake frozen
-     *  TODO: add back update total frozen function
      */
     uint256 public totalFrozen;
 

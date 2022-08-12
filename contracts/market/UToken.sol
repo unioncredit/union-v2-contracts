@@ -621,8 +621,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 toReserveAmount;
         uint256 toRedeemableAmount;
 
-        // If the repayment amount is greater than the interest (min payment)
         if (repayAmount >= interest) {
+            // If the repayment amount is greater than the interest (min payment)
+            bool isOverdue = checkIsOverdue(borrower);
+
             // Interest is split between the reserves and the uToken minters based on
             // the reserveFactorMantissa When set to WAD all the interest is paid to teh reserves.
             // any interest that isn't sent to the reserves is added to the redeemable amount
@@ -648,8 +650,14 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             // the borrower is trying to repay more than is locked (owed)
             IUserManager(userManager).updateLocked(borrower, uint96(repayAmount - interest), false);
 
-            // TODO: if we are updating an overdue loan then we need to update total frozen
+            if (isOverdue) {
+                // For borrowers that are paying back overdue balances we need to update their
+                // frozen balance and the global total frozen balance on the UserManager
+                IUserManager(userManager).updateFrozenInfo(borrower, 0);
+            }
         } else {
+            // For repayments that don't pay off the minimum we just need to adjust the
+            // global balances and reduce the amount of interest accrued for the borrower
             toReserveAmount = (repayAmount * reserveFactorMantissa) / WAD;
             toRedeemableAmount = repayAmount - toReserveAmount;
             accountBorrows[borrower].interest = interest - repayAmount;
