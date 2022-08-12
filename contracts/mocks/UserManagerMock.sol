@@ -110,5 +110,5 @@ contract UserManagerMock {
     //Only supports sumOfTrust
     function debtWriteOff(address borrower, uint256 amount) public {}
 
-    function getFrozenCoinAge(address staker, uint256 pastBlocks) public view returns (uint256) {}
+    function updateFrozenInfo(address staker, uint256 pastBlocks) public returns (uint256, uint256) {}
 }
