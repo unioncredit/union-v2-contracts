@@ -4,15 +4,12 @@ pragma solidity 0.8.11;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
 
 import "../Controller.sol";
 import "../interfaces/IAssetManager.sol";
-import "../interfaces/ICreditLimitModel.sol";
 import "../interfaces/IUserManager.sol";
 import "../interfaces/IComptroller.sol";
 import "../interfaces/IUnionToken.sol";
-import "../interfaces/IDai.sol";
 import "../interfaces/IUToken.sol";
 
 /**
