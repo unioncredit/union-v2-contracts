@@ -89,10 +89,8 @@ describe("Minting and redeeming uToken", () => {
             await contracts.uToken.repayBorrowBehalf(userAddress, borrowAmount);
 
             let exchangeRateStored = await contracts.uToken.exchangeRateStored();
-            const expectRate = ((100 + 100 * 0.00001) / 100) * 1e18; //(mint use dai amount + repay interest) / uDai amount
-            expect(((parseFloat(exchangeRateStored.toString()) + 100) / 10000).toFixed(0)).eq(
-                ((expectRate + 100) / 10000).toFixed(0)
-            );
+            const expectRate = BigNumber.from("1000010000000000000"); //(mint use dai amount + repay interest) / uDai amount, ((100 + 100 * 0.00001) / 100) * 1e18
+            expect(exchangeRateStored.add(100).div(10000)).eq(expectRate.add(100).div(10000));
 
             await contracts.uToken.mint(mintAmount);
             uTokenBal = await contracts.uToken.balanceOf(deployerAddress);
