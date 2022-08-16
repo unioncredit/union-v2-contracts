@@ -30,9 +30,4 @@ contract TestUpdateFrozenInfo is TestUserManagerBase {
         assertEq(userManager.memberFrozen(address(this)), totalFrozen);
         assertEq(userManager.totalFrozen(), totalFrozen);
     }
-
-    function testCannotCallAsNonComptroller() public {
-        vm.expectRevert(UserManager.AuthFailed.selector);
-        userManager.updateFrozenInfo(address(this), block.number + 1);
-    }
 }
