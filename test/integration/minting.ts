@@ -3,6 +3,7 @@ import {BigNumber, Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
 import {ethers} from "hardhat";
 
+import {roll} from "../utils";
 import deploy, {Contracts} from "../../deploy";
 import config from "../../deploy/config";
 
@@ -75,10 +76,11 @@ describe("Minting and redeeming uToken", () => {
             expect(assetManagerBalBefore.sub(assetManagerBalAfter)).eq(mintAmount);
         });
         it("mint when exchangeRate change", async () => {
-            await contracts.fixedInterestRateModel.setInterestRate("10000000000000"); //0.001e16 = 0.001% per block
-            //In order to facilitate the calculation, remove the interference
-            await contracts.uToken.setReserveFactor(0);
-            await contracts.uToken.setOriginationFee(0);
+            //exchangeRate does not change at 100%
+            await contracts.uToken.setReserveFactor("50"); //50%
+            const interestRatePerBlock = await contracts.fixedInterestRateModel.interestRatePerBlock();
+            const reserveFactorMantissa = await contracts.uToken.reserveFactorMantissa();
+            const originationFee = await contracts.uToken.originationFee();
             const mintAmount = parseUnits("100");
             await contracts.uToken.mint(mintAmount);
             let uTokenBal = await contracts.uToken.balanceOf(deployerAddress);
@@ -86,10 +88,25 @@ describe("Minting and redeeming uToken", () => {
 
             const borrowAmount = parseUnits("100");
             await contracts.uToken.connect(user).borrow(borrowAmount);
+            const blocks = 99;
+            await roll(blocks);
             await contracts.uToken.repayBorrowBehalf(userAddress, borrowAmount);
 
             let exchangeRateStored = await contracts.uToken.exchangeRateStored();
-            const expectRate = BigNumber.from("1000010000000000000"); //(mint use dai amount + repay interest) / uDai amount, ((100 + 100 * 0.00001) / 100) * 1e18
+            const expeOriginationFee = borrowAmount.mul(originationFee).div(WAD);
+            const expectInterest = borrowAmount
+                .mul(interestRatePerBlock)
+                .mul(BigNumber.from(blocks + 1))
+                .div(WAD);
+            const expectRedeemable = expectInterest
+                .add(
+                    expeOriginationFee
+                        .mul(interestRatePerBlock)
+                        .mul(BigNumber.from(blocks + 1))
+                        .div(WAD)
+                )
+                .sub(expectInterest.mul(reserveFactorMantissa).div(WAD));
+            const expectRate = mintAmount.add(expectRedeemable).mul(WAD).div(mintAmount);
             expect(exchangeRateStored.add(100).div(10000)).eq(expectRate.add(100).div(10000));
 
             await contracts.uToken.mint(mintAmount);
