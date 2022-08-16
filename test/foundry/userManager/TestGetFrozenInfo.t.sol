@@ -4,7 +4,6 @@ import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v1.5-contracts/user/UserManager.sol";
 
 contract TestGetFrozenInfo is TestUserManagerBase {
-    address[] public MEMBERS = [address(10), address(11), address(12)];
     uint96 stakeAmount = 100 ether;
 
     function setUp() public override {
