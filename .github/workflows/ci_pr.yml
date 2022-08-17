@@ -4,7 +4,7 @@ on: [pull_request]
 
 jobs:
     buildAndTest:
-        name: Run Foundry Tests
+        name: Build and test
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
@@ -14,7 +14,7 @@ jobs:
               with:
                   node-version: 14
 
-            - name: Install Dependencies
+            - name: Install dependencies
               run: yarn install
 
             - name: Install Foundry
@@ -22,5 +22,14 @@ jobs:
               with:
                   version: nightly
 
-            - name: Run Tests
+            - name: Run unit tests (forge)
               run: forge test
+
+            - name: Compile hardhat
+              run: yarn hh:compile
+
+            - name: Run int tests 
+              run: yarn hh:test
+
+            - name: Run int coverage 
+              run: yarn coverage
