@@ -133,8 +133,8 @@ describe("Owner/Admin permissions", () => {
             const resp = contracts.assetManager.connect(nonAdmin).approveAllTokensMax(deployerAddress);
             await expect(resp).to.be.revertedWith("Controller: not admin");
         });
-        it("changeWithdrawSequence cannot be called by non owner", async () => {
-            const resp = contracts.assetManager.connect(nonAdmin).changeWithdrawSequence([]);
+        it("setWithdrawSequence cannot be called by non owner", async () => {
+            const resp = contracts.assetManager.connect(nonAdmin).setWithdrawSequence([]);
             await expect(resp).to.be.revertedWith("Controller: not admin");
         });
         it("rebalance cannot be called by non owner", async () => {
@@ -158,7 +158,7 @@ describe("Owner/Admin permissions", () => {
             await expect(resp).to.be.revertedWith("Controller: not admin");
         });
         it("claimRewards cannot be called by non owner", async () => {
-            const resp = contracts.adapters.pureToken.connect(nonAdmin).claimRewards(deployerAddress);
+            const resp = contracts.adapters.pureToken.connect(nonAdmin).claimRewards(deployerAddress, deployerAddress);
             await expect(resp).to.be.revertedWith("Controller: not admin");
         });
     });
