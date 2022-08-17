@@ -1,12 +1,6 @@
 name: build and test
 
-on: 
-  [pull_request]
-  push:
-    branches:
-      - master
-      - develop
-      - v2 
+on: [pull_request]
 
 jobs:
     buildAndTest:
