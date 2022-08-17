@@ -25,6 +25,9 @@ jobs:
             - name: Run unit tests (forge)
               run: forge test
 
+            - name: Compile hardhat
+              run: yarn compile
+
             - name: Run int tests 
               run: yarn hh:test
 
