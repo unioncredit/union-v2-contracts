@@ -566,8 +566,22 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     /**
      * @dev Repay borrow see _repayBorrowFresh
      */
+    function repayBorrowAll() external override whenNotPaused nonReentrant {
+        _repayBorrowFresh(msg.sender, msg.sender, type(uint256).max);
+    }
+
+    /**
+     * @dev Repay borrow see _repayBorrowFresh
+     */
     function repayBorrowBehalf(address borrower, uint256 repayAmount) external override whenNotPaused nonReentrant {
         _repayBorrowFresh(msg.sender, borrower, repayAmount);
+    }
+
+    /**
+     * @dev Repay borrow see _repayBorrowFresh
+     */
+    function repayBorrowBehalfAll(address borrower) external override whenNotPaused nonReentrant {
+        _repayBorrowFresh(msg.sender, borrower, type(uint256).max);
     }
 
     /**
@@ -599,7 +613,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             accountBorrows[borrower].interest = 0;
 
             if (getBorrowed(borrower) == 0) {
-                //LastRepay is cleared when the arrears are paid off, and reinitialized the next time the loan is borrowed
+                // LastRepay is cleared when the arrears are paid off, and reinitialized the next time the loan is borrowed
                 accountBorrows[borrower].lastRepay = 0;
             } else {
                 accountBorrows[borrower].lastRepay = getBlockNumber();
