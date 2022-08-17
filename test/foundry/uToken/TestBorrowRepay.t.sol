@@ -63,6 +63,28 @@ contract TestBorrowRepay is TestUTokenBase {
         assertEq(0, uToken.borrowBalanceView(ALICE));
     }
 
+    function testRepayBorrowAll(uint256 borrowAmount) public {
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+
+        vm.startPrank(ALICE);
+
+        uToken.borrow(borrowAmount);
+
+        uint256 borrowed = uToken.borrowBalanceView(ALICE);
+        assertEq(borrowed, borrowAmount + (ORIGINATION_FEE * borrowAmount) / 1 ether);
+
+        vm.roll(block.number + 1);
+
+
+        daiMock.approve(address(uToken), type(uint256).max);
+
+        uToken.repayBorrowAll();
+
+        vm.stopPrank();
+
+        assertEq(0, uToken.borrowBalanceView(ALICE));
+    }
+
     function testRepayBorrowWhenOverdue(uint256 borrowAmount) public {
         vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
 
@@ -94,11 +116,8 @@ contract TestBorrowRepay is TestUTokenBase {
         vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
 
         // Alice borrows first
-        vm.startPrank(ALICE);
-
+        vm.prank(ALICE);
         uToken.borrow(borrowAmount);
-
-        vm.stopPrank();
 
         uint256 borrowed = uToken.borrowBalanceView(ALICE);
         uint256 interest = uToken.calculatingInterest(ALICE);
@@ -106,10 +125,24 @@ contract TestBorrowRepay is TestUTokenBase {
 
         // Bob repay on behalf of Alice
         vm.startPrank(BOB);
-
         daiMock.approve(address(uToken), repayAmount);
         uToken.repayBorrowBehalf(ALICE, repayAmount);
+        vm.stopPrank();
 
+        assertEq(0, uToken.borrowBalanceView(ALICE));
+    }
+
+    function testRepayBorrowOnBehalfAll(uint256 borrowAmount) public {
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+
+        // Alice borrows first
+        vm.prank(ALICE);
+        uToken.borrow(borrowAmount);
+
+        // Bob repay on behalf of Alice
+        vm.startPrank(BOB);
+        daiMock.approve(address(uToken), type(uint256).max);
+        uToken.repayBorrowBehalfAll(ALICE);
         vm.stopPrank();
 
         assertEq(0, uToken.borrowBalanceView(ALICE));
