@@ -40,7 +40,7 @@ contract Comptroller is Controller, IComptroller {
         uint256 totalStaked;
         uint256 totalFrozen;
         uint256 totalLocked;
-        uint256 pastBlocksFrozenCoinage;
+        uint256 pastBlocksFrozenCoinAge;
         bool isMember;
     }
 
@@ -323,7 +323,7 @@ contract Comptroller is Controller, IComptroller {
         userManagerAccountState.totalStaked = userManagerContract.getStakerBalance(account);
         (userManagerAccountState.totalFrozen, ) = userManagerContract.getFrozenInfo(account, 0);
         userManagerAccountState.totalLocked = userManagerContract.getTotalLockedStake(account);
-        (, userManagerAccountState.pastBlocksFrozenCoinage) = userManagerContract.getFrozenInfo(account, pastBlocks);
+        (, userManagerAccountState.pastBlocksFrozenCoinAge) = userManagerContract.getFrozenInfo(account, pastBlocks);
         userManagerAccountState.isMember = userManagerContract.checkIsMember(account);
 
         uint256 inflationIndex = _getRewardsMultiplier(
@@ -340,7 +340,7 @@ contract Comptroller is Controller, IComptroller {
                 token,
                 userManagerState.totalStaked,
                 userManagerAccountState.totalStaked,
-                userManagerAccountState.pastBlocksFrozenCoinage,
+                userManagerAccountState.pastBlocksFrozenCoinAge,
                 pastBlocks,
                 inflationIndex
             );

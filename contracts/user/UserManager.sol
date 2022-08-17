@@ -384,18 +384,18 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     /**
      *  @dev Get frozen coin age
      *  @param  staker Address of staker
-     *  @param  pastBlocks Number of blocks past to calculate coinAge from
-     *          coinage = min(block.number - lastUpdated, pastBlocks) * amount
+     *  @param  pastBlocks Number of blocks past to calculate coin age from
+     *          coin age = min(block.number - lastUpdated, pastBlocks) * amount
      */
     function getFrozenInfo(address staker, uint256 pastBlocks)
         external
         view
-        returns (uint256 totalFrozen, uint256 frozenCoinage)
+        returns (uint256 totalFrozen, uint256 frozenCoinAge)
     {
         uint256 overdueBlocks = uToken.overdueBlocks();
         uint256 voucheesLength = vouchees[staker].length;
         // Loop through all of the stakers vouchees sum their total
-        // locked balance and sum their total frozenCoinage
+        // locked balance and sum their total frozenCoinAge
         for (uint256 i = 0; i < voucheesLength; i++) {
             // Get the vouchee record and look up the borrowers voucher record
             // to get the locked amount and lastUpdate block number
@@ -409,9 +409,9 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
                 uint96 locked = vouch.locked;
                 totalFrozen += locked;
                 if (pastBlocks >= diff) {
-                    frozenCoinage += (locked * diff);
+                    frozenCoinAge += (locked * diff);
                 } else {
-                    frozenCoinage += (locked * pastBlocks);
+                    frozenCoinAge += (locked * pastBlocks);
                 }
             }
         }

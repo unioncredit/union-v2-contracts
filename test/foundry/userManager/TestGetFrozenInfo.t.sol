@@ -29,11 +29,11 @@ contract TestGetFrozenInfo is TestUserManagerBase {
 
         vm.roll(block.number + 10);
         uint256 blockNumberAfter = block.number;
-        (uint256 totalFrozen, uint256 frozenCoinage) = userManager.getFrozenInfo(address(this), block.number + 1);
+        (uint256 totalFrozen, uint256 frozenCoinAge) = userManager.getFrozenInfo(address(this), block.number + 1);
         uint256 diff = blockNumberAfter - blockNumberBefore;
 
         assertEq(totalFrozen, lockAmount);
-        assertEq(frozenCoinage, lockAmount * diff);
+        assertEq(frozenCoinAge, lockAmount * diff);
     }
 
     function testGetFrozenInfoPastBlocks(uint96 lockAmount) public {
@@ -45,9 +45,9 @@ contract TestGetFrozenInfo is TestUserManagerBase {
         vm.stopPrank();
 
         vm.roll(block.number + 10);
-        (uint256 totalFrozen, uint256 frozenCoinage) = userManager.getFrozenInfo(address(this), 1);
+        (uint256 totalFrozen, uint256 frozenCoinAge) = userManager.getFrozenInfo(address(this), 1);
 
         assertEq(totalFrozen, lockAmount);
-        assertEq(frozenCoinage, lockAmount);
+        assertEq(frozenCoinAge, lockAmount);
     }
 }
