@@ -557,6 +557,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
+     * @notice Repay outstanding borrow
      * @dev Repay borrow see _repayBorrowFresh
      */
     function repayBorrow(uint256 repayAmount) external override whenNotPaused nonReentrant {
@@ -564,10 +565,28 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
+     * @notice Repay entire outstanding borrow
+     * @dev Repay borrow see _repayBorrowFresh
+     */
+    function repayBorrowAll() external override whenNotPaused nonReentrant {
+        _repayBorrowFresh(msg.sender, msg.sender, type(uint256).max);
+    }
+
+    /**
+     * @notice Repay outstanding borrow on behalf of another member
      * @dev Repay borrow see _repayBorrowFresh
      */
     function repayBorrowBehalf(address borrower, uint256 repayAmount) external override whenNotPaused nonReentrant {
         _repayBorrowFresh(msg.sender, borrower, repayAmount);
+    }
+
+    /**
+     * @notice Repay entire outstanding borrow on behalf of another member
+     * @dev Repay borrow see _repayBorrowFresh
+     * @dev Repay borrow see _repayBorrowFresh
+     */
+    function repayBorrowBehalfAll(address borrower) external override whenNotPaused nonReentrant {
+        _repayBorrowFresh(msg.sender, borrower, type(uint256).max);
     }
 
     /**
@@ -599,7 +618,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             accountBorrows[borrower].interest = 0;
 
             if (getBorrowed(borrower) == 0) {
-                //LastRepay is cleared when the arrears are paid off, and reinitialized the next time the loan is borrowed
+                // LastRepay is cleared when the arrears are paid off, and reinitialized the next time the loan is borrowed
                 accountBorrows[borrower].lastRepay = 0;
             } else {
                 accountBorrows[borrower].lastRepay = getBlockNumber();
