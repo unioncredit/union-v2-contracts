@@ -1,14 +1,14 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-import "../Controller.sol";
-import "../WadRayMath.sol";
-import "../interfaces/IComptroller.sol";
-import "../interfaces/IMarketRegistry.sol";
-import "../interfaces/IUserManager.sol";
+import {Controller} from "../Controller.sol";
+import {WadRayMath} from "../WadRayMath.sol";
+import {IComptroller} from "../interfaces/IComptroller.sol";
+import {IMarketRegistry} from "../interfaces/IMarketRegistry.sol";
+import {IUserManager} from "../interfaces/IUserManager.sol";
 
 /**
  *  @author Compound -> Union Finance
@@ -84,14 +84,14 @@ contract Comptroller is Controller, IComptroller {
     IERC20Upgradeable public unionToken;
 
     /**
+     * @dev The market registry contract
+     */
+    IMarketRegistry public marketRegistry;
+
+    /**
      * @dev Map account to token to Info
      */
     mapping(address => mapping(address => Info)) public users;
-
-    /**
-     * @dev map token address to UserManager
-     */
-    mapping(address => address) public userManagers;
 
     /* -------------------------------------------------------------------
       Events 
@@ -110,12 +110,16 @@ contract Comptroller is Controller, IComptroller {
 
     function __Comptroller_init(
         address unionToken_,
+        address marketRegistry_,
         uint256 _halfDecayPoint
     ) public initializer {
         Controller.__Controller_init(msg.sender);
-        unionToken = IERC20Upgradeable(unionToken_);
+
         gInflationIndex = INIT_INFLATION_INDEX;
         gLastUpdatedBlock = block.number;
+
+        unionToken = IERC20Upgradeable(unionToken_);
+        marketRegistry = IMarketRegistry(marketRegistry_);
         halfDecayPoint = _halfDecayPoint;
     }
 
@@ -138,14 +142,6 @@ contract Comptroller is Controller, IComptroller {
     function setHalfDecayPoint(uint256 point) public onlyAdmin {
         require(point != 0, "Comptroller: halfDecayPoint can not be zero");
         halfDecayPoint = point;
-    }
-
-    /**
-     * @dev Optionally store userManager contract address in storage mapping
-     *      In order to reduce gas costs
-     */
-    function setUserManager(address token, address userManager) public onlyAdmin {
-        userManagers[token] = userManager;
     }
 
     /* -------------------------------------------------------------------
@@ -377,7 +373,7 @@ contract Comptroller is Controller, IComptroller {
     }
 
     function _getUserManager(address token) internal view returns (IUserManager) {
-        return IUserManager(userManagers[token]);
+        return IUserManager(marketRegistry.userManagers(token));
     }
 
     /**

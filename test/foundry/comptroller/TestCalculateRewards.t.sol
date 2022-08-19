@@ -48,21 +48,21 @@ contract FakeUserManager {
 contract TestCalculateRewards is TestComptrollerBase {
     function testGetRewardsMultiplierNonMember() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, false);
-        comptroller.setUserManager(address(daiMock), address(um));
+        marketRegistryMock.setUserManager(address(daiMock), address(um));
         uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
         assertEq(multiplier, comptroller.nonMemberRatio());
     }
 
     function testGetRewardsMultiplierMember() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
-        comptroller.setUserManager(address(daiMock), address(um));
+        marketRegistryMock.setUserManager(address(daiMock), address(um));
         uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
         assertEq(multiplier, comptroller.memberRatio());
     }
 
     function testCalculateRewardsByBlocks() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
-        comptroller.setUserManager(address(daiMock), address(um));
+        marketRegistryMock.setUserManager(address(daiMock), address(um));
         vm.prank(address(um));
         comptroller.withdrawRewards(address(this), address(daiMock));
         uint256 rewards = comptroller.calculateRewardsByBlocks(address(this), address(daiMock), 1000);
