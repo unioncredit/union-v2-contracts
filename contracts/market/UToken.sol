@@ -535,7 +535,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         uint256 borrowedAmount = borrowBalanceStoredInternal(msg.sender);
 
-        // Initialize the last repayment date to the currnet block number
+        // Initialize the last repayment date to the current block number
         if (getLastRepay(msg.sender) == 0) {
             accountBorrows[msg.sender].lastRepay = getBlockNumber();
         }
