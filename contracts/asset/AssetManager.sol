@@ -94,7 +94,6 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     ------------------------------------------------------------------- */
 
     function __AssetManager_init(address _marketRegistry) public initializer {
-        require(_marketRegistry != address(0), "AssetManager: marketRegistry can not be zero");
         Controller.__Controller_init(msg.sender);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
         marketRegistry = _marketRegistry;
@@ -119,7 +118,6 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     ------------------------------------------------------------------- */
 
     function setMarketRegistry(address _marketRegistry) external onlyAdmin {
-        require(_marketRegistry != address(0), "AssetManager: marketRegistry can not be zero");
         marketRegistry = _marketRegistry;
     }
 
@@ -543,18 +541,16 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         if (_isUToken(sender, tokenAddress)) {
             // For all the lending markets, which have no deposits, return the tokens from the pool
             return getLoanableAmount(tokenAddress) >= amount;
-        } else {
-            return balances[sender][tokenAddress] >= amount;
         }
+
+        return balances[sender][tokenAddress] >= amount;
     }
 
     function _isUToken(address sender, address token) private view returns (bool) {
-        (address uTokenAddress, ) = IMarketRegistry(marketRegistry).tokens(token);
-        return uTokenAddress == sender;
+        return IMarketRegistry(marketRegistry).uTokens(token) == sender;
     }
 
     function _isUserManager(address sender, address token) private view returns (bool) {
-        (, address userManagerAddress) = IMarketRegistry(marketRegistry).tokens(token);
-        return userManagerAddress == sender;
+        return IMarketRegistry(marketRegistry).userManagers(token) == sender;
     }
 }

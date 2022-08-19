@@ -12,9 +12,14 @@ contract TestDepositWithdraw is TestAssetManagerBase {
         daiMock.approve(address(assetManager), daiAmount);
     }
 
+    function setTokens(address a, address b) public {
+        marketRegistryMock.setUserManager(address(daiMock), a);
+        marketRegistryMock.setUToken(address(daiMock), b);
+    }
+
     function testDeposit(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
-        marketRegistryMock.setTokens(address(123), address(this));
+        setTokens(address(this), address(123));
         assetManager.deposit(address(daiMock), amount);
         assertEq(assetManager.totalPrincipal(address(daiMock)), amount);
         assertEq(assetManager.balances(address(this), address(daiMock)), amount);
@@ -22,7 +27,7 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testDepositAsUToken(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
-        marketRegistryMock.setTokens(address(this), address(123));
+        setTokens(address(123), address(this));
         uint256 balBefore = daiMock.balanceOf(address(assetManager));
         assetManager.deposit(address(daiMock), amount);
         uint256 balAfter = daiMock.balanceOf(address(assetManager));
@@ -47,7 +52,7 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testWithdraw(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
-        marketRegistryMock.setTokens(address(123), address(this));
+        setTokens(address(123), address(this));
         assetManager.deposit(address(daiMock), amount);
         assetManager.withdraw(address(daiMock), address(123), amount);
         assertEq(daiMock.balanceOf(address(123)), amount);
@@ -55,7 +60,7 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testWithdrawAsUToken(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
-        marketRegistryMock.setTokens(address(this), address(123));
+        setTokens(address(this), address(123));
         assetManager.deposit(address(daiMock), amount);
         assetManager.withdraw(address(daiMock), address(123), amount);
         assertEq(daiMock.balanceOf(address(123)), amount);

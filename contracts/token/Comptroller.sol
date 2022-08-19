@@ -84,11 +84,6 @@ contract Comptroller is Controller, IComptroller {
     IERC20Upgradeable public unionToken;
 
     /**
-     * @dev Market registry contract
-     */
-    IMarketRegistry public marketRegistry;
-
-    /**
      * @dev Map account to token to Info
      */
     mapping(address => mapping(address => Info)) public users;
@@ -115,12 +110,10 @@ contract Comptroller is Controller, IComptroller {
 
     function __Comptroller_init(
         address unionToken_,
-        address marketRegistry_,
         uint256 _halfDecayPoint
     ) public initializer {
         Controller.__Controller_init(msg.sender);
         unionToken = IERC20Upgradeable(unionToken_);
-        marketRegistry = IMarketRegistry(marketRegistry_);
         gInflationIndex = INIT_INFLATION_INDEX;
         gLastUpdatedBlock = block.number;
         halfDecayPoint = _halfDecayPoint;
@@ -384,13 +377,7 @@ contract Comptroller is Controller, IComptroller {
     }
 
     function _getUserManager(address token) internal view returns (IUserManager) {
-        address userManager = userManagers[token];
-        if (userManager != address(0)) {
-            return IUserManager(userManager);
-        }
-
-        (, userManager) = marketRegistry.tokens(token);
-        return IUserManager(userManager);
+        return IUserManager(userManagers[token]);
     }
 
     /**

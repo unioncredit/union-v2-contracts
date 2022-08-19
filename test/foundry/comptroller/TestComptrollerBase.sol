@@ -33,12 +33,7 @@ contract TestComptrollerBase is TestWrapper {
         comptroller = Comptroller(
             deployProxy(
                 logic,
-                abi.encodeWithSignature(
-                    "__Comptroller_init(address,address,uint256)",
-                    unionTokenMock,
-                    marketRegistryMock,
-                    halfDecayPoint
-                )
+                abi.encodeWithSignature("__Comptroller_init(address,uint256)", unionTokenMock, halfDecayPoint)
             )
         );
 
@@ -51,12 +46,7 @@ contract TestComptrollerBase is TestWrapper {
         comptrollerInternals = ComptrollerInternals(
             deployProxy(
                 logic,
-                abi.encodeWithSignature(
-                    "__Comptroller_init(address,address,uint256)",
-                    unionTokenMock,
-                    marketRegistryMock,
-                    halfDecayPoint
-                )
+                abi.encodeWithSignature("__Comptroller_init(address,uint256)", unionTokenMock, halfDecayPoint)
             )
         );
     }

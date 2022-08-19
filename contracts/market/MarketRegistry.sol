@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Controller} from "../Controller.sol";
 
 /**
@@ -10,29 +9,21 @@ import {Controller} from "../Controller.sol";
  * @dev Register uToken and UserManager contracts to their tokens
  */
 contract MarketRegistry is Controller {
-    using EnumerableSet for EnumerableSet.AddressSet;
-
-    /* -------------------------------------------------------------------
-      Types 
-    ------------------------------------------------------------------- */
-
-    struct Market {
-        address uToken;
-        address userManager;
-    }
-
     /* -------------------------------------------------------------------
       Storage 
     ------------------------------------------------------------------- */
 
-    EnumerableSet.AddressSet private uTokenList;
-
-    EnumerableSet.AddressSet private userManagerList;
+    /**
+     * @notice Token address mapped to userManager
+     * @dev Assumption there will only ever be one UserManager per token
+     */
+    mapping(address => address) public userManagers;
 
     /**
-     * @dev Token address mapped to the Market
+     * @notice Token address mapped to uToken
+     * @dev Assumption there will only ever be one UToken per token
      */
-    mapping(address => Market) public tokens;
+    mapping(address => address) public uTokens;
 
     /* -------------------------------------------------------------------
       Events 
@@ -52,12 +43,6 @@ contract MarketRegistry is Controller {
      */
     event LogAddUserManager(address indexed tokenAddress, address contractAddress);
 
-    /**
-     * @dev Market deleted
-     * @param tokenAddress The address of the underlying token
-     */
-    event LogDeleteMarket(address indexed tokenAddress);
-
     /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
@@ -70,37 +55,15 @@ contract MarketRegistry is Controller {
     }
 
     /* -------------------------------------------------------------------
-      Modifiers 
-    ------------------------------------------------------------------- */
-
-    modifier newUToken(address token) {
-        require(tokens[token].uToken == address(0), "MarketRegistry: uToken already added");
-        _;
-    }
-
-    modifier newUserManager(address token) {
-        require(tokens[token].userManager == address(0), "MarketRegistry: userManager already added");
-        _;
-    }
-
-    /* -------------------------------------------------------------------
       View Functions 
     ------------------------------------------------------------------- */
 
-    /**
-     *  @dev Get all the registered UToken contracts
-     *  @return uToken addresses
-     */
-    function getUTokens() public view returns (address[] memory) {
-        return uTokenList.values();
+    function hasUToken(address token) external view returns (bool) {
+        return uTokens[token] != address(0);
     }
 
-    /**
-     *  @dev Get all the registered UserManager contracts
-     *  @return UserManager addresses
-     */
-    function getUserManagers() public view returns (address[] memory) {
-        return userManagerList.values();
+    function hasUserManager(address token) external view returns (bool) {
+        return userManagers[token] != address(0);
     }
 
     /* -------------------------------------------------------------------
@@ -112,11 +75,8 @@ contract MarketRegistry is Controller {
      * @param token The underlying token e.g DAI
      * @param uToken the address of the uToken contract
      */
-    function addUToken(address token, address uToken) public newUToken(token) onlyAdmin {
-        require(token != address(0) && uToken != address(0), "MarketRegistry: token and uToken can not be zero");
-        uTokenList.add(uToken);
-        tokens[token].uToken = uToken;
-
+    function setUToken(address token, address uToken) public onlyAdmin {
+        uTokens[token] = uToken;
         emit LogAddUToken(token, uToken);
     }
 
@@ -125,28 +85,8 @@ contract MarketRegistry is Controller {
      * @param token The underlying token e.g DAI
      * @param userManager the address of the UserManager contract
      */
-    function addUserManager(address token, address userManager) public newUserManager(token) onlyAdmin {
-        require(
-            token != address(0) && userManager != address(0),
-            "MarketRegistry: token and userManager can not be zero"
-        );
-        userManagerList.add(userManager);
-        tokens[token].userManager = userManager;
-
+    function setUserManager(address token, address userManager) public onlyAdmin {
+        userManagers[token] = userManager;
         emit LogAddUserManager(token, userManager);
-    }
-
-    /**
-     * @dev Remove a market
-     * @param token The underlying token e.g DAI
-     */
-    function deleteMarket(address token) public onlyAdmin {
-        uTokenList.remove(tokens[token].uToken);
-        userManagerList.remove(tokens[token].userManager);
-
-        delete tokens[token].uToken;
-        delete tokens[token].userManager;
-
-        emit LogDeleteMarket(token);
     }
 }
