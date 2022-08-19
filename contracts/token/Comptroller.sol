@@ -347,7 +347,7 @@ contract Comptroller is Controller, IComptroller {
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
         UserManagerAccountState memory userManagerAccountState;
-        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinage) = userManager
+        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
             .getFrozenInfo(account, pastBlocks);
 
         return (userManagerAccountState, userInfo, pastBlocks);
@@ -382,7 +382,7 @@ contract Comptroller is Controller, IComptroller {
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
         UserManagerAccountState memory userManagerAccountState;
-        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinage) = userManager
+        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
             .updateFrozenInfo(account, pastBlocks);
 
         return (userManagerAccountState, userInfo, pastBlocks);
