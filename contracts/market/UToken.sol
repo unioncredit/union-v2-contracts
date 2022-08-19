@@ -557,6 +557,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
+     * @notice Repay outstanding borrow
      * @dev Repay borrow see _repayBorrowFresh
      */
     function repayBorrow(uint256 repayAmount) external override whenNotPaused nonReentrant {
@@ -564,6 +565,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
+     * @notice Repay entire outstanding borrow
      * @dev Repay borrow see _repayBorrowFresh
      */
     function repayBorrowAll() external override whenNotPaused nonReentrant {
@@ -571,6 +573,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
+     * @notice Repay outstanding borrow on behalf of another member
      * @dev Repay borrow see _repayBorrowFresh
      */
     function repayBorrowBehalf(address borrower, uint256 repayAmount) external override whenNotPaused nonReentrant {
@@ -578,6 +581,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
+     * @notice Repay entire outstanding borrow on behalf of another member
+     * @dev Repay borrow see _repayBorrowFresh
      * @dev Repay borrow see _repayBorrowFresh
      */
     function repayBorrowBehalfAll(address borrower) external override whenNotPaused nonReentrant {
