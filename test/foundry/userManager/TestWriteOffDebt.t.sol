@@ -21,7 +21,7 @@ contract TestWriteOffDebt is TestUserManagerBase {
     }
 
     function testCannotWriteOffDebtAmountZero() public {
-        vm.expectRevert(UserManager.AmountZero.selector);
+        vm.expectRevert("UNION#401");
         userManager.debtWriteOff(staker, borrower, 0);
     }
 
@@ -29,21 +29,21 @@ contract TestWriteOffDebt is TestUserManagerBase {
         vm.assume(amount > 0);
         vm.prank(address(3));
         vm.roll(1);
-        vm.expectRevert(UserManager.AuthFailed.selector);
+        vm.expectRevert("UNION#400");
         userManager.debtWriteOff(staker, borrower, amount);
     }
 
     function testCannotVoucherNotFound(uint96 amount) public {
         vm.assume(amount > 0);
         vm.prank(address(3));
-        vm.expectRevert(UserManager.VoucherNotFound.selector);
+        vm.expectRevert("UNION#109");
         userManager.debtWriteOff(address(3), borrower, amount);
     }
 
     function testCannotWriteOffDebtExceedsLocked(uint96 amount) public {
         vm.assume(amount > 0);
         vm.prank(staker);
-        vm.expectRevert(UserManager.ExceedsLocked.selector);
+        vm.expectRevert("UNION#107");
         userManager.debtWriteOff(staker, borrower, amount);
     }
 

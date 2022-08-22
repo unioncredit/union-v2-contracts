@@ -1,4 +1,5 @@
 pragma solidity ^0.8.0;
+import "union-v1.5-contracts/errors.sol";
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v1.5-contracts/user/UserManager.sol";
 
@@ -8,12 +9,12 @@ contract TestRegister is TestUserManagerBase {
     }
 
     function testCannotRegisterWhenIsMember() public {
-        vm.expectRevert(UserManager.NoExistingMember.selector);
+        vm.expectRevert("UNION#102");
         userManager.registerMember(MEMBER);
     }
 
     function testCannotRegisterNotEnoughStakers() public {
-        vm.expectRevert(UserManager.NotEnoughStakers.selector);
+        vm.expectRevert("UNION#103");
         userManager.registerMember(ACCOUNT);
     }
 
@@ -22,7 +23,7 @@ contract TestRegister is TestUserManagerBase {
         userManager.setEffectiveCount(1);
         vm.prank(MEMBER);
         userManager.updateTrust(ACCOUNT, 1 ether);
-        vm.expectRevert(UserManager.NotEnoughStakers.selector);
+        vm.expectRevert("UNION#103");
         userManager.registerMember(ACCOUNT);
     }
 

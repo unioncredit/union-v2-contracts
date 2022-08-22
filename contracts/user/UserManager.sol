@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
+import "../errors.sol";
 import "../Controller.sol";
 import "../interfaces/IAssetManager.sol";
 import "../interfaces/IUserManager.sol";
@@ -268,12 +269,12 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     ------------------------------------------------------------------- */
 
     modifier onlyMember(address account) {
-        if (!checkIsMember(account)) revert AuthFailed();
+        _require(checkIsMember(account), Errors.UNAUTHORIZED);
         _;
     }
 
     modifier onlyMarket() {
-        if (address(uToken) != msg.sender) revert AuthFailed();
+        _require(address(uToken) == msg.sender, Errors.UNAUTHORIZED);
         _;
     }
 
@@ -476,8 +477,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      */
     function updateTrust(address borrower, uint96 trustAmount) external onlyMember(msg.sender) whenNotPaused {
         address staker = msg.sender;
-        if (borrower == staker) revert ErrorSelfVouching();
-        if (!checkIsMember(staker)) revert AuthFailed();
+        _require(borrower != staker, Errors.SELF_VOUCHING);
+        _require(checkIsMember(staker), Errors.UNAUTHORIZED);
 
         // Check if this staker is already vouching for this borrower
         // If they are already vouching then update the existing vouch record
@@ -487,7 +488,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             // Update existing record checking that the new trust amount is
             // not less than the amount of stake currently locked by the borrower
             Vouch storage vouch = vouchers[borrower][index.idx];
-            if (trustAmount < vouch.locked) revert TrustAmountLtLocked();
+            _require(trustAmount >= vouch.locked, Errors.TRUST_LT_LOCKED);
             vouch.amount = trustAmount;
         } else {
             // Get the new index that this vouch is going to be inserted at
@@ -518,14 +519,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param borrower borrower address
      */
     function cancelVouch(address staker, address borrower) public onlyMember(msg.sender) whenNotPaused {
-        if (staker != msg.sender && borrower != msg.sender) revert AuthFailed();
+        _require(staker == msg.sender && borrower == msg.sender, Errors.UNAUTHORIZED);
 
         Index memory voucherIndex = voucherIndexes[borrower][staker];
-        if (!voucherIndex.isSet) revert VoucherNotFound();
+        _require(voucherIndex.isSet, Errors.VOUCHER_NOT_FOUND);
 
         // Check that the locked amount for this vouch is 0
         Vouch memory vouch = vouchers[borrower][voucherIndex.idx];
-        if (vouch.locked > 0) revert LockedStakeNonZero();
+        _require(vouch.locked <= 0, Errors.LOCK_STAKE_NOT_ZERO);
 
         // Remove borrower from vouchers array by moving the last item into the position
         // of the index being removed and then poping the last item off the array
@@ -574,7 +575,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param newMember New member address
      */
     function registerMember(address newMember) public virtual whenNotPaused {
-        if (stakers[newMember].isMember) revert NoExistingMember();
+        _require(!stakers[newMember].isMember, Errors.ALREADY_MEMBER);
 
         uint256 count = 0;
         uint256 vouchersLength = vouchers[newMember].length;
@@ -588,7 +589,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             if (count >= effectiveCount) break;
         }
 
-        if (count < effectiveCount) revert NotEnoughStakers();
+        _require(count >= effectiveCount, Errors.NOT_ENOUGH_STAKERS);
 
         stakers[newMember].isMember = true;
         IUnionToken(unionToken).burnFrom(msg.sender, newMemberFee);
@@ -611,7 +612,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
         Staker storage staker = stakers[msg.sender];
 
-        if (staker.stakedAmount + amount > maxStakeAmount) revert StakeLimitReached();
+        _require(staker.stakedAmount + amount <= maxStakeAmount, Errors.STAKE_LIMIT);
 
         staker.stakedAmount += amount;
         totalStaked += amount;
@@ -620,7 +621,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         erc20Token.safeApprove(assetManager, 0);
         erc20Token.safeApprove(assetManager, amount);
 
-        if (!IAssetManager(assetManager).deposit(stakingToken, amount)) revert AssetManagerDepositFailed();
+        _require(IAssetManager(assetManager).deposit(stakingToken, amount), Errors.ASSET_DEPOSIT_FAILED);
+
         emit LogStake(msg.sender, amount);
     }
 
@@ -636,16 +638,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
 
         // Stakers can only unstaked stake balance that is unlocked. Stake balance
         // becomes locked when it is used to underwrite a borrow.
-        if (staker.stakedAmount - staker.locked < amount) revert InsufficientBalance();
+        _require(staker.stakedAmount - staker.locked >= amount, Errors.INSUFFICIENT_BALANCE);
 
         comptroller.withdrawRewards(msg.sender, stakingToken);
 
         staker.stakedAmount -= amount;
         totalStaked -= amount;
 
-        if (!IAssetManager(assetManager).withdraw(stakingToken, msg.sender, amount)) {
-            revert AssetManagerWithdrawFailed();
-        }
+        _require(IAssetManager(assetManager).withdraw(stakingToken, msg.sender, amount), Errors.ASSET_WITHDRAW_FAILED);
 
         emit LogUnstake(msg.sender, amount);
     }
@@ -671,7 +671,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         address borrower,
         uint96 amount
     ) public {
-        if (amount == 0) revert AmountZero();
+        _require(amount != 0, Errors.AMOUNT_ZERO);
         uint256 overdueBlocks = uToken.overdueBlocks();
         uint256 lastRepay = uToken.getLastRepay(borrower);
 
@@ -679,14 +679,14 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         // overdue blocks + maxOverdueBlocks. This stops the system being left with
         // debt that is overdue indefinitely and no ability to do anything about it.
         if (block.number <= lastRepay + overdueBlocks + maxOverdueBlocks) {
-            if (staker != msg.sender) revert AuthFailed();
+            _require(staker == msg.sender, Errors.UNAUTHORIZED);
         }
 
         Index memory index = voucherIndexes[borrower][staker];
-        if (!index.isSet) revert VoucherNotFound();
+        _require(index.isSet, Errors.VOUCHER_NOT_FOUND);
         Vouch storage vouch = vouchers[borrower][index.idx];
 
-        if (amount > vouch.locked) revert ExceedsLocked();
+        _require(amount <= vouch.locked, Errors.EXCEEDS_LOCKED);
 
         // update staker staked amount
         stakers[staker].stakedAmount -= amount;
@@ -772,7 +772,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         // If we have looped through all the available vouchers for this
         // borrower and we still have a remaining amount then we have to
         // revert as there is not enough vouchers to lock/unlock
-        if (remaining > 0) revert LockedRemaining();
+        _require(remaining == 0, Errors.LOCKED_REMAINING);
     }
 
     /* -------------------------------------------------------------------

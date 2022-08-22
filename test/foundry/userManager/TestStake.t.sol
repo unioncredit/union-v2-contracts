@@ -10,7 +10,7 @@ contract TestStakeAndUnstake is TestUserManagerBase {
 
     function testCannotStakeAboveLimit(uint96 amount) public {
         vm.assume(amount > 10000 ether);
-        vm.expectRevert(UserManager.StakeLimitReached.selector);
+        vm.expectRevert("UNION#104");
         userManager.stake(amount);
     }
 
@@ -21,7 +21,7 @@ contract TestStakeAndUnstake is TestUserManagerBase {
             abi.encodeWithSelector(AssetManager.deposit.selector, daiMock, amount),
             abi.encode(false)
         );
-        vm.expectRevert(UserManager.AssetManagerDepositFailed.selector);
+        vm.expectRevert("UNION#105");
         userManager.stake(amount);
         vm.clearMockedCalls();
     }
@@ -38,7 +38,7 @@ contract TestStakeAndUnstake is TestUserManagerBase {
         vm.assume(amount <= 100 ether && amount > 0);
         vm.startPrank(MEMBER);
         userManager.stake(amount);
-        vm.expectRevert(UserManager.InsufficientBalance.selector);
+        vm.expectRevert("UNION#402");
         userManager.unstake(amount + 1);
         vm.stopPrank();
     }
@@ -52,7 +52,7 @@ contract TestStakeAndUnstake is TestUserManagerBase {
             abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, MEMBER, amount),
             abi.encode(false)
         );
-        vm.expectRevert(UserManager.AssetManagerWithdrawFailed.selector);
+        vm.expectRevert("UNION#106");
         userManager.unstake(amount);
         vm.stopPrank();
         vm.clearMockedCalls();

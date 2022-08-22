@@ -76,7 +76,7 @@ contract TestUpdateLocked is TestUserManagerBase {
     function testCannotUpdateWithRemaining(uint96 lockAmount) public {
         vm.assume(lockAmount > uint96(stakeAmount * MEMBERS.length));
         _prankMarket();
-        vm.expectRevert(UserManager.LockedRemaining.selector);
+        vm.expectRevert("UNION#108");
         userManager.updateLocked(ACCOUNT, lockAmount, true);
         vm.stopPrank();
     }

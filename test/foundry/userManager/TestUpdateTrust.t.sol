@@ -52,14 +52,14 @@ contract TestUpdateTrust is TestUserManagerBase {
 
     function testCannotOnSelf() public {
         vm.startPrank(MEMBER);
-        vm.expectRevert(UserManager.ErrorSelfVouching.selector);
+        vm.expectRevert("UNION#100");
         userManager.updateTrust(MEMBER, 123);
         vm.stopPrank();
     }
 
     function testCannotNonMember() public {
         vm.startPrank(address(999));
-        vm.expectRevert(UserManager.AuthFailed.selector);
+        vm.expectRevert("UNION#400");
         userManager.updateTrust(address(1234), 100);
     }
 
