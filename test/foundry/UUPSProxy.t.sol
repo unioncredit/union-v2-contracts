@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TestWrapper} from "./TestWrapper.sol";
-import {UUPSProxy} from "union-v1.5-contracts/UUPSProxy.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract TestDelegate {
     function test() public view returns (string memory) {
@@ -12,7 +12,7 @@ contract TestDelegate {
 contract TestUUPSProxy is TestWrapper {
     function testUUPSProxyDelegates() public {
         TestDelegate logic = new TestDelegate();
-        UUPSProxy proxy = new UUPSProxy(address(logic), address(0), "");
+        ERC1967Proxy proxy = new ERC1967Proxy(address(logic), "");
         string memory resp = TestDelegate(address(proxy)).test();
         assertEq(resp, "testing");
     }

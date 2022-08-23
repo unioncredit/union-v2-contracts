@@ -1,6 +1,6 @@
 import {Contract, ContractFactory, Signer} from "ethers";
 import {formatUnits, Interface} from "ethers/lib/utils";
-import {UUPSProxy, UUPSProxy__factory} from "../typechain-types";
+import {ERC1967Proxy, ERC1967Proxy__factory} from "../typechain-types";
 
 const AddressZero = "0x0000000000000000000000000000000000000000";
 
@@ -33,9 +33,9 @@ export async function deployProxy<T extends Contract>(
         );
     }
 
-    const constructorArgs = [implementation.address, AddressZero, encoded];
-    const proxy = await deployContract<UUPSProxy>(
-        new UUPSProxy__factory(signer),
+    const constructorArgs = [implementation.address, encoded];
+    const proxy = await deployContract<ERC1967Proxy>(
+        new ERC1967Proxy__factory(signer),
         `Proxy:${contractName}`,
         constructorArgs,
         debug
