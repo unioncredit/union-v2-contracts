@@ -281,11 +281,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         _;
     }
 
-    modifier onlyComptroller() {
-        if (address(comptroller) != msg.sender) revert AuthFailed();
-        _;
-    }
-
     /* -------------------------------------------------------------------
       Setters 
     ------------------------------------------------------------------- */
