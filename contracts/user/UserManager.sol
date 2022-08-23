@@ -257,7 +257,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         assetManager = assetManager_;
         unionToken = unionToken_;
         stakingToken = stakingToken_;
-        newMemberFee = 10**18; // Set the default membership fee
+        newMemberFee = 1 ether;
         maxStakeAmount = 10_000e18;
         maxOverdueBlocks = maxOverdueBlocks_;
         effectiveCount = effectiveCount_;

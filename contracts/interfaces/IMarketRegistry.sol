@@ -6,33 +6,15 @@ pragma solidity 0.8.11;
  * @dev Registering and managing all the lending markets.
  */
 interface IMarketRegistry {
-    function getUTokens() external view returns (address[] memory);
+    function userManagers(address token) external view returns (address);
 
-    function getUserManagers() external view returns (address[] memory);
+    function uTokens(address token) external view returns (address);
 
-    /**
-     *  @dev Returns the market address of the token
-     *  @return The market address
-     */
-    function tokens(address token) external view returns (address, address);
+    function hasUToken(address token) external view returns (bool);
 
-    function createUToken(
-        address token,
-        address assetManager,
-        uint256 originationFee,
-        uint256 globalMaxLoan,
-        uint256 maxBorrow,
-        uint256 minLoan,
-        uint256 maxLateBlock,
-        address interestRateModel
-    ) external returns (address);
+    function hasUserManager(address token) external view returns (bool);
 
-    function createUserManager(
-        address assetManager,
-        address unionToken,
-        address stakingToken,
-        address creditLimitModel,
-        address inflationIndexModel,
-        address comptroller
-    ) external returns (address);
+    function setUToken(address token, address uToken) external;
+
+    function setUserManager(address token, address userManager) external;
 }

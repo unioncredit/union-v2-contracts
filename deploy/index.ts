@@ -177,7 +177,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
             ]
         });
         userManager = UserManager__factory.connect(proxy.address, signer);
-        await marketRegistry.addUserManager(dai.address, userManager.address);
+        await marketRegistry.setUserManager(dai.address, userManager.address);
     }
 
     // deploy fixedInterestRateModel
@@ -219,7 +219,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         });
         uToken = UToken__factory.connect(proxy.address, signer);
         await userManager.setUToken(uToken.address);
-        await marketRegistry.addUToken(dai.address, uToken.address);
+        await marketRegistry.setUToken(dai.address, uToken.address);
         await uToken.setUserManager(userManager.address);
         await uToken.setAssetManager(assetManager.address);
         await uToken.setInterestRateModel(fixedInterestRateModel.address);

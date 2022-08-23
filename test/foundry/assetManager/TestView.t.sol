@@ -27,6 +27,11 @@ contract TestView is TestAssetManagerBase {
         super.setUp();
     }
 
+    function setTokens(address a, address b) public {
+        marketRegistryMock.setUserManager(address(daiMock), a);
+        marketRegistryMock.setUToken(address(daiMock), b);
+    }
+
     function deposit(uint256 amount) public {
         assetManager.addToken(address(daiMock));
         daiMock.mint(address(this), amount);
@@ -56,7 +61,7 @@ contract TestView is TestAssetManagerBase {
     function testGetLoanableAmountWithPrincipal(uint256 amount) public {
         vm.assume(amount > 0 && amount <= 1000000 ether);
         daiMock.mint(address(assetManager), amount);
-        marketRegistryMock.setTokens(address(this), address(this));
+        setTokens(address(this), address(this));
         deposit(amount);
         assertEq(assetManager.getLoanableAmount(address(daiMock)), amount * 2);
     }

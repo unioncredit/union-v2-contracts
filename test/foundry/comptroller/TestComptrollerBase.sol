@@ -41,8 +41,6 @@ contract TestComptrollerBase is TestWrapper {
                 )
             )
         );
-
-        comptroller.setUserManager(address(daiMock), address(userManagerMock));
     }
 
     function deployComtrollerExposedInternals() public {
