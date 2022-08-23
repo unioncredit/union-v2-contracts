@@ -519,7 +519,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param borrower borrower address
      */
     function cancelVouch(address staker, address borrower) public onlyMember(msg.sender) whenNotPaused {
-        _require(staker == msg.sender && borrower == msg.sender, Errors.UNAUTHORIZED);
+        _require(staker == msg.sender || borrower == msg.sender, Errors.UNAUTHORIZED);
 
         Index memory voucherIndex = voucherIndexes[borrower][staker];
         _require(voucherIndex.isSet, Errors.VOUCHER_NOT_FOUND);
