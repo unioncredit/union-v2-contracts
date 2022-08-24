@@ -24,7 +24,9 @@ import {
     FixedInterestRateModel,
     FixedInterestRateModel__factory
 } from "../typechain-types";
-import {deployProxy, deployContract} from "./helpers";
+const {ethers, upgrades} = require("hardhat");
+
+const DEBUG = false;
 
 interface Addresses {
     userManager?: string;
@@ -86,15 +88,11 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.marketRegistry) {
         marketRegistry = MarketRegistry__factory.connect(config.addresses.marketRegistry, signer);
     } else {
-        const {proxy} = await deployProxy<MarketRegistry>(
-            signer,
-            new MarketRegistry__factory(signer),
-            "MarketRegistry",
-            {
-                signature: "__MarketRegistry_init()",
-                args: []
-            }
-        );
+        const proxy = await upgrades.deployProxy(new MarketRegistry__factory(signer), [], {
+            kind: "uups",
+            initializer: "__MarketRegistry_init"
+        });
+        await proxy.deployed();
         marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
     }
 
@@ -103,11 +101,18 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.unionToken) {
         unionToken = IUnionToken__factory.connect(config.addresses.unionToken, signer);
     } else {
-        unionToken = await deployContract<FaucetERC20_ERC20Permit>(
-            new FaucetERC20_ERC20Permit__factory(signer),
-            "UnionToken",
-            ["Union Token", "UNION"]
-        );
+        const contractFactory = new FaucetERC20_ERC20Permit__factory(signer);
+        unionToken = await contractFactory.deploy("Union Token", "UNION");
+        if (DEBUG) {
+            console.log(
+                [
+                    `[*] Deploying ${"UNION"}`,
+                    `    - hash: ${unionToken.deployTransaction.hash}`,
+                    `    - from: ${unionToken.deployTransaction.from}`,
+                    `    - gas price: ${unionToken.deployTransaction.gasPrice?.toNumber() || 0 / 1e9} Gwei`
+                ].join("\n")
+            );
+        }
     }
 
     // deploy DAI
@@ -115,7 +120,18 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.dai) {
         dai = ERC20__factory.connect(config.addresses.dai, signer);
     } else {
-        dai = await deployContract<FaucetERC20>(new FaucetERC20__factory(signer), "DAI", ["DAI", "DAI"]);
+        const contractFactory = new FaucetERC20__factory(signer);
+        dai = await contractFactory.deploy("DAI", "DAI");
+        if (DEBUG) {
+            console.log(
+                [
+                    `[*] Deploying ${"DAI"}`,
+                    `    - hash: ${dai.deployTransaction.hash}`,
+                    `    - from: ${dai.deployTransaction.from}`,
+                    `    - gas price: ${dai.deployTransaction.gasPrice?.toNumber() || 0 / 1e9} Gwei`
+                ].join("\n")
+            );
+        }
     }
 
     // deploy comptroller
@@ -123,50 +139,46 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.comptroller) {
         comptroller = Comptroller__factory.connect(config.addresses.comptroller, signer);
     } else {
-        const {proxy} = await deployProxy<Comptroller>(signer, new Comptroller__factory(signer), "Comptroller", {
-            signature: "__Comptroller_init(address,address,uint256)",
-            args: [unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint]
-        });
+        const proxy = await upgrades.deployProxy(
+            new Comptroller__factory(signer),
+            [unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint],
+            {kind: "uups", initializer: "__Comptroller_init"}
+        );
+        await proxy.deployed();
         comptroller = Comptroller__factory.connect(proxy.address, signer);
     }
-
     // deploy asset manager
     let assetManager: AssetManager;
     if (config.addresses.assetManager) {
         assetManager = AssetManager__factory.connect(config.addresses.assetManager, signer);
     } else {
-        const {proxy} = await deployProxy<AssetManager>(signer, new AssetManager__factory(signer), "AssetManager", {
-            signature: "__AssetManager_init(address)",
-            args: [marketRegistry.address]
+        const proxy = await upgrades.deployProxy(new AssetManager__factory(signer), [marketRegistry.address], {
+            kind: "uups",
+            initializer: "__AssetManager_init"
         });
+        await proxy.deployed();
         assetManager = AssetManager__factory.connect(proxy.address, signer);
     }
-
     // deploy pure token
     let pureToken: PureTokenAdapter;
     if (config.addresses.adapters?.pureTokenAdapter) {
         pureToken = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
     } else {
-        const {proxy} = await deployProxy<PureTokenAdapter>(
-            signer,
-            new PureTokenAdapter__factory(signer),
-            "PureTokenAdapter",
-            {
-                signature: "__PureTokenAdapter_init(address)",
-                args: [assetManager.address]
-            }
-        );
+        const proxy = await upgrades.deployProxy(new PureTokenAdapter__factory(signer), [assetManager.address], {
+            kind: "uups",
+            initializer: "__PureTokenAdapter_init"
+        });
+        await proxy.deployed();
         pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
     }
-
     // deploy user manager
     let userManager: UserManager;
     if (config.addresses.userManager) {
         userManager = UserManager__factory.connect(config.addresses.userManager, signer);
     } else {
-        const {proxy} = await deployProxy<UserManager>(signer, new UserManager__factory(signer), "UserManager", {
-            signature: "__UserManager_init(address,address,address,address,address,uint256,uint256)",
-            args: [
+        const proxy = await upgrades.deployProxy(
+            new UserManager__factory(signer),
+            [
                 assetManager.address,
                 unionToken.address,
                 dai.address,
@@ -174,12 +186,16 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
                 config.admin,
                 config.userManager.maxOverdue,
                 config.userManager.effectiveCount
-            ]
-        });
+            ],
+            {
+                kind: "uups",
+                initializer: "__UserManager_init"
+            }
+        );
+        await proxy.deployed();
         userManager = UserManager__factory.connect(proxy.address, signer);
         await marketRegistry.setUserManager(dai.address, userManager.address);
     }
-
     // deploy fixedInterestRateModel
     let fixedInterestRateModel: FixedInterestRateModel;
     if (config.addresses.fixedRateInterestModel) {
@@ -188,22 +204,27 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
             signer
         );
     } else {
-        fixedInterestRateModel = await deployContract<FixedInterestRateModel>(
-            new FixedInterestRateModel__factory(signer),
-            "FixedInterestRateModel",
-            [config.fixedInterestRateModel.interestRatePerBlock]
-        );
+        const contractFactory = new FixedInterestRateModel__factory(signer);
+        fixedInterestRateModel = await contractFactory.deploy(config.fixedInterestRateModel.interestRatePerBlock);
+        if (DEBUG) {
+            console.log(
+                [
+                    `[*] Deploying ${"FixedInterestRateModel"}`,
+                    `    - hash: ${fixedInterestRateModel.deployTransaction.hash}`,
+                    `    - from: ${fixedInterestRateModel.deployTransaction.from}`,
+                    `    - gas price: ${fixedInterestRateModel.deployTransaction.gasPrice?.toNumber() || 0 / 1e9} Gwei`
+                ].join("\n")
+            );
+        }
     }
-
     // deploy uToken
     let uToken: UToken;
     if (config.addresses.uToken) {
         uToken = UToken__factory.connect(config.addresses.uToken, signer);
     } else {
-        const {proxy} = await deployProxy<UToken>(signer, new UToken__factory(signer), "UToken", {
-            signature:
-                "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
-            args: [
+        const proxy = await upgrades.deployProxy(
+            new UToken__factory(signer),
+            [
                 config.uToken.name,
                 config.uToken.symbol,
                 dai.address,
@@ -215,8 +236,13 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
                 config.uToken.minBorrow,
                 config.uToken.overdueBlocks,
                 config.admin
-            ]
-        });
+            ],
+            {
+                kind: "uups",
+                initializer: "__UToken_init"
+            }
+        );
+        await proxy.deployed();
         uToken = UToken__factory.connect(proxy.address, signer);
         await userManager.setUToken(uToken.address);
         await marketRegistry.setUToken(dai.address, uToken.address);
@@ -224,7 +250,6 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         await uToken.setAssetManager(assetManager.address);
         await uToken.setInterestRateModel(fixedInterestRateModel.address);
     }
-
     return {
         userManager,
         uToken,
