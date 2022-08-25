@@ -1,9 +1,12 @@
+import "./testSetup";
+
 import {expect} from "chai";
 import {Signer} from "ethers";
 import {ethers} from "hardhat";
 
 import deploy, {Contracts} from "../../deploy";
-import config from "../../deploy/config";
+import {getConfig} from "../../deploy/config";
+import {getDeployer, getSigners} from "../utils";
 
 describe("Owner/Admin permissions", () => {
     let signers: Signer[];
@@ -13,14 +16,15 @@ describe("Owner/Admin permissions", () => {
     let contracts: Contracts;
 
     before(async function () {
-        signers = await ethers.getSigners();
-        deployer = signers[0];
-        nonAdmin = signers[1];
+        signers = await getSigners();
+        deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
+
+        nonAdmin = signers[1];
     });
 
     const beforeContext = async () => {
-        contracts = await deploy({...config.main, admin: deployerAddress}, deployer);
+        contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
     };
 
     context("UserManager", () => {

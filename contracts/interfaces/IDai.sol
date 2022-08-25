@@ -1,7 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-interface IDai {
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface IDai is IERC20 {
     function permit(
         address holder,
         address spender,

@@ -1,12 +1,10 @@
-import {Contract, ContractFactory, Signer} from "ethers";
+import {Contract, ContractFactory} from "ethers";
 import {formatUnits, Interface} from "ethers/lib/utils";
-import {ERC1967Proxy, ERC1967Proxy__factory} from "../typechain-types";
-const {upgrades} = require("hardhat");
+import {upgrades} from "hardhat";
 
 const DEBUG_DEFAULT = false;
 
 export async function deployProxy<T extends Contract>(
-    signer: Signer,
     contractFactory: ContractFactory,
     contractName: string,
     initialize: {
@@ -34,7 +32,18 @@ export async function deployProxy<T extends Contract>(
         kind: "uups",
         initializer: initFnName
     });
-    await proxy.deployed();
+
+    const resp = await proxy.deployed();
+
+    if (debug) {
+        console.log(
+            [
+                `[*] Deployed proxy ${contractName}`,
+                `    - hash: ${resp.deployTransaction.hash}`,
+                `    - from: ${resp.deployTransaction.from}`
+            ].join("\n")
+        );
+    }
 
     return {proxy: proxy as any as T};
 }

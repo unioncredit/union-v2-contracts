@@ -1,11 +1,12 @@
+import "./testSetup";
+
 import {expect} from "chai";
 import {Signer} from "ethers";
-import {ethers} from "hardhat";
 import {parseUnits} from "ethers/lib/utils";
 
 import deploy, {Contracts} from "../../deploy";
-import config from "../../deploy/config";
-import {createHelpers, Helpers} from "../utils";
+import {getConfig} from "../../deploy/config";
+import {createHelpers, getDai, getDeployer, getSigners, Helpers} from "../utils";
 
 describe("Vouching", () => {
     let signers: Signer[];
@@ -17,13 +18,13 @@ describe("Vouching", () => {
     const trustAmount = parseUnits("1000");
 
     before(async function () {
-        signers = await ethers.getSigners();
-        deployer = signers.pop() as Signer;
+        signers = await getSigners();
+        deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
     });
 
     const beforeContext = async () => {
-        contracts = await deploy({...config.main, admin: deployerAddress}, deployer);
+        contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         helpers = createHelpers(contracts);
 
         for (const signer of signers) {
@@ -31,19 +32,16 @@ describe("Vouching", () => {
             await contracts.userManager.addMember(address);
         }
 
-        if ("mint" in contracts.dai) {
-            const amount = parseUnits("1000000");
+        const amount = parseUnits("10000");
 
-            for (const signer of signers) {
-                const address = await signer.getAddress();
-                await contracts.dai.mint(address, amount);
-                await contracts.dai.connect(signer).approve(contracts.userManager.address, amount);
-            }
-
-            await contracts.dai.mint(deployerAddress, amount);
-            await contracts.dai.approve(contracts.uToken.address, amount);
-            await contracts.uToken.addReserves(amount);
+        for (const signer of signers) {
+            await getDai(contracts.dai, signer, amount);
+            await contracts.dai.connect(signer).approve(contracts.userManager.address, amount);
         }
+
+        await getDai(contracts.dai, deployer, amount);
+        await contracts.dai.approve(contracts.uToken.address, amount);
+        await contracts.uToken.addReserves(amount);
     };
 
     context("Adjusting trust", () => {

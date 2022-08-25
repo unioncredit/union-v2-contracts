@@ -1,14 +1,15 @@
+import "./testSetup";
+
 import {expect} from "chai";
 import {BigNumber, Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
-import {ethers} from "hardhat";
 
 import {roll} from "../utils";
 import deploy, {Contracts} from "../../deploy";
-import config from "../../deploy/config";
+import {getConfig} from "../../deploy/config";
+import {getDai, getDeployer, getSigners} from "../utils";
 
 describe("Minting and redeeming uToken", () => {
-    let signers: Signer[];
     let deployer: Signer;
     let user: Signer;
     let deployerAddress: string;
@@ -20,31 +21,31 @@ describe("Minting and redeeming uToken", () => {
     const mintAmount = parseUnits("1000");
 
     before(async function () {
-        signers = await ethers.getSigners();
-        deployer = signers[0];
+        const signers = await getSigners();
+        deployer = await getDeployer();
+
         user = signers[1];
+
         deployerAddress = await deployer.getAddress();
         userAddress = await user.getAddress();
     });
 
     const beforeContext = async () => {
-        contracts = await deploy({...config.main, admin: deployerAddress}, deployer);
+        contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         assetManagerAddress = await contracts.uToken.assetManager();
         WAD = await contracts.uToken.WAD();
         await contracts.userManager.addMember(deployerAddress);
         await contracts.userManager.addMember(userAddress);
         await contracts.userManager.setEffectiveCount(1);
 
-        if ("mint" in contracts.dai) {
-            const amount = parseUnits("1000000");
-            const stakeAmount = parseUnits("1000");
-            await contracts.dai.mint(deployerAddress, amount);
-            await contracts.dai.approve(contracts.uToken.address, amount);
+        const amount = parseUnits("10000");
+        const stakeAmount = parseUnits("1000");
+        await getDai(contracts.dai, deployer, amount);
+        await contracts.dai.approve(contracts.uToken.address, amount);
 
-            await contracts.dai.approve(contracts.userManager.address, stakeAmount);
-            await contracts.userManager.stake(stakeAmount);
-            await contracts.userManager.updateTrust(userAddress, stakeAmount);
-        }
+        await contracts.dai.approve(contracts.userManager.address, stakeAmount);
+        await contracts.userManager.stake(stakeAmount);
+        await contracts.userManager.updateTrust(userAddress, stakeAmount);
     };
 
     context("Minting uToken", () => {

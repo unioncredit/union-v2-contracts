@@ -1,56 +1,54 @@
+import "./testSetup";
+
 import {expect} from "chai";
 import {Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
-import {ethers} from "hardhat";
-import {createHelpers, Helpers, roll} from "../utils";
+import {createHelpers, getDai, getDeployer, getSigners, Helpers, roll} from "../utils";
 
 import deploy, {Contracts} from "../../deploy";
-import config from "../../deploy/config";
+import {getConfig} from "../../deploy/config";
 
 describe("Writing off member debt", () => {
-    let signers: Signer[];
     let deployer: Signer;
     let borrower: Signer;
     let user: Signer;
     let deployerAddress: string;
     let borrowerAddress: string;
-    let userAddress: string;
     let contracts: Contracts;
     let helpers: Helpers;
 
     before(async function () {
-        signers = await ethers.getSigners();
-        deployer = signers[0];
+        const deployer = await getDeployer();
+        const signers = await getSigners();
+
         borrower = signers[1];
         user = signers[2];
+
         deployerAddress = await deployer.getAddress();
         borrowerAddress = await borrower.getAddress();
-        userAddress = await user.getAddress();
     });
 
     const beforeContext = async () => {
-        contracts = await deploy({...config.main, admin: deployerAddress}, deployer);
+        contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         helpers = createHelpers(contracts);
         await contracts.userManager.addMember(deployerAddress);
         await contracts.userManager.addMember(borrowerAddress);
         await contracts.userManager.setEffectiveCount(1);
 
-        if ("mint" in contracts.dai) {
-            const amount = parseUnits("1000000");
-            const mintAmount = parseUnits("1000");
-            const stakeAmount = parseUnits("1000");
-            const borrowAmount = parseUnits("500");
-            await contracts.dai.mint(deployerAddress, amount);
-            await contracts.dai.approve(contracts.userManager.address, stakeAmount);
-            await contracts.userManager.stake(stakeAmount);
-            await contracts.userManager.updateTrust(borrowerAddress, stakeAmount);
-            await contracts.dai.approve(contracts.uToken.address, mintAmount);
-            await contracts.uToken.mint(mintAmount);
-            await contracts.uToken.connect(borrower).borrow(borrowAmount);
-        }
+        const amount = parseUnits("1000");
+        const mintAmount = parseUnits("1000");
+        const stakeAmount = parseUnits("1000");
+        const borrowAmount = parseUnits("100");
+        await getDai(contracts.dai, deployer, amount);
+        await contracts.dai.approve(contracts.userManager.address, stakeAmount);
+        await contracts.userManager.stake(stakeAmount);
+        await contracts.userManager.updateTrust(borrowerAddress, stakeAmount);
+        await contracts.dai.approve(contracts.uToken.address, mintAmount);
+        await contracts.uToken.mint(mintAmount);
+        await contracts.uToken.connect(borrower).borrow(borrowAmount);
     };
 
-    context("Staker writing off own locked stake", () => {
+    context.only("Staker writing off own locked stake", () => {
         before(beforeContext);
         it("borrower is not overdue", async () => {
             const amount = parseUnits("100");

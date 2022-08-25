@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.11;
+pragma solidity 0.8.16;
 
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -64,7 +64,7 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
-    function __AaveAdapter_init(
+    function __AaveV3Adapter_init(
         address _assetManager,
         LendingPool3 _lendingPool,
         AMarket3 _market

@@ -1,11 +1,12 @@
+import "./testSetup";
+
 import {expect} from "chai";
 import {Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
-import {ethers} from "hardhat";
 
-import config from "../../deploy/config";
+import {getConfig} from "../../deploy/config";
 import deploy, {Contracts} from "../../deploy";
-import {createHelpers, roll, Helpers} from "../utils";
+import {createHelpers, roll, Helpers, getDeployer, getSigners, getDai} from "../utils";
 
 describe("Staking and unstaking", () => {
     let deployer: Signer;
@@ -18,30 +19,28 @@ describe("Staking and unstaking", () => {
     let members: Signer[];
 
     before(async function () {
-        const signers = await ethers.getSigners();
-        deployer = signers.shift() as Signer;
+        deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
 
+        const signers = await getSigners();
         accounts = signers.slice(-(signers.length / 2));
         members = signers.slice(0, signers.length / 2);
     });
 
     const beforeContext = async () => {
-        contracts = await deploy({...config.main, admin: deployerAddress}, deployer);
+        contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         helpers = createHelpers(contracts);
 
-        if ("mint" in contracts.dai) {
-            for (const signer of [deployer, ...accounts, ...members]) {
-                const address = await signer.getAddress();
-                const amount = parseUnits("1000000");
-                await contracts.dai.mint(address, amount);
-                await contracts.dai.connect(signer).approve(contracts.userManager.address, amount);
-            }
+        const stakeAmount = await contracts.userManager.maxStakeAmount();
+
+        for (const signer of [deployer, ...accounts, ...members]) {
+            const amount = stakeAmount;
+            await getDai(contracts.dai, signer, amount);
+            await contracts.dai.connect(signer).approve(contracts.userManager.address, amount);
         }
 
         for (const member of members) {
             const address = await member.getAddress();
-            const stakeAmount = await contracts.userManager.maxStakeAmount();
             await contracts.userManager.connect(member).stake(stakeAmount);
             await contracts.userManager.addMember(address);
         }
@@ -85,13 +84,12 @@ describe("Staking and unstaking", () => {
     context("staking rewards", () => {
         before(async () => {
             await beforeContext();
-            if ("mint" in contracts.dai) {
-                const amount = parseUnits("1000000");
-                await contracts.unionToken.mint(contracts.comptroller.address, amount);
-                await contracts.dai.mint(deployerAddress, amount);
-                await contracts.dai.approve(contracts.uToken.address, amount);
-                await contracts.uToken.addReserves(amount);
-            }
+
+            const amount = parseUnits("10000");
+            await contracts.unionToken.mint(contracts.comptroller.address, amount);
+            await getDai(contracts.dai, deployer, amount);
+            await contracts.dai.approve(contracts.uToken.address, amount);
+            await contracts.uToken.addReserves(amount);
         });
         it("stake", async () => {
             const stakeAmount = parseUnits("100");
@@ -168,12 +166,12 @@ describe("Staking and unstaking", () => {
     context("stake underwrites borrow", () => {
         before(async () => {
             await beforeContext();
-            if ("mint" in contracts.dai) {
-                const amount = parseUnits("1000000");
-                await contracts.dai.mint(deployerAddress, amount);
-                await contracts.dai.approve(contracts.uToken.address, amount);
-                await contracts.uToken.addReserves(amount);
-            }
+
+            const amount = parseUnits("10000");
+            await contracts.unionToken.mint(contracts.comptroller.address, amount);
+            await getDai(contracts.dai, deployer, amount);
+            await contracts.dai.approve(contracts.uToken.address, amount);
+            await contracts.uToken.addReserves(amount);
         });
         it("cannot unstake when locked", async () => {
             const trustAmount = parseUnits("2000");
