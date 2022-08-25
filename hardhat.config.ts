@@ -4,6 +4,8 @@ import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import "solidity-coverage";
 
+import "./tasks";
+
 export default {
     networks: {
         hardhat: {

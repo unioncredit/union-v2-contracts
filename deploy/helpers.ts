@@ -33,6 +33,7 @@ export async function deployProxy<T extends Contract>(
         initializer: initFnName
     });
 
+    // TODO: we should raise a PR to be able to pass in nConfirmations to deployed
     const resp = await proxy.deployed();
 
     if (debug) {
@@ -53,7 +54,7 @@ export async function deployContract<T extends Contract>(
     contractName: string,
     constructorArgs: Array<unknown> = [],
     debug = DEBUG_DEFAULT,
-    waitForBlocks = undefined
+    waitForBlocks: number | undefined = undefined
 ): Promise<T> {
     const contract = await contractFactory.deploy(...constructorArgs);
 
