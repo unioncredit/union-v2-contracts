@@ -39,6 +39,10 @@ contract FakeUserManager {
         return (frozenCoinAge, totalFrozen);
     }
 
+    function updateFrozenInfo(address, uint256) public returns (uint256, uint256) {
+        return (frozenCoinAge, totalFrozen);
+    }
+
     function checkIsMember(address) public view returns (bool) {
         return isMember;
     }

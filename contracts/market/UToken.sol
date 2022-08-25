@@ -525,7 +525,9 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (amount < minBorrow) revert AmountLessMinBorrow();
         if (amount > getRemainingDebtCeiling()) revert AmountExceedGlobalMax();
 
+        // Calculate the origination fee
         uint256 fee = calculatingFee(amount);
+
         if (borrowBalanceView(msg.sender) + amount + fee > maxBorrow) revert AmountExceedMaxBorrow();
         if (checkIsOverdue(msg.sender)) revert MemberIsOverdue();
         if (amount > assetManagerContract.getLoanableAmount(underlying)) revert InsufficientFundsLeft();
@@ -533,7 +535,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         uint256 borrowedAmount = borrowBalanceStoredInternal(msg.sender);
 
-        //Set lastRepay init data
+        // Initialize the last repayment date to the current block number
         if (getLastRepay(msg.sender) == 0) {
             accountBorrows[msg.sender].lastRepay = getBlockNumber();
         }
@@ -541,16 +543,23 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 accountBorrowsNew = borrowedAmount + amount + fee;
         uint256 totalBorrowsNew = totalBorrows + amount + fee;
 
+        // Update internal balances
         accountBorrows[msg.sender].principal += amount + fee;
         uint256 newPrincipal = getBorrowed(msg.sender);
         accountBorrows[msg.sender].interest = accountBorrowsNew - newPrincipal;
         accountBorrows[msg.sender].interestIndex = borrowIndex;
         totalBorrows = totalBorrowsNew;
 
-        // The origination fees contribute to the reserve
+        // The origination fees contribute to the reserve and not to the
+        // uDAI minters redeemable amount.
         totalReserves += fee;
 
+        // Withdraw the borrowed amount of tokens from the assetManager and send them to the borrower
         if (!assetManagerContract.withdraw(underlying, msg.sender, amount)) revert WithdrawFailed();
+
+        // Call update locked on the userManager to lock this borrowers stakers. This function
+        // will revert if the account does not have enough vouchers to cover the borrow amount. ie
+        // the borrower is trying to borrow more than is able to be underwritten
         IUserManager(userManager).updateLocked(msg.sender, uint96(amount + fee), true);
 
         emit LogBorrow(msg.sender, amount, fee);
@@ -611,21 +620,44 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         uint256 toReserveAmount;
         uint256 toRedeemableAmount;
+
         if (repayAmount >= interest) {
+            // If the repayment amount is greater than the interest (min payment)
+            bool isOverdue = checkIsOverdue(borrower);
+
+            // Interest is split between the reserves and the uToken minters based on
+            // the reserveFactorMantissa When set to WAD all the interest is paid to teh reserves.
+            // any interest that isn't sent to the reserves is added to the redeemable amount
+            // and can be redeemed by uToken minters.
             toReserveAmount = (interest * reserveFactorMantissa) / WAD;
             toRedeemableAmount = interest - toReserveAmount;
+
+            // Update the account borrows to reflect the repayment
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
 
             if (getBorrowed(borrower) == 0) {
-                // LastRepay is cleared when the arrears are paid off, and reinitialized the next time the loan is borrowed
+                // If the principal is now 0 we can reset the last repaid block to 0.
+                // which indicates that the borrower has no outstanding loans.
                 accountBorrows[borrower].lastRepay = 0;
             } else {
+                // Save the current block number as last repaid
                 accountBorrows[borrower].lastRepay = getBlockNumber();
             }
 
+            // Call update locked on the userManager to lock this borrowers stakers. This function
+            // will revert if the account does not have enough vouchers to cover the repay amount. ie
+            // the borrower is trying to repay more than is locked (owed)
             IUserManager(userManager).updateLocked(borrower, uint96(repayAmount - interest), false);
+
+            if (isOverdue) {
+                // For borrowers that are paying back overdue balances we need to update their
+                // frozen balance and the global total frozen balance on the UserManager
+                IUserManager(userManager).updateFrozenInfo(borrower, 0);
+            }
         } else {
+            // For repayments that don't pay off the minimum we just need to adjust the
+            // global balances and reduce the amount of interest accrued for the borrower
             toReserveAmount = (repayAmount * reserveFactorMantissa) / WAD;
             toRedeemableAmount = repayAmount - toReserveAmount;
             accountBorrows[borrower].interest = interest - repayAmount;
@@ -637,8 +669,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows -= repayAmount;
 
+        // Transfer underlying token that have been repaid and then deposit
+        // then in the asset manager so they can be distributed between the
+        // underlying money markets
         IERC20Upgradeable(underlying).safeTransferFrom(payer, address(this), repayAmount);
-
         _depositToAssetManager(repayAmount);
 
         emit LogRepay(borrower, repayAmount);

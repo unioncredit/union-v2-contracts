@@ -175,18 +175,20 @@ contract Comptroller is Controller, IComptroller {
         address token,
         uint256 futureBlocks
     ) public view override returns (uint256) {
-        IUserManager userManagerContract = _getUserManager(token);
+        IUserManager userManager = _getUserManager(token);
+
+        // Lookup account stataddress accounte from UserManager
+        (
+            UserManagerAccountState memory userManagerAccountState,
+            Info memory userInfo,
+            uint256 pastBlocks
+        ) = _getUserInfoView(userManager, account, token, futureBlocks);
 
         // Lookup global state from UserManager
-        UserManagerState memory userManagerState;
+        UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
-        userManagerState.totalFrozen = userManagerContract.totalFrozen();
-        userManagerState.totalStaked = userManagerContract.totalStaked() - userManagerState.totalFrozen;
-        if (userManagerState.totalStaked < 1e18) {
-            userManagerState.totalStaked = 1e18;
-        }
-
-        return _calculateRewardsByBlocks(account, token, futureBlocks, userManagerState);
+        return
+            _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, userManagerState, userManagerAccountState);
     }
 
     /**
@@ -217,41 +219,49 @@ contract Comptroller is Controller, IComptroller {
      *  @param token Staking token address
      *  @return Amount of rewards
      */
-    function withdrawRewards(address sender, address token)
+    function withdrawRewards(address account, address token)
         external
         override
         whenNotPaused
         onlyUserManager(token)
         returns (uint256)
     {
-        IUserManager userManagerContract = _getUserManager(token);
+        IUserManager userManager = _getUserManager(token);
+
+        // Lookup account state from UserManager
+        (
+            UserManagerAccountState memory userManagerAccountState,
+            Info memory userInfo,
+            uint256 pastBlocks
+        ) = _getUserInfo(userManager, account, token, 0);
 
         // Lookup global state from UserManager
-        UserManagerState memory userManagerState;
+        UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
-        userManagerState.totalFrozen = userManagerContract.totalFrozen();
-        userManagerState.totalStaked = userManagerContract.totalStaked() - userManagerState.totalFrozen;
-        if (userManagerState.totalStaked < 1e18) {
-            userManagerState.totalStaked = 1e18;
-        }
-
-        uint256 amount = _calculateRewardsByBlocks(sender, token, 0, userManagerState);
+        uint256 amount = _calculateRewardsByBlocks(
+            account,
+            token,
+            pastBlocks,
+            userInfo,
+            userManagerState,
+            userManagerAccountState
+        );
 
         // update the global states
         uint256 totalStaked_ = userManagerState.totalStaked - userManagerState.totalFrozen;
         gInflationIndex = _getInflationIndexNew(totalStaked_, block.number - gLastUpdatedBlock);
         gLastUpdatedBlock = block.number;
-        users[sender][token].updatedBlock = block.number;
-        users[sender][token].inflationIndex = gInflationIndex;
+        users[account][token].updatedBlock = block.number;
+        users[account][token].inflationIndex = gInflationIndex;
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
-            unionToken.safeTransfer(sender, amount);
-            users[sender][token].accrued = 0;
-            emit LogWithdrawRewards(sender, amount);
+            unionToken.safeTransfer(account, amount);
+            users[account][token].accrued = 0;
+            emit LogWithdrawRewards(account, amount);
 
             return amount;
         } else {
-            users[sender][token].accrued = amount;
-            emit LogWithdrawRewards(sender, 0);
+            users[account][token].accrued = amount;
+            emit LogWithdrawRewards(account, 0);
 
             return 0;
         }
@@ -282,23 +292,42 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     /**
-     *  @dev Calculate currently unclaimed rewards
-     *  @param account Account address
-     *  @param token Staking token address
-     *  @param futureBlocks Future blocks
-     *  @param userManagerState User manager global state
-     *  @return Unclaimed rewards
+     * @dev Get UserManager global state values
      */
-    function _calculateRewardsByBlocks(
+    function _getUserManagerState(IUserManager userManager) internal view returns (UserManagerState memory) {
+        UserManagerState memory userManagerState;
+
+        userManagerState.totalFrozen = userManager.totalFrozen();
+        userManagerState.totalStaked = userManager.totalStaked() - userManagerState.totalFrozen;
+        if (userManagerState.totalStaked < 1e18) {
+            userManagerState.totalStaked = 1e18;
+        }
+
+        return userManagerState;
+    }
+
+    /**
+     * @dev Get UserManager user specific state (view function does NOT update UserManage state)
+     * @param userManager UserManager contract
+     * @param account Account address
+     * @param token Token address
+     * @param futureBlocks Blocks in the future
+     */
+    function _getUserInfoView(
+        IUserManager userManager,
         address account,
         address token,
-        uint256 futureBlocks,
-        UserManagerState memory userManagerState
-    ) internal view returns (uint256) {
-        IUserManager userManagerContract = _getUserManager(token);
+        uint256 futureBlocks
+    )
+        internal
+        view
+        returns (
+            UserManagerAccountState memory,
+            Info memory,
+            uint256
+        )
+    {
         Info memory userInfo = users[account][token];
-
-        // Calculate past blocks
         uint256 lastUpdatedBlock = userInfo.updatedBlock;
         if (block.number < lastUpdatedBlock) {
             lastUpdatedBlock = block.number;
@@ -306,13 +335,68 @@ contract Comptroller is Controller, IComptroller {
 
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        // Lookup account state from UserManager
         UserManagerAccountState memory userManagerAccountState;
+        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
+            .getFrozenInfo(account, pastBlocks);
 
+        return (userManagerAccountState, userInfo, pastBlocks);
+    }
+
+    /**
+     * @dev Get UserManager user specific state (function does update UserManage state)
+     * @param userManager UserManager contract
+     * @param account Account address
+     * @param token Token address
+     * @param futureBlocks Blocks in the future
+     */
+    function _getUserInfo(
+        IUserManager userManager,
+        address account,
+        address token,
+        uint256 futureBlocks
+    )
+        internal
+        returns (
+            UserManagerAccountState memory,
+            Info memory,
+            uint256
+        )
+    {
+        Info memory userInfo = users[account][token];
+        uint256 lastUpdatedBlock = userInfo.updatedBlock;
+        if (block.number < lastUpdatedBlock) {
+            lastUpdatedBlock = block.number;
+        }
+
+        uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
+
+        UserManagerAccountState memory userManagerAccountState;
+        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
+            .updateFrozenInfo(account, pastBlocks);
+
+        return (userManagerAccountState, userInfo, pastBlocks);
+    }
+
+    /**
+     *  @dev Calculate currently unclaimed rewards
+     *  @param account Account address
+     *  @param token Staking token address
+     *  @param userManagerState User manager global state
+     *  @return Unclaimed rewards
+     */
+    function _calculateRewardsByBlocks(
+        address account,
+        address token,
+        uint256 pastBlocks,
+        Info memory userInfo,
+        UserManagerState memory userManagerState,
+        UserManagerAccountState memory userManagerAccountState
+    ) internal view returns (uint256) {
+        IUserManager userManagerContract = _getUserManager(token);
+
+        // Lookup account state from UserManager
         userManagerAccountState.totalStaked = userManagerContract.getStakerBalance(account);
-        (userManagerAccountState.totalFrozen, ) = userManagerContract.getFrozenInfo(account, 0);
         userManagerAccountState.totalLocked = userManagerContract.getTotalLockedStake(account);
-        (, userManagerAccountState.pastBlocksFrozenCoinAge) = userManagerContract.getFrozenInfo(account, pastBlocks);
         userManagerAccountState.isMember = userManagerContract.checkIsMember(account);
 
         uint256 inflationIndex = _getRewardsMultiplier(
@@ -372,6 +456,11 @@ contract Comptroller is Controller, IComptroller {
         return (curInflationIndex - startInflationIndex).wadMul(effectiveStakeAmount).wadMul(inflationIndex);
     }
 
+    /**
+     * @dev Get the UserManager contract. First try and load it from state
+     * if it has been previously saved and fallback to loading it from the marketRegistry
+     * @return userManager contract
+     */
     function _getUserManager(address token) internal view returns (IUserManager) {
         return IUserManager(marketRegistry.userManagers(token));
     }
