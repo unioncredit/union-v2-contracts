@@ -87,6 +87,7 @@ export interface Contracts {
     unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
         pureToken: PureTokenAdapter;
+        aaveV3Adapter: AaveV3Adapter;
     };
 }
 
@@ -257,6 +258,6 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         comptroller,
         assetManager,
         dai,
-        adapters: {pureToken}
+        adapters: {pureToken, aaveV3Adapter}
     };
 }
