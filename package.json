@@ -14,7 +14,7 @@
         "hh:sim": "yarn hardhat test --config hardhat-sim.config.ts",
         "f:compile": "forge build",
         "f:test": "forge test",
-        "clean": "forge clean && yarn hardhat clean",
+        "clean": "forge clean && yarn hardhat clean && rm -rf ./typechain-types",
         "coverage": "yarn hardhat coverage"
     },
     "repository": {

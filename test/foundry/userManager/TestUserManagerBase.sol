@@ -2,7 +2,6 @@ pragma solidity ^0.8.0;
 
 import {TestWrapper} from "../TestWrapper.sol";
 import {UserManager} from "union-v1.5-contracts/user/UserManager.sol";
-import {UUPSProxy} from "union-v1.5-contracts/UUPSProxy.sol";
 import {AssetManagerMock} from "union-v1.5-contracts/mocks/AssetManagerMock.sol";
 import {UnionTokenMock} from "union-v1.5-contracts/mocks/UnionTokenMock.sol";
 import {FaucetERC20} from "union-v1.5-contracts/mocks/FaucetERC20.sol";
@@ -45,7 +44,7 @@ contract TestUserManagerBase is TestWrapper {
 
         daiMock.mint(MEMBER, 100 ether);
         daiMock.mint(address(this), 100 ether);
-        
+
         vm.prank(MEMBER);
         daiMock.approve(address(userManager), type(uint256).max);
         daiMock.approve(address(userManager), type(uint256).max);

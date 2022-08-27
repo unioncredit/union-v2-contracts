@@ -1,8 +1,7 @@
 import {Contract, ContractFactory, Signer} from "ethers";
 import {formatUnits, Interface} from "ethers/lib/utils";
-import {UUPSProxy, UUPSProxy__factory} from "../typechain-types";
-
-const AddressZero = "0x0000000000000000000000000000000000000000";
+import {ERC1967Proxy, ERC1967Proxy__factory} from "../typechain-types";
+const {upgrades} = require("hardhat");
 
 const DEBUG_DEFAULT = false;
 
@@ -16,8 +15,6 @@ export async function deployProxy<T extends Contract>(
     },
     debug = DEBUG_DEFAULT
 ) {
-    const implementation = await deployContract<T>(contractFactory, `Proxy:Implementation:${contractName}`, [], debug);
-
     const initFnName = initialize.signature.replace(/\((.+)?\)/, "");
     const iface = new Interface([`function ${initialize.signature} external`]);
     const encoded = iface.encodeFunctionData(initFnName, initialize.args || []);
@@ -33,15 +30,13 @@ export async function deployProxy<T extends Contract>(
         );
     }
 
-    const constructorArgs = [implementation.address, AddressZero, encoded];
-    const proxy = await deployContract<UUPSProxy>(
-        new UUPSProxy__factory(signer),
-        `Proxy:${contractName}`,
-        constructorArgs,
-        debug
-    );
+    const proxy = await upgrades.deployProxy(contractFactory, initialize.args || [], {
+        kind: "uups",
+        initializer: initFnName
+    });
+    await proxy.deployed();
 
-    return {proxy: proxy as any as T, implementation};
+    return {proxy: proxy as any as T};
 }
 
 export async function deployContract<T extends Contract>(

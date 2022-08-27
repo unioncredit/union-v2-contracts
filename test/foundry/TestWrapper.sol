@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-import {UUPSProxy} from "union-v1.5-contracts/UUPSProxy.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {AssetManagerMock} from "union-v1.5-contracts/mocks/AssetManagerMock.sol";
 import {UnionTokenMock} from "union-v1.5-contracts/mocks/UnionTokenMock.sol";
 import {FaucetERC20} from "union-v1.5-contracts/mocks/FaucetERC20.sol";
@@ -22,7 +22,7 @@ contract TestWrapper is Test {
     FixedInterestRateModelMock public interestRateMock;
 
     function deployProxy(address implementation, bytes memory signature) public returns (address) {
-        UUPSProxy proxy = new UUPSProxy(implementation, address(0), signature);
+        ERC1967Proxy proxy = new ERC1967Proxy(implementation, signature);
         return address(proxy);
     }
 
