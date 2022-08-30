@@ -49,7 +49,7 @@ describe("Writing off member debt", () => {
         await contracts.uToken.connect(borrower).borrow(borrowAmount);
     };
 
-    context.only("Staker writing off own locked stake", () => {
+    context("Staker writing off own locked stake", () => {
         before(beforeContext);
         it("borrower is not overdue", async () => {
             const amount = parseUnits("100");
