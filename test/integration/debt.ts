@@ -18,7 +18,7 @@ describe("Writing off member debt", () => {
     let helpers: Helpers;
 
     before(async function () {
-        const deployer = await getDeployer();
+        deployer = await getDeployer();
         const signers = await getSigners();
 
         borrower = signers[1];
@@ -35,10 +35,11 @@ describe("Writing off member debt", () => {
         await contracts.userManager.addMember(borrowerAddress);
         await contracts.userManager.setEffectiveCount(1);
 
-        const amount = parseUnits("1000");
+        const amount = parseUnits("100000");
         const mintAmount = parseUnits("1000");
         const stakeAmount = parseUnits("1000");
-        const borrowAmount = parseUnits("100");
+        const borrowAmount = parseUnits("500");
+
         await getDai(contracts.dai, deployer, amount);
         await contracts.dai.approve(contracts.userManager.address, stakeAmount);
         await contracts.userManager.stake(stakeAmount);
