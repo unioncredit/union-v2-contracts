@@ -153,6 +153,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
     error AmountZero();
     error LockedRemaining();
     error VoucherNotFound();
+    error VouchWhenOverdue();
 
     /* -------------------------------------------------------------------
       Events 
@@ -482,6 +483,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         address staker = msg.sender;
         if (borrower == staker) revert ErrorSelfVouching();
         if (!checkIsMember(staker)) revert AuthFailed();
+        if (uToken.checkIsOverdue(staker)) revert VouchWhenOverdue();
 
         // Check if this staker is already vouching for this borrower
         // If they are already vouching then update the existing vouch record

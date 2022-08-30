@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v1.5-contracts/user/UserManager.sol";
+import {UToken} from "union-v1.5-contracts/market/UToken.sol";
 
 contract TestUpdateTrust is TestUserManagerBase {
     function setUp() public override {
@@ -65,5 +66,16 @@ contract TestUpdateTrust is TestUserManagerBase {
 
     function testCannotLessThanOutstanding() public {
         // TODO:
+    }
+
+    function testCannotOverdue() public {
+        vm.prank(MEMBER);
+        vm.expectRevert(UserManager.VouchWhenOverdue.selector);
+        vm.mockCall(
+            address(uTokenMock),
+            abi.encodeWithSelector(UToken.checkIsOverdue.selector, MEMBER),
+            abi.encode(true)
+        );
+        userManager.updateTrust(address(1234), 100);
     }
 }
