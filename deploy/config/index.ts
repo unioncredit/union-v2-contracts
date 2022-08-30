@@ -1,13 +1,13 @@
 import {parseUnits} from "ethers/lib/utils";
 import arbitrumConfig from "./arbitrum";
-import {AddressZero} from "../helpers";
 import {DeployConfig} from "../index";
+import {ethers} from "ethers";
 
 export const baseConfig = {
     addresses: {
         aave: {
-            lendingPool: AddressZero,
-            market: AddressZero
+            lendingPool: ethers.constants.AddressZero,
+            market: ethers.constants.AddressZero
         }
     },
     userManager: {

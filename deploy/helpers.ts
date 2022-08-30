@@ -1,6 +1,6 @@
 import {Contract, ContractFactory} from "ethers";
-import {formatUnits, Interface} from "ethers/lib/utils";
 import {upgrades} from "hardhat";
+import {formatUnits, Interface} from "ethers/lib/utils";
 
 const DEBUG_DEFAULT = false;
 
