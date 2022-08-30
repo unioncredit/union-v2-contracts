@@ -12,6 +12,7 @@
         "hh:compile": "yarn hardhat compile",
         "hh:test": "yarn hardhat test",
         "hh:sim": "yarn hardhat test --config hardhat-sim.config.ts",
+        "task": "yarn hardhat --config hardhat-task.config.ts",
         "f:compile": "forge build",
         "f:test": "forge test",
         "clean": "forge clean && yarn hardhat clean && rm -rf ./typechain-types",

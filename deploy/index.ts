@@ -91,7 +91,12 @@ export interface Contracts {
     };
 }
 
-export default async function (config: DeployConfig, signer: Signer): Promise<Contracts> {
+export default async function (
+    config: DeployConfig,
+    signer: Signer,
+    debug = false,
+    waitForBlocks: number | undefined = undefined
+): Promise<Contracts> {
     // deploy market registry
     let marketRegistry: MarketRegistry;
     if (config.addresses.marketRegistry) {
@@ -112,7 +117,9 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         unionToken = await deployContract<FaucetERC20_ERC20Permit>(
             new FaucetERC20_ERC20Permit__factory(signer),
             "UnionToken",
-            ["Union Token", "UNION"]
+            ["Union Token", "UNION"],
+            debug,
+            waitForBlocks
         );
     }
 
@@ -121,7 +128,13 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.dai) {
         dai = IDai__factory.connect(config.addresses.dai, signer);
     } else {
-        dai = await deployContract<FaucetERC20>(new FaucetERC20__factory(signer), "DAI", ["DAI", "DAI"]);
+        dai = await deployContract<FaucetERC20>(
+            new FaucetERC20__factory(signer),
+            "DAI",
+            ["DAI", "DAI"],
+            debug,
+            waitForBlocks
+        );
     }
 
     // deploy comptroller
@@ -180,7 +193,9 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         fixedInterestRateModel = await deployContract<FixedInterestRateModel>(
             new FixedInterestRateModel__factory(signer),
             "FixedInterestRateModel",
-            [config.fixedInterestRateModel.interestRatePerBlock]
+            [config.fixedInterestRateModel.interestRatePerBlock],
+            debug,
+            waitForBlocks
         );
     }
 

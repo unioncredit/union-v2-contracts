@@ -1,5 +1,4 @@
 import {Contract, ContractFactory} from "ethers";
-import {upgrades} from "hardhat";
 import {formatUnits, Interface} from "ethers/lib/utils";
 
 const DEBUG_DEFAULT = false;
@@ -13,6 +12,9 @@ export async function deployProxy<T extends Contract>(
     },
     debug = DEBUG_DEFAULT
 ) {
+    // Intentionally doing this here to avoid the hardhat already loaded error
+    const {upgrades} = require("hardhat");
+
     const initFnName = initialize.signature.replace(/\((.+)?\)/, "");
     const iface = new Interface([`function ${initialize.signature} external`]);
     const encoded = iface.encodeFunctionData(initFnName, initialize.args || []);
@@ -33,6 +35,7 @@ export async function deployProxy<T extends Contract>(
         initializer: initFnName
     });
 
+    // TODO: we should raise a PR to be able to pass in nConfirmations to deployed
     const resp = await proxy.deployed();
 
     if (debug) {
@@ -53,7 +56,7 @@ export async function deployContract<T extends Contract>(
     contractName: string,
     constructorArgs: Array<unknown> = [],
     debug = DEBUG_DEFAULT,
-    waitForBlocks = undefined
+    waitForBlocks: number | undefined = undefined
 ): Promise<T> {
     const contract = await contractFactory.deploy(...constructorArgs);
 
