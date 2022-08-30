@@ -9,28 +9,63 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
  * @dev For easy access to any core components
  */
 abstract contract Controller is Initializable, UUPSUpgradeable {
+    /* -------------------------------------------------------------------
+      Storage 
+    ------------------------------------------------------------------- */
+
+    /**
+     * @dev The address of the admin
+     */
     address public admin;
+
+    /**
+     * @dev The address of the pending admin
+     */
     address public pendingAdmin;
-    // slither-disable-next-line uninitialized-state
+
+    /**
+     * @dev Is the contract paused
+     */
     bool private _paused;
-    // slither-disable-next-line uninitialized-state
+
+    /**
+     * @dev The address of the pause guardian
+     */
     address public pauseGuardian;
+
+    /* -------------------------------------------------------------------
+      Errors 
+    ------------------------------------------------------------------- */
+
+    error Paused();
+    error NotPaused();
+    error SenderNotAdmin();
+    error SenderNotGuardian();
+    error SenderNotPendingAdmin();
+
+    /* -------------------------------------------------------------------
+      Events 
+    ------------------------------------------------------------------- */
 
     /**
      * @dev Emitted when the pause is triggered by a pauser (`account`).
      */
-    event Paused(address account);
+    event LogPaused(address account);
 
     /**
      * @dev Emitted when the pause is lifted by a pauser (`account`).
      */
-    event Unpaused(address account);
+    event LogUnpaused(address account);
+
+    /* -------------------------------------------------------------------
+      Modifiers 
+    ------------------------------------------------------------------- */
 
     /**
      * @dev Modifier to make a function callable only when the contract is not paused.
      */
     modifier whenNotPaused() {
-        require(!_paused, "Controller: paused");
+        if (_paused) revert Paused();
         _;
     }
 
@@ -38,28 +73,35 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
      * @dev Modifier to make a function callable only when the contract is paused.
      */
     modifier whenPaused() {
-        require(_paused, "Controller: not paused");
+        if (!_paused) revert NotPaused();
         _;
     }
 
     modifier onlyAdmin() {
-        require(admin == msg.sender, "Controller: not admin");
+        if (admin != msg.sender) revert SenderNotAdmin();
         _;
     }
 
     modifier onlyGuardian() {
-        require(pauseGuardian == msg.sender, "Controller: caller does not have the guardian role");
+        if (pauseGuardian != msg.sender) revert SenderNotGuardian();
         _;
     }
 
+    /* -------------------------------------------------------------------
+      Constructor/Initializer 
+    ------------------------------------------------------------------- */
+
     //When using minimal deploy, do not call initialize directly during deploy, because msg.sender is the proxyFactory address, and you need to call it manually
     function __Controller_init(address admin_) public initializer {
-        require(admin_ != address(0), "Controller: address zero");
         _paused = false;
         admin = admin_;
         __UUPSUpgradeable_init();
         pauseGuardian = admin_;
     }
+
+    /* -------------------------------------------------------------------
+      Core Functions 
+    ------------------------------------------------------------------- */
 
     function _authorizeUpgrade(address) internal view override onlyAdmin {}
 
@@ -75,13 +117,12 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
      * @dev set new admin account
      * @param account Account address
      */
-    function setPendingAdmin(address account) external onlyAdmin {
-        require(account != address(0), "Controller: address zero");
+    function setPendingAdmin(address account) public onlyAdmin {
         pendingAdmin = account;
     }
 
-    function acceptAdmin() external {
-        require(pendingAdmin == msg.sender, "Controller: not pending admin");
+    function acceptAdmin() public {
+        if (pendingAdmin != msg.sender) revert SenderNotPendingAdmin();
         admin = pendingAdmin;
     }
 
@@ -105,7 +146,7 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
      */
     function pause() external onlyGuardian whenNotPaused {
         _paused = true;
-        emit Paused(msg.sender);
+        emit LogPaused(msg.sender);
     }
 
     /**
@@ -113,7 +154,7 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
      */
     function unpause() external onlyGuardian whenPaused {
         _paused = false;
-        emit Unpaused(msg.sender);
+        emit LogUnpaused(msg.sender);
     }
 
     uint256[50] private ______gap;

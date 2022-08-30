@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import {TestWrapper} from "./TestWrapper.sol";
 import {MarketRegistry} from "union-v1.5-contracts/market/MarketRegistry.sol";
+import {Controller} from "union-v1.5-contracts/Controller.sol";
 
 contract TestMarketRegistry is TestWrapper {
     MarketRegistry public marketRegistry;
@@ -29,13 +30,13 @@ contract TestMarketRegistry is TestWrapper {
     }
 
     function testCannotAddUserMangerNonAdmin() public {
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         vm.prank(address(1));
         marketRegistry.setUserManager(address(0), address(0));
     }
 
     function testCannotAddUTokenNonAdmin() public {
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         vm.prank(address(1));
         marketRegistry.setUToken(address(0), address(0));
     }

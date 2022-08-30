@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TestComptrollerBase} from "./TestComptrollerBase.sol";
+import {Controller} from "union-v1.5-contracts/Controller.sol";
 
 contract TestSetters is TestComptrollerBase {
     function testSetHalfDecayPoint(uint256 amount) public {
@@ -15,7 +16,7 @@ contract TestSetters is TestComptrollerBase {
     }
 
     function testCannotSetHalfDecayPointNonAdmin() public {
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         vm.prank(address(1));
         comptroller.setHalfDecayPoint(1);
     }
