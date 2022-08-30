@@ -1,5 +1,4 @@
 import {Contract, ContractFactory} from "ethers";
-import {upgrades} from "hardhat";
 import {formatUnits, Interface} from "ethers/lib/utils";
 
 const DEBUG_DEFAULT = false;
@@ -13,6 +12,9 @@ export async function deployProxy<T extends Contract>(
     },
     debug = DEBUG_DEFAULT
 ) {
+    // Intentionally doing this here to avoid the hardhat already loaded error
+    const {upgrades} = require("hardhat");
+
     const initFnName = initialize.signature.replace(/\((.+)?\)/, "");
     const iface = new Interface([`function ${initialize.signature} external`]);
     const encoded = iface.encodeFunctionData(initFnName, initialize.args || []);
