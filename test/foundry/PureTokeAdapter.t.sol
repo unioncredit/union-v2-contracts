@@ -96,7 +96,7 @@ contract TestPureTokenAdapter is TestWrapper {
     function testCannotWithdrawNonAssetManager(uint256 amount) public {
         address recipient = address(123);
         daiMock.mint(address(pureToken), amount);
-        vm.expectRevert("PureTokenAdapter: only asset manager can call");
+        vm.expectRevert(PureTokenAdapter.SenderNotAssetManager.selector);
         pureToken.withdraw(address(daiMock), recipient, amount);
     }
 
@@ -111,7 +111,7 @@ contract TestPureTokenAdapter is TestWrapper {
 
     function testCannotWithdrawAllNonAssetManager(address recipient, uint256 amount) public {
         daiMock.mint(address(pureToken), amount);
-        vm.expectRevert("PureTokenAdapter: only asset manager can call");
+        vm.expectRevert(PureTokenAdapter.SenderNotAssetManager.selector);
         pureToken.withdrawAll(address(daiMock), recipient);
     }
 
