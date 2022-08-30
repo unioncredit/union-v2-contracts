@@ -93,7 +93,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
-    function __AssetManager_init(address _marketRegistry) public initializer {
+    function __AssetManager_init(address _marketRegistry) external initializer {
         Controller.__Controller_init(msg.sender);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
         marketRegistry = _marketRegistry;
@@ -164,7 +164,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param tokenAddress ERC20 token address
      *  @return tokenSupply Total market balance
      */
-    function totalSupply(address tokenAddress) public override returns (uint256) {
+    function totalSupply(address tokenAddress) external override returns (uint256) {
         uint256 tokenSupply = 0;
         if (isMarketSupported(tokenAddress)) {
             uint256 moneyMarketsLength = moneyMarkets.length;

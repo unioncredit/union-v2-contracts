@@ -21,10 +21,6 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         return 0;
     }
 
-    function getInterestIndex(address account) external view override returns (uint256) {
-        return 0;
-    }
-
     function checkIsOverdue(address account) external view override returns (bool) {
         return false;
     }

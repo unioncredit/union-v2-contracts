@@ -19,7 +19,7 @@ contract UserManagerERC20 is UserManager {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public whenNotPaused {
+    ) external whenNotPaused {
         IERC20Permit erc20Token = IERC20Permit(stakingToken);
         erc20Token.permit(msg.sender, address(this), amount, deadline, v, r, s);
 

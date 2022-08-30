@@ -13,7 +13,7 @@ contract UDai is UToken {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public whenNotPaused {
+    ) external whenNotPaused {
         IDai erc20Token = IDai(underlying);
         erc20Token.permit(msg.sender, address(this), nonce, expiry, true, v, r, s);
 

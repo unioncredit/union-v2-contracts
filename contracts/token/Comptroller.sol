@@ -139,7 +139,7 @@ contract Comptroller is Controller, IComptroller {
     /**
      * @dev Set the half decay point
      */
-    function setHalfDecayPoint(uint256 point) public onlyAdmin {
+    function setHalfDecayPoint(uint256 point) external onlyAdmin {
         require(point != 0, "Comptroller: halfDecayPoint can not be zero");
         halfDecayPoint = point;
     }
@@ -154,7 +154,7 @@ contract Comptroller is Controller, IComptroller {
      *  @param token ERC20 token address
      *  @return Multiplier number (in wei)
      */
-    function getRewardsMultiplier(address account, address token) public view override returns (uint256) {
+    function getRewardsMultiplier(address account, address token) external view override returns (uint256) {
         IUserManager userManagerContract = _getUserManager(token);
         uint256 stakingAmount = userManagerContract.getStakerBalance(account);
         uint256 lockedStake = userManagerContract.getTotalLockedStake(account);
@@ -197,7 +197,7 @@ contract Comptroller is Controller, IComptroller {
      *  @param token Staking token address
      *  @return Unclaimed rewards
      */
-    function calculateRewards(address account, address token) public view override returns (uint256) {
+    function calculateRewards(address account, address token) external view override returns (uint256) {
         return calculateRewardsByBlocks(account, token, 0);
     }
 

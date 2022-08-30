@@ -290,7 +290,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      * Emits {LogSetMaxStakeAmount} event
      * @param maxStakeAmount_ The max stake amount
      */
-    function setMaxStakeAmount(uint96 maxStakeAmount_) public onlyAdmin {
+    function setMaxStakeAmount(uint96 maxStakeAmount_) external onlyAdmin {
         uint96 oldMaxStakeAmount = maxStakeAmount;
         maxStakeAmount = maxStakeAmount_;
         emit LogSetMaxStakeAmount(uint256(oldMaxStakeAmount), uint256(maxStakeAmount));
@@ -301,7 +301,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      * Emits {LogSetUToken} event
      * @param uToken_ UToken contract address
      */
-    function setUToken(address uToken_) public onlyAdmin {
+    function setUToken(address uToken_) external onlyAdmin {
         uToken = IUToken(uToken_);
         emit LogSetUToken(uToken_);
     }
@@ -312,7 +312,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      * Emits {LogSetNewMemberFee} event
      * @param amount New member fee amount
      */
-    function setNewMemberFee(uint256 amount) public onlyAdmin {
+    function setNewMemberFee(uint256 amount) external onlyAdmin {
         uint256 oldMemberFee = newMemberFee;
         newMemberFee = amount;
         emit LogSetNewMemberFee(oldMemberFee, amount);
@@ -323,7 +323,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      * Emits {LogSetMaxOverdueBlocks} event
      * @param _maxOverdueBlocks New maxOverdueBlocks value
      */
-    function setMaxOverdueBlocks(uint256 _maxOverdueBlocks) public onlyAdmin {
+    function setMaxOverdueBlocks(uint256 _maxOverdueBlocks) external onlyAdmin {
         uint256 oldMaxOverdueBlocks = maxOverdueBlocks;
         maxOverdueBlocks = _maxOverdueBlocks;
         emit LogSetMaxOverdueBlocks(oldMaxOverdueBlocks, _maxOverdueBlocks);
@@ -336,7 +336,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      * Emits {LogSetEffectiveCount} event
      * @param _effectiveCount New effectiveCount value
      */
-    function setEffectiveCount(uint256 _effectiveCount) public onlyAdmin {
+    function setEffectiveCount(uint256 _effectiveCount) external onlyAdmin {
         uint256 oldEffectiveCount = effectiveCount;
         effectiveCount = _effectiveCount;
         emit LogSetEffectiveCount(oldEffectiveCount, _effectiveCount);
@@ -360,7 +360,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param borrower Member address
      *  @return total Credit line amount
      */
-    function getCreditLimit(address borrower) public view returns (uint256 total) {
+    function getCreditLimit(address borrower) external view returns (uint256 total) {
         for (uint256 i = 0; i < vouchers[borrower].length; i++) {
             Vouch memory vouch = vouchers[borrower][i];
             Staker memory staker = stakers[vouch.staker];
@@ -372,7 +372,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @dev Get the count of vouchers
      *  @param borrower Address of borrower
      */
-    function getVoucherCount(address borrower) public view returns (uint256) {
+    function getVoucherCount(address borrower) external view returns (uint256) {
         return vouchers[borrower].length;
     }
 
@@ -381,7 +381,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param account Member address
      *  @return Deposited stake amount
      */
-    function getStakerBalance(address account) public view returns (uint256) {
+    function getStakerBalance(address account) external view returns (uint256) {
         return stakers[account].stakedAmount;
     }
 
@@ -435,7 +435,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param borrower Borrower address
      *  @return LockedStake
      */
-    function getLockedStake(address staker, address borrower) public view returns (uint256) {
+    function getLockedStake(address staker, address borrower) external view returns (uint256) {
         Index memory index = voucherIndexes[borrower][staker];
         if (!index.isSet) return 0;
         return vouchers[borrower][index.idx].locked;
@@ -446,7 +446,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  @param _staker Staker address
      *  @param borrower Borrower address
      */
-    function getVouchingAmount(address _staker, address borrower) public view returns (uint256) {
+    function getVouchingAmount(address _staker, address borrower) external view returns (uint256) {
         Index memory index = voucherIndexes[borrower][_staker];
         Staker memory staker = stakers[_staker];
         if (!index.isSet) return 0;
@@ -464,7 +464,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
      *  Emit {LogAddMember} event
      *  @param account Member address
      */
-    function addMember(address account) public onlyAdmin {
+    function addMember(address account) external onlyAdmin {
         stakers[account].isMember = true;
         emit LogAddMember(account);
     }
@@ -564,7 +564,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public whenNotPaused {
+    ) external whenNotPaused {
         IUnionToken unionTokenContract = IUnionToken(unionToken);
         unionTokenContract.permit(msg.sender, address(this), value, deadline, v, r, s);
         registerMember(newMember);
@@ -674,7 +674,7 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         address staker,
         address borrower,
         uint96 amount
-    ) public {
+    ) external {
         if (amount == 0) revert AmountZero();
         uint256 overdueBlocks = uToken.overdueBlocks();
         uint256 lastRepay = uToken.getLastRepay(borrower);

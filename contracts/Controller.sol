@@ -75,12 +75,12 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
      * @dev set new admin account
      * @param account Account address
      */
-    function setPendingAdmin(address account) public onlyAdmin {
+    function setPendingAdmin(address account) external onlyAdmin {
         require(account != address(0), "Controller: address zero");
         pendingAdmin = account;
     }
 
-    function acceptAdmin() public {
+    function acceptAdmin() external {
         require(pendingAdmin == msg.sender, "Controller: not pending admin");
         admin = pendingAdmin;
     }
@@ -89,7 +89,7 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
      * @dev Set pauseGuardian account
      * @param account Account address
      */
-    function setGuardian(address account) public onlyAdmin {
+    function setGuardian(address account) external onlyAdmin {
         pauseGuardian = account;
     }
 
@@ -103,7 +103,7 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
     /**
      * @dev Called by a pauser to pause, triggers stopped state.
      */
-    function pause() public onlyGuardian whenNotPaused {
+    function pause() external onlyGuardian whenNotPaused {
         _paused = true;
         emit Paused(msg.sender);
     }
@@ -111,7 +111,7 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
     /**
      * @dev Called by a pauser to unpause, returns to normal state.
      */
-    function unpause() public onlyGuardian whenPaused {
+    function unpause() external onlyGuardian whenPaused {
         _paused = false;
         emit Unpaused(msg.sender);
     }
