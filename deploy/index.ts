@@ -11,8 +11,6 @@ import {
     AssetManager,
     PureTokenAdapter,
     PureTokenAdapter__factory,
-    ERC20,
-    ERC20__factory,
     FaucetERC20,
     FaucetERC20__factory,
     IUnionToken,
@@ -22,11 +20,15 @@ import {
     MarketRegistry,
     MarketRegistry__factory,
     FixedInterestRateModel,
-    FixedInterestRateModel__factory
+    FixedInterestRateModel__factory,
+    AaveV3Adapter,
+    AaveV3Adapter__factory,
+    IDai__factory,
+    IDai
 } from "../typechain-types";
 import {deployProxy, deployContract} from "./helpers";
 
-interface Addresses {
+export interface Addresses {
     userManager?: string;
     uToken?: string;
     unionToken?: string;
@@ -36,11 +38,19 @@ interface Addresses {
     comptroller?: string;
     assetManager?: string;
     adapters?: {
+        aaveV3Adapter?: string;
         pureTokenAdapter?: string;
+    };
+    aave?: {
+        lendingPool?: string;
+        market?: string;
+    };
+    whales?: {
+        dai?: string;
     };
 }
 
-interface DeployConfig {
+export interface DeployConfig {
     admin: string;
     addresses: Addresses;
     userManager: {
@@ -72,11 +82,12 @@ export interface Contracts {
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
     assetManager: AssetManager;
-    dai: ERC20 | FaucetERC20;
+    dai: IDai | FaucetERC20;
     marketRegistry: MarketRegistry;
     unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
         pureToken: PureTokenAdapter;
+        aaveV3Adapter: AaveV3Adapter;
     };
 }
 
@@ -86,15 +97,10 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.marketRegistry) {
         marketRegistry = MarketRegistry__factory.connect(config.addresses.marketRegistry, signer);
     } else {
-        const {proxy} = await deployProxy<MarketRegistry>(
-            signer,
-            new MarketRegistry__factory(signer),
-            "MarketRegistry",
-            {
-                signature: "__MarketRegistry_init()",
-                args: []
-            }
-        );
+        const {proxy} = await deployProxy<MarketRegistry>(new MarketRegistry__factory(signer), "MarketRegistry", {
+            signature: "__MarketRegistry_init()",
+            args: []
+        });
         marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
     }
 
@@ -111,9 +117,9 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     }
 
     // deploy DAI
-    let dai: ERC20 | FaucetERC20;
+    let dai: IDai | FaucetERC20;
     if (config.addresses.dai) {
-        dai = ERC20__factory.connect(config.addresses.dai, signer);
+        dai = IDai__factory.connect(config.addresses.dai, signer);
     } else {
         dai = await deployContract<FaucetERC20>(new FaucetERC20__factory(signer), "DAI", ["DAI", "DAI"]);
     }
@@ -123,7 +129,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.comptroller) {
         comptroller = Comptroller__factory.connect(config.addresses.comptroller, signer);
     } else {
-        const {proxy} = await deployProxy<Comptroller>(signer, new Comptroller__factory(signer), "Comptroller", {
+        const {proxy} = await deployProxy<Comptroller>(new Comptroller__factory(signer), "Comptroller", {
             signature: "__Comptroller_init(address,address,uint256)",
             args: [unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint]
         });
@@ -135,28 +141,11 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.assetManager) {
         assetManager = AssetManager__factory.connect(config.addresses.assetManager, signer);
     } else {
-        const {proxy} = await deployProxy<AssetManager>(signer, new AssetManager__factory(signer), "AssetManager", {
+        const {proxy} = await deployProxy<AssetManager>(new AssetManager__factory(signer), "AssetManager", {
             signature: "__AssetManager_init(address)",
             args: [marketRegistry.address]
         });
         assetManager = AssetManager__factory.connect(proxy.address, signer);
-    }
-
-    // deploy pure token
-    let pureToken: PureTokenAdapter;
-    if (config.addresses.adapters?.pureTokenAdapter) {
-        pureToken = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
-    } else {
-        const {proxy} = await deployProxy<PureTokenAdapter>(
-            signer,
-            new PureTokenAdapter__factory(signer),
-            "PureTokenAdapter",
-            {
-                signature: "__PureTokenAdapter_init(address)",
-                args: [assetManager.address]
-            }
-        );
-        pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
     }
 
     // deploy user manager
@@ -164,7 +153,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.userManager) {
         userManager = UserManager__factory.connect(config.addresses.userManager, signer);
     } else {
-        const {proxy} = await deployProxy<UserManager>(signer, new UserManager__factory(signer), "UserManager", {
+        const {proxy} = await deployProxy<UserManager>(new UserManager__factory(signer), "UserManager", {
             signature: "__UserManager_init(address,address,address,address,address,uint256,uint256)",
             args: [
                 assetManager.address,
@@ -200,7 +189,7 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
     if (config.addresses.uToken) {
         uToken = UToken__factory.connect(config.addresses.uToken, signer);
     } else {
-        const {proxy} = await deployProxy<UToken>(signer, new UToken__factory(signer), "UToken", {
+        const {proxy} = await deployProxy<UToken>(new UToken__factory(signer), "UToken", {
             signature:
                 "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
             args: [
@@ -225,6 +214,41 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         await uToken.setInterestRateModel(fixedInterestRateModel.address);
     }
 
+    // deploy pure token
+    let pureToken: PureTokenAdapter;
+    if (config.addresses.adapters?.pureTokenAdapter) {
+        pureToken = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
+    } else {
+        const {proxy} = await deployProxy<PureTokenAdapter>(new PureTokenAdapter__factory(signer), "PureTokenAdapter", {
+            signature: "__PureTokenAdapter_init(address)",
+            args: [assetManager.address]
+        });
+        pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
+    }
+
+    // deploy aave v3 adapter
+    let aaveV3Adapter: AaveV3Adapter;
+    if (config.addresses.adapters?.aaveV3Adapter) {
+        aaveV3Adapter = AaveV3Adapter__factory.connect(config.addresses.adapters?.aaveV3Adapter, signer);
+    } else {
+        // Only deploy the aaveV3Adapter if the lendingPool and aave market address are in the config
+        const {proxy} = await deployProxy<AaveV3Adapter>(new AaveV3Adapter__factory(signer), "AaveV3Adapter", {
+            signature: "__AaveV3Adapter_init(address,address,address)",
+            args: [assetManager.address, config.addresses.aave?.lendingPool, config.addresses.aave?.market]
+        });
+        aaveV3Adapter = AaveV3Adapter__factory.connect(proxy.address, signer);
+    }
+
+    if (!config.addresses.assetManager) {
+        // Add pure token adapter to assetManager
+        await assetManager.addToken(dai.address);
+        await assetManager.addAdapter(pureToken.address);
+
+        if (aaveV3Adapter?.address) {
+            await assetManager.addAdapter(aaveV3Adapter.address);
+        }
+    }
+
     return {
         userManager,
         uToken,
@@ -234,6 +258,6 @@ export default async function (config: DeployConfig, signer: Signer): Promise<Co
         comptroller,
         assetManager,
         dai,
-        adapters: {pureToken}
+        adapters: {pureToken, aaveV3Adapter}
     };
 }

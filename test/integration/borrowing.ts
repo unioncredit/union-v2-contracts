@@ -1,11 +1,13 @@
+import "./testSetup";
+
 import {expect} from "chai";
 import {BigNumber, BigNumberish, Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
 import {ethers} from "hardhat";
 
 import deploy, {Contracts} from "../../deploy";
-import config from "../../deploy/config";
-import {createHelpers, Helpers, roll} from "../utils";
+import {getConfig} from "../../deploy/config";
+import {createHelpers, getDai, getDeployer, getSigners, Helpers, roll} from "../utils";
 
 describe("Borrowing and repaying", () => {
     let signers: Signer[];
@@ -18,16 +20,16 @@ describe("Borrowing and repaying", () => {
 
     const borrowAmount = parseUnits("1000");
     const stakeAmount = parseUnits("1500");
-    const mintAmount = parseUnits("1000000");
+    const mintAmount = parseUnits("10000");
 
     before(async function () {
-        signers = await ethers.getSigners();
-        deployer = signers[0];
+        signers = await getSigners();
+        deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
     });
 
     const beforeContext = async () => {
-        contracts = await deploy({...config.main, admin: deployerAddress}, deployer);
+        contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         helpers = createHelpers(contracts);
         staker = signers[0];
         borrower = signers[1];
@@ -37,13 +39,11 @@ describe("Borrowing and repaying", () => {
         await contracts.userManager.addMember(stakerAddress);
         await contracts.userManager.addMember(borrowerAddress);
 
-        if ("mint" in contracts.dai) {
-            await contracts.dai.mint(deployerAddress, mintAmount);
-            await contracts.dai.approve(contracts.uToken.address, ethers.constants.MaxUint256);
-            await contracts.dai.mint(stakerAddress, mintAmount);
-            await contracts.dai.connect(staker).approve(contracts.userManager.address, ethers.constants.MaxUint256);
-            await contracts.userManager.connect(staker).stake(stakeAmount);
-        }
+        await getDai(contracts.dai, deployer, mintAmount);
+        await contracts.dai.approve(contracts.uToken.address, ethers.constants.MaxUint256);
+        await getDai(contracts.dai, staker, mintAmount);
+        await contracts.dai.connect(staker).approve(contracts.userManager.address, ethers.constants.MaxUint256);
+        await contracts.userManager.connect(staker).stake(stakeAmount);
     };
 
     context("Member borrows from credit line", () => {

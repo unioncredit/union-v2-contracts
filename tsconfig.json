@@ -4,8 +4,8 @@
         "module": "commonjs",
         "strict": true,
         "esModuleInterop": true,
-        "outDir": "dist"
+        "outDir": "dist",
     },
-    "include": ["./deploy", "./test/hardhat"],
-    "files": ["./hardhat.config.ts"]
+    "include": ["./deploy", "./test/integration"],
+    "files": ["./hardhat.config.ts", "./index.d.ts"]
 }

@@ -1,21 +1,25 @@
+import "./testSetup";
+
 import {expect} from "chai";
 import {Signer} from "ethers";
 import {ethers} from "hardhat";
 
-import deploy, {Contracts} from "../../deploy";
-import config from "../../deploy/config";
+import deploy, {Contracts, DeployConfig} from "../../deploy";
+import {getConfig} from "../../deploy/config";
+import {getDeployer} from "../utils";
 
 describe("Test deployment configs", () => {
-    let signers: Signer[];
     let deployer: Signer;
     let deployerAddress: string;
     let contracts: Contracts;
+    let config: Omit<DeployConfig, "admin">;
 
     before(async function () {
-        signers = await ethers.getSigners();
-        deployer = signers[0];
+        deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
-        contracts = await deploy({...config.main, admin: deployerAddress}, deployer);
+
+        config = getConfig();
+        contracts = await deploy({...config, admin: deployerAddress}, deployer);
     });
 
     context("checking UserManager deployment config", () => {
@@ -41,11 +45,11 @@ describe("Test deployment configs", () => {
         });
         it("has the correct maxOverdue", async () => {
             const maxOverdue = await contracts.userManager.maxOverdueBlocks();
-            expect(maxOverdue).eq(config.main.userManager.maxOverdue);
+            expect(maxOverdue).eq(config.userManager.maxOverdue);
         });
         it("has the correct effectiveCount", async () => {
             const effectiveCount = await contracts.userManager.effectiveCount();
-            expect(effectiveCount).eq(config.main.userManager.effectiveCount);
+            expect(effectiveCount).eq(config.userManager.effectiveCount);
         });
         it("has the correct uToken adderss", async () => {
             const uToken = await contracts.userManager.uToken();
@@ -64,7 +68,7 @@ describe("Test deployment configs", () => {
         });
         it("has the correct halfDecayPoint", async () => {
             const halfDecayPoint = await contracts.comptroller.halfDecayPoint();
-            expect(halfDecayPoint).eq(config.main.comptroller.halfDecayPoint);
+            expect(halfDecayPoint).eq(config.comptroller.halfDecayPoint);
         });
     });
 
@@ -85,11 +89,11 @@ describe("Test deployment configs", () => {
     context("checking UToken deployment config", () => {
         it("has the correct name", async () => {
             const name = await contracts.uToken.name();
-            expect(name).eq(config.main.uToken.name);
+            expect(name).eq(config.uToken.name);
         });
         it("has the correct symbol", async () => {
             const symbol = await contracts.uToken.symbol();
-            expect(symbol).eq(config.main.uToken.symbol);
+            expect(symbol).eq(config.uToken.symbol);
         });
         it("has the correct underlying token address", async () => {
             const underlying = await contracts.uToken.underlying();
@@ -97,31 +101,31 @@ describe("Test deployment configs", () => {
         });
         it("has the correct initialExchangeRateMantissa", async () => {
             const initialExchangeRateMantissa = await contracts.uToken.initialExchangeRateMantissa();
-            expect(initialExchangeRateMantissa).eq(config.main.uToken.initialExchangeRateMantissa);
+            expect(initialExchangeRateMantissa).eq(config.uToken.initialExchangeRateMantissa);
         });
         it("has the correct reserveFactorMantissa", async () => {
             const reserveFactorMantissa = await contracts.uToken.reserveFactorMantissa();
-            expect(reserveFactorMantissa).eq(config.main.uToken.reserveFactorMantissa);
+            expect(reserveFactorMantissa).eq(config.uToken.reserveFactorMantissa);
         });
         it("has the correct originationFee", async () => {
             const originationFee = await contracts.uToken.originationFee();
-            expect(originationFee).eq(config.main.uToken.originationFee);
+            expect(originationFee).eq(config.uToken.originationFee);
         });
         it("has the correct debtCeiling", async () => {
             const debtCeiling = await contracts.uToken.debtCeiling();
-            expect(debtCeiling).eq(config.main.uToken.debtCeiling);
+            expect(debtCeiling).eq(config.uToken.debtCeiling);
         });
         it("has the correct maxBorrow", async () => {
             const maxBorrow = await contracts.uToken.maxBorrow();
-            expect(maxBorrow).eq(config.main.uToken.maxBorrow);
+            expect(maxBorrow).eq(config.uToken.maxBorrow);
         });
         it("has the correct minBorrow", async () => {
             const minBorrow = await contracts.uToken.minBorrow();
-            expect(minBorrow).eq(config.main.uToken.minBorrow);
+            expect(minBorrow).eq(config.uToken.minBorrow);
         });
         it("has the correct overdueBlocks", async () => {
             const overdueBlocks = await contracts.uToken.overdueBlocks();
-            expect(overdueBlocks).eq(config.main.uToken.overdueBlocks);
+            expect(overdueBlocks).eq(config.uToken.overdueBlocks);
         });
         it("has the correct admin", async () => {
             const isAdmin = await contracts.uToken.isAdmin(deployerAddress);

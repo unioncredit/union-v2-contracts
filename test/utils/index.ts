@@ -1,6 +1,12 @@
 import {BigNumber, BigNumberish, ContractTransaction, Signer} from "ethers";
-import {ethers} from "hardhat";
+import {ethers, network} from "hardhat";
 import {Contracts} from "../../deploy";
+import {getConfig} from "../../deploy/config";
+import {FaucetERC20, IDai} from "../../typechain-types";
+
+export const isForked = () => {
+    return process.env.FORK_NODE_URL && process.env.FORK_BLOCK;
+};
 
 export const roll = async (n: number) => {
     await Promise.all(
@@ -13,6 +19,72 @@ export const roll = async (n: number) => {
 export const warp = async (seconds: number) => {
     await ethers.provider.send("evm_increaseTime", [seconds]);
     await ethers.provider.send("evm_mine", []);
+};
+
+export const prank = async (address: string, fund: boolean = true) => {
+    await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [address]
+    });
+
+    if (fund) {
+        await network.provider.request({
+            method: "hardhat_setBalance",
+            params: [address, "0x8AC7230489E80000"] // 10 ether
+        });
+    }
+
+    return ethers.provider.getSigner(address);
+};
+
+export const fork = (forkBlock?: number) => {
+    return network.provider.request({
+        method: "hardhat_reset",
+        params: [
+            {
+                forking: {
+                    jsonRpcUrl: process.env.FORK_NODE_URL,
+                    blockNumber: Number(forkBlock || process.env.FORK_BLOCK)
+                }
+            }
+        ]
+    });
+};
+
+export const getDeployer = async () => {
+    const signers = await ethers.getSigners();
+    if (isForked()) {
+        await prank(signers[0].address);
+    }
+    return ethers.provider.getSigner(signers[0].address);
+};
+
+export const getSigners = async () => {
+    const signers = await ethers.getSigners();
+    const accounts = signers.slice(1);
+    if (isForked()) {
+        return Promise.all(accounts.map(async account => prank(account.address)));
+    }
+    return accounts;
+};
+
+export const getDai = async (dai: IDai | FaucetERC20, account: Signer, amount: BigNumberish) => {
+    const address = await account.getAddress();
+    const config = getConfig();
+
+    if ("mint" in dai) {
+        // Just mint DAI from the mock faucet
+        await dai.mint(address, amount);
+    } else {
+        if (!config.addresses?.whales?.dai) {
+            console.log("[!] Not DAI whale found in config");
+            process.exit();
+        }
+
+        // Transfer DAI from the dai whale on this network
+        const daiWhale = await prank(config.addresses.whales.dai);
+        await dai.connect(daiWhale).transfer(address, amount);
+    }
 };
 
 export interface Helpers {
