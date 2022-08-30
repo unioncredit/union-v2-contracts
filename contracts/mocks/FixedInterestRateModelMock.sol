@@ -1,7 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-contract FixedInterestRateModelMock {
+import "../interfaces/IInterestRateModel.sol";
+
+contract FixedInterestRateModelMock is IInterestRateModel {
     bool public constant isInterestRateModel = true;
     uint256 public interestRatePerBlock;
 

@@ -13,7 +13,7 @@ contract AaveMock {
     uint128 public rate;
     address public aToken;
 
-    constructor(uint128 _rate, address _aToken) public {
+    constructor(uint128 _rate, address _aToken) {
         rate = _rate;
         aToken = _aToken;
     }

@@ -6,6 +6,14 @@ pragma solidity 0.8.16;
  *  @dev Union members can borrow and repay thru this component.
  */
 interface IUToken {
+    function setAssetManager(address assetManager) external;
+
+    function setUserManager(address userManager) external;
+
+    function exchangeRateStored() external view returns (uint256);
+
+    function exchangeRateCurrent() external returns (uint256);
+
     function overdueBlocks() external view returns (uint256);
 
     function getRemainingDebtCeiling() external view returns (uint256);

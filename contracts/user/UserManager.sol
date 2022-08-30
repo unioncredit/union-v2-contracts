@@ -16,7 +16,7 @@ import "../interfaces/IUToken.sol";
  * @title UserManager Contract
  * @dev Manages the Union members stake and vouches.
  */
-contract UserManager is Controller, ReentrancyGuardUpgradeable {
+contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /* -------------------------------------------------------------------

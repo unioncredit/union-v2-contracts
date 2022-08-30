@@ -1,11 +1,13 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
+import "../interfaces/IUserManager.sol";
+
 /**
  * @title UserManager Contract
  * @dev Manages the Union members credit lines, and their vouchees and borrowers info.
  */
-contract UserManagerMock {
+contract UserManagerMock is IUserManager {
     uint256 public constant MAX_TRUST_LIMIT = 100;
     uint256 public constant MAX_STAKE_AMOUNT = 1000e18;
 
@@ -21,6 +23,8 @@ contract UserManagerMock {
     constructor() {
         newMemberFee = 10**18; // Set the default membership fee
     }
+
+    function batchUpdateTotalFrozen(address[] calldata account, bool[] calldata isOverdue) external {}
 
     function setNewMemberFee(uint256 amount) public {
         newMemberFee = amount;
@@ -50,14 +54,6 @@ contract UserManagerMock {
         return totalLockedStake;
     }
 
-    function setTotalFrozenAmount(uint256 totalFrozenAmount_) public {
-        totalFrozenAmount = totalFrozenAmount_;
-    }
-
-    function getTotalFrozenAmount(address) public view returns (uint256) {
-        return totalFrozenAmount;
-    }
-
     function setCreditLimit(uint256 limit_) public {
         limit = limit_;
     }
@@ -72,15 +68,7 @@ contract UserManagerMock {
 
     function addMember(address account) public {}
 
-    function updateTrust(address borrower_, uint256 trustAmount) external {}
-
-    function updateOutstanding(
-        address borrower_,
-        uint256 amount,
-        bool lock
-    ) external {
-        if (amount > limit) require(false);
-    }
+    function updateTrust(address borrower_, uint96 trustAmount) external {}
 
     function cancelVouch(address staker, address borrower) external {}
 
@@ -95,9 +83,9 @@ contract UserManagerMock {
 
     function registerMember(address newMember) public {}
 
-    function stake(uint256 amount) public {}
+    function stake(uint96 amount) public {}
 
-    function unstake(uint256 amount) external {}
+    function unstake(uint96 amount) external {}
 
     function withdrawRewards() external {}
 
@@ -108,7 +96,23 @@ contract UserManagerMock {
     ) external {}
 
     //Only supports sumOfTrust
-    function debtWriteOff(address borrower, uint256 amount) public {}
+    function debtWriteOff(
+        address staker,
+        address borrower,
+        uint96 amount
+    ) public {}
 
     function updateFrozenInfo(address staker, uint256 pastBlocks) public returns (uint256, uint256) {}
+
+    function getFrozenInfo(address staker, uint256 blocks) external view returns (uint256, uint256) {}
+
+    function getVoucherCount(address borrower) external view returns (uint256) {}
+
+    function setEffectiveCount(uint256 effectiveCount) external {}
+
+    function setMaxOverdueBlocks(uint256 maxOverdueBlocks) external {}
+
+    function setMaxStakeAmount(uint96 maxStakeAmount) external {}
+
+    function setUToken(address uToken) external {}
 }

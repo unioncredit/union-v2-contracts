@@ -10,6 +10,8 @@ contract AssetManagerMock is IAssetManager {
         bool isSupported;
     }
 
+    function setMarketRegistry(address marketRegistry) external {}
+
     function getPoolBalance(address tokenAddress) public view returns (uint256) {
         return IERC20(tokenAddress).balanceOf(address(this));
     }
@@ -71,15 +73,15 @@ contract AssetManagerMock is IAssetManager {
 
     function rebalance(address, uint256[] calldata) external override {}
 
-    function moneyMarketsCount() external view override returns (uint256) {
+    function moneyMarketsCount() external pure override returns (uint256) {
         return 0;
     }
 
-    function supportedTokensCount() external view override returns (uint256) {
+    function supportedTokensCount() external pure override returns (uint256) {
         return 0;
     }
 
-    function getMoneyMarket(address, uint256) external view override returns (uint256, uint256) {
+    function getMoneyMarket(address, uint256) external pure override returns (uint256, uint256) {
         return (0, 0);
     }
 

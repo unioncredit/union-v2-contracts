@@ -6,6 +6,10 @@ pragma solidity 0.8.16;
  * @dev Work with UnionToken and UserManager to calculate the Union rewards based on the staking info from UserManager, and be ready to support multiple UserManagers for various tokens when we support multiple assets.
  */
 interface IComptroller {
+    function setHalfDecayPoint(uint256 point) external;
+
+    function inflationPerBlock(uint256 effectiveTotalStake) external view returns (uint256);
+
     /**
      *  @dev Get the reward multipier based on the account status
      *  @param account Account address
