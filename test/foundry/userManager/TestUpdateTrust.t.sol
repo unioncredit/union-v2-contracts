@@ -78,9 +78,18 @@ contract TestUpdateTrust is TestUserManagerBase {
             abi.encode(true)
         );
         userManager.updateTrust(address(1234), 100);
-        
+
         // can call update trust on existing users
         userManager.updateTrust(address(123), 0);
+    }
+
+    function testCannotVouchForMoreThanMaxLimit() public {
+        UserManager um = deployMaxVoucheeTest();
+        vm.startPrank(MEMBER);
+        um.updateTrust(address(123), 10 ether);
+        um.updateTrust(address(1234), 10 ether);
+        vm.expectRevert(UserManager.MaxVouchees.selector);
+        um.updateTrust(address(12345), 10 ether);
         vm.stopPrank();
     }
 }

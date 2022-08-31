@@ -8,15 +8,21 @@ import {FaucetERC20} from "union-v1.5-contracts/mocks/FaucetERC20.sol";
 import {ComptrollerMock} from "union-v1.5-contracts/mocks/ComptrollerMock.sol";
 import {UTokenMock} from "union-v1.5-contracts/mocks/UTokenMock.sol";
 
+contract UserManagerMaxVoucheeTest is UserManager {
+    function _getMaxVouchers() internal pure override returns (uint256) {
+        return 2;
+    }
+}
+
 contract TestUserManagerBase is TestWrapper {
     UserManager public userManager;
     address public constant ADMIN = address(1);
     address public constant MEMBER = address(1);
     address public constant ACCOUNT = address(2);
+    uint256 public constant maxOverdue = 1000;
+    uint256 public constant effectiveCount = 3;
 
     function setUp() public virtual {
-        uint256 maxOverdue = 1000;
-        uint256 effectiveCount = 3;
         address userManagerLogic = address(new UserManager());
 
         deployMocks();
@@ -37,6 +43,10 @@ contract TestUserManagerBase is TestWrapper {
             )
         );
 
+        setUpUserManager(userManager);
+    }
+
+    function setUpUserManager(UserManager userManager) public {
         vm.startPrank(ADMIN);
         userManager.setUToken(address(uTokenMock));
         userManager.addMember(MEMBER);
@@ -48,5 +58,29 @@ contract TestUserManagerBase is TestWrapper {
         vm.prank(MEMBER);
         daiMock.approve(address(userManager), type(uint256).max);
         daiMock.approve(address(userManager), type(uint256).max);
+    }
+
+    function deployMaxVoucheeTest() public returns (UserManager) {
+        address userManagerLogic = address(new UserManagerMaxVoucheeTest());
+
+        UserManager um = UserManager(
+            deployProxy(
+                userManagerLogic,
+                abi.encodeWithSignature(
+                    "__UserManager_init(address,address,address,address,address,uint256,uint256)",
+                    address(assetManagerMock),
+                    address(unionTokenMock),
+                    address(daiMock),
+                    address(comptrollerMock),
+                    ADMIN,
+                    maxOverdue,
+                    effectiveCount
+                )
+            )
+        );
+
+        setUpUserManager(um);
+
+        return um;
     }
 }

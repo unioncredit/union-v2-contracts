@@ -154,6 +154,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     error LockedRemaining();
     error VoucherNotFound();
     error VouchWhenOverdue();
+    error MaxVouchees();
 
     /* -------------------------------------------------------------------
       Events 
@@ -487,6 +488,9 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         if (borrower == staker) revert ErrorSelfVouching();
         if (!checkIsMember(staker)) revert AuthFailed();
 
+        uint256 voucheesLength = vouchees[staker].length;
+        if (vouchees[staker].length >= _getMaxVouchers()) revert MaxVouchees();
+
         // Check if this staker is already vouching for this borrower
         // If they are already vouching then update the existing vouch record
         // If this is a new vouch then insert a new Vouch record
@@ -509,7 +513,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
             // Add the voucherIndex of this new vouch to the vouchees array for this
             // staker then update the voucheeIndexes with the voucheeIndex
-            uint256 voucheeIndex = vouchees[staker].length;
+            uint256 voucheeIndex = voucheesLength;
             vouchees[staker].push(_vouchee(borrower, uint96(voucherIndex)));
             voucheeIndexes[borrower][staker] = Index(true, uint128(voucheeIndex));
         }
@@ -821,5 +825,9 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     function _vouchee(bytes32 b) private pure returns (address addr, uint96 n) {
         addr = address(bytes20(b));
         n = uint96(bytes12(bytes20(uint160(2**160 - 1)) & (b << 160)));
+    }
+
+    function _getMaxVouchers() internal pure virtual returns (uint256) {
+        return 1000;
     }
 }
