@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import {TestAssetManagerBase} from "./TestAssetManagerBase.sol";
 import {Controller} from "union-v1.5-contracts/Controller.sol";
+import {AssetManager} from "union-v1.5-contracts/asset/AssetManager.sol";
 
 contract TestManageMoneyMarkets is TestAssetManagerBase {
     function setUp() public override {
@@ -28,7 +29,7 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     function testCannotAddTokenAlreadyExists(address token) public {
         assetManager.addToken(token);
         assert(assetManager.isMarketSupported(token));
-        vm.expectRevert("AssetManager: token exists");
+        vm.expectRevert(AssetManager.TokenExists.selector);
         assetManager.addToken(token);
     }
 

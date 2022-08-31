@@ -90,6 +90,17 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     event LogRebalance(address tokenAddress, uint256[] percentages);
 
     /* -------------------------------------------------------------------
+      Errors 
+    ------------------------------------------------------------------- */
+
+    error UnsupportedToken();
+    error AuthFailed();
+    error Parity();
+    error AmountZero();
+    error InsufficientBalance();
+    error TokenExists();
+
+    /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
@@ -104,12 +115,12 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     ------------------------------------------------------------------- */
 
     modifier checkMarketSupported(address token) {
-        require(isMarketSupported(token), "AssetManager: unsupported token");
+        if (!isMarketSupported(token)) revert UnsupportedToken();
         _;
     }
 
     modifier onlyAuth(address token) {
-        require(_isUToken(msg.sender, token) || _isUserManager(msg.sender, token), "AssetManager: unauthed sender");
+        if (!(_isUToken(msg.sender, token) || _isUserManager(msg.sender, token))) revert AuthFailed();
         _;
     }
 
@@ -126,7 +137,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param newSeq priority sequence of money market indices to be used while withdrawing
      */
     function setWithdrawSequence(uint256[] calldata newSeq) external override onlyAdmin {
-        require(newSeq.length == withdrawSeq.length, "!parity");
+        if (newSeq.length != withdrawSeq.length) revert Parity();
         withdrawSeq = newSeq;
     }
 
@@ -256,7 +267,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         returns (bool)
     {
         IERC20Upgradeable poolToken = IERC20Upgradeable(token);
-        require(amount > 0, "AssetManager: amount cant be 0");
+        if (amount == 0) revert AmountZero();
 
         if (!_isUToken(msg.sender, token)) {
             balances[msg.sender][token] += amount;
@@ -319,7 +330,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         address account,
         uint256 amount
     ) external override whenNotPaused nonReentrant onlyAuth(token) returns (bool) {
-        require(_checkSenderBalance(msg.sender, token, amount), "AssetManager: balance too low");
+        if (!_checkSenderBalance(msg.sender, token, amount)) revert InsufficientBalance();
 
         uint256 remaining = amount;
 
@@ -361,7 +372,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      * @dev Write of Debt
      */
     function debtWriteOff(address token, uint256 amount) external override {
-        require(balances[msg.sender][token] >= amount, "AssetManager: balance not enough");
+        if (balances[msg.sender][token] < amount) revert InsufficientBalance();
         balances[msg.sender][token] -= amount;
         totalPrincipal[token] -= amount;
     }
@@ -371,7 +382,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param tokenAddress ERC20 token address
      */
     function addToken(address tokenAddress) external override onlyAdmin {
-        require(!supportedMarkets[tokenAddress], "AssetManager: token exists");
+        if (supportedMarkets[tokenAddress]) revert TokenExists();
         supportedTokensList.push(tokenAddress);
         supportedMarkets[tokenAddress] = true;
 
@@ -506,7 +517,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
             supportedMoneyMarketsSize++;
         }
 
-        require(percentagesLength + 1 == supportedMoneyMarketsSize, "AssetManager: percentages error");
+        if (percentagesLength + 1 != supportedMoneyMarketsSize) revert Parity();
 
         uint256 tokenSupply = token.balanceOf(address(this));
 

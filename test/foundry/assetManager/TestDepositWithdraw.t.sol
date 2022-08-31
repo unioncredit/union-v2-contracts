@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TestAssetManagerBase} from "./TestAssetManagerBase.sol";
+import {AssetManager} from "union-v1.5-contracts/asset/AssetManager.sol";
 
 contract TestDepositWithdraw is TestAssetManagerBase {
     uint256 public daiAmount = 1_000_000 ether;
@@ -41,12 +42,12 @@ contract TestDepositWithdraw is TestAssetManagerBase {
     // function testDepositWithMoneyMarkets() public {}
 
     function testCannotDepositNotAdmin() public {
-        vm.expectRevert("AssetManager: unauthed sender");
+        vm.expectRevert(AssetManager.AuthFailed.selector);
         assetManager.deposit(address(daiMock), 1);
     }
 
     function testCannotWithdrawNotAdmin() public {
-        vm.expectRevert("AssetManager: unauthed sender");
+        vm.expectRevert(AssetManager.AuthFailed.selector);
         assetManager.withdraw(address(daiMock), address(1), 1);
     }
 
@@ -74,7 +75,7 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testCannotWithdrawBalanceTooLow(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
-        vm.expectRevert("AssetManager: unauthed sender");
+        vm.expectRevert(AssetManager.AuthFailed.selector);
         assetManager.withdraw(address(daiMock), address(123), amount);
     }
 }
