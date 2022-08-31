@@ -105,6 +105,15 @@ contract Comptroller is Controller, IComptroller {
     event LogWithdrawRewards(address indexed account, uint256 amount);
 
     /* -------------------------------------------------------------------
+      Errors
+    ------------------------------------------------------------------- */
+
+    error SenderNotUserManager();
+    error NotZero();
+    error FrozenCoinAge();
+    error InflationIndexTooSmall();
+
+    /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
@@ -128,7 +137,7 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     modifier onlyUserManager(address token) {
-        require(msg.sender == address(_getUserManager(token)), "Comptroller: only user manager can call");
+        if (msg.sender != address(_getUserManager(token))) revert SenderNotUserManager();
         _;
     }
 
@@ -139,8 +148,8 @@ contract Comptroller is Controller, IComptroller {
     /**
      * @dev Set the half decay point
      */
-    function setHalfDecayPoint(uint256 point) external onlyAdmin {
-        require(point != 0, "Comptroller: halfDecayPoint can not be zero");
+    function setHalfDecayPoint(uint256 point) public onlyAdmin {
+        if (point == 0) revert NotZero();
         halfDecayPoint = point;
     }
 
@@ -441,7 +450,7 @@ contract Comptroller is Controller, IComptroller {
         uint256 inflationIndex
     ) internal view returns (uint256) {
         uint256 startInflationIndex = users[account][token].inflationIndex;
-        require(userStaked * pastBlocks >= frozenCoinAge, "Comptroller: frozenCoinAge error");
+        if (userStaked * pastBlocks < frozenCoinAge) revert FrozenCoinAge();
 
         if (userStaked == 0 || totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
             return 0;
@@ -451,7 +460,7 @@ contract Comptroller is Controller, IComptroller {
 
         uint256 curInflationIndex = _getInflationIndexNew(totalStaked, pastBlocks);
 
-        require(curInflationIndex >= startInflationIndex, "Comptroller:inflationIndex error");
+        if (curInflationIndex < startInflationIndex) revert InflationIndexTooSmall();
 
         return (curInflationIndex - startInflationIndex).wadMul(effectiveStakeAmount).wadMul(inflationIndex);
     }
