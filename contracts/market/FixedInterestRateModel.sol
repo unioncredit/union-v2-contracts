@@ -26,6 +26,13 @@ contract FixedInterestRateModel is Ownable, IInterestRateModel {
     uint256 public interestRatePerBlock;
 
     /* -------------------------------------------------------------------
+      Errors 
+    ------------------------------------------------------------------- */
+
+    error ReserveFactorExceeded();
+    error BorrowRateExceeded();
+
+    /* -------------------------------------------------------------------
       Events 
     ------------------------------------------------------------------- */
 
@@ -63,7 +70,7 @@ contract FixedInterestRateModel is Ownable, IInterestRateModel {
      * @param reserveFactorMantissa The reserve factor (scaled)
      */
     function getSupplyRate(uint256 reserveFactorMantissa) public view override returns (uint256) {
-        require(reserveFactorMantissa <= 1e18, "reserveFactorMantissa too high");
+        if (reserveFactorMantissa > 1e18) revert ReserveFactorExceeded();
         uint256 ratio = uint256(1e18) - reserveFactorMantissa;
         return (interestRatePerBlock * ratio) / 1e18;
     }
@@ -78,7 +85,7 @@ contract FixedInterestRateModel is Ownable, IInterestRateModel {
      * @param _interestRatePerBlock Interest rate
      */
     function setInterestRate(uint256 _interestRatePerBlock) external override onlyOwner {
-        require(_interestRatePerBlock <= BORROW_RATE_MAX_MANTISSA, "borrow rate too high");
+        if (_interestRatePerBlock > BORROW_RATE_MAX_MANTISSA) revert BorrowRateExceeded();
         interestRatePerBlock = _interestRatePerBlock;
 
         emit LogNewInterestParams(_interestRatePerBlock);
