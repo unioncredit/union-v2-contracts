@@ -75,7 +75,7 @@ contract MarketRegistry is Controller {
      * @param token The underlying token e.g DAI
      * @param uToken the address of the uToken contract
      */
-    function setUToken(address token, address uToken) public onlyAdmin {
+    function setUToken(address token, address uToken) external onlyAdmin {
         uTokens[token] = uToken;
         emit LogAddUToken(token, uToken);
     }
@@ -85,7 +85,7 @@ contract MarketRegistry is Controller {
      * @param token The underlying token e.g DAI
      * @param userManager the address of the UserManager contract
      */
-    function setUserManager(address token, address userManager) public onlyAdmin {
+    function setUserManager(address token, address userManager) external onlyAdmin {
         userManagers[token] = userManager;
         emit LogAddUserManager(token, userManager);
     }

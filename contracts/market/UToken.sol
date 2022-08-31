@@ -402,15 +402,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     *  @dev Get member interest index
-     *  @param account Member address
-     *  @return interestIndex
-     */
-    function getInterestIndex(address account) public view override returns (uint256) {
-        return accountBorrows[account].interestIndex;
-    }
-
-    /**
      *  @dev Get a member's current owed balance, including the principle and interest but without updating the user's states.
      *  @param account Member address
      *  @return Borrowed amount
@@ -453,7 +444,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      * @notice Returns the current per-block supply interest rate for this UToken
      * @return The supply interest rate per block, scaled by 1e18
      */
-    function supplyRatePerBlock() public view override returns (uint256) {
+    function supplyRatePerBlock() external view override returns (uint256) {
         return interestRateModel.getSupplyRate(reserveFactorMantissa);
     }
 

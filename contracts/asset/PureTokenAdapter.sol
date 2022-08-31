@@ -1,4 +1,4 @@
-        // Note: if you are using this as a template
+// Note: if you are using this as a template
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 

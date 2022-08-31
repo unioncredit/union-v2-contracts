@@ -14,8 +14,6 @@ interface IUToken {
 
     function getLastRepay(address account) external view returns (uint256);
 
-    function getInterestIndex(address account) external view returns (uint256);
-
     function checkIsOverdue(address account) external view returns (bool);
 
     function borrowRatePerBlock() external view returns (uint256);
