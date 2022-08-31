@@ -200,7 +200,8 @@ export const createHelpers = (contracts: Contracts): Helpers => {
     };
 
     const borrow = async (borrower: Signer, amount: BigNumberish) => {
-        return contracts.uToken.connect(borrower).borrow(amount);
+        const borrowerAddress = await borrower.getAddress();
+        return contracts.uToken.connect(borrower).borrow(borrowerAddress, amount);
     };
 
     const repay = async (borrower: Signer, amount: BigNumberish) => {
@@ -210,7 +211,7 @@ export const createHelpers = (contracts: Contracts): Helpers => {
             await contracts.dai.mint(borrowerAddress, amount);
         }
         await contracts.dai.connect(borrower).approve(contracts.uToken.address, ethers.constants.MaxUint256);
-        return contracts.uToken.connect(borrower).repayBorrow(amount);
+        return contracts.uToken.connect(borrower).repayBorrow(borrowerAddress, amount);
     };
 
     const repayFull = async (borrower: Signer) => {
@@ -221,7 +222,7 @@ export const createHelpers = (contracts: Contracts): Helpers => {
             await contracts.dai.mint(borrowerAddress, owed.mul(1100).div(1000));
         }
         await contracts.dai.connect(borrower).approve(contracts.uToken.address, ethers.constants.MaxUint256);
-        return contracts.uToken.connect(borrower).repayBorrow(ethers.constants.MaxUint256);
+        return contracts.uToken.connect(borrower).repayBorrow(borrowerAddress, ethers.constants.MaxUint256);
     };
 
     const stake = async (stakeAmount: BigNumberish, ...accounts: Signer[]) => {

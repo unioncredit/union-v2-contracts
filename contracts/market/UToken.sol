@@ -520,7 +520,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  Borrow amount must in the range of creditLimit, minBorrow, maxBorrow, debtCeiling and not overdue
      *  @param amount Borrow amount
      */
-    function borrow(uint256 amount) external override onlyMember(msg.sender) whenNotPaused nonReentrant {
+    function borrow(address to, uint256 amount) external override onlyMember(msg.sender) whenNotPaused nonReentrant {
         IAssetManager assetManagerContract = IAssetManager(assetManager);
         if (amount < minBorrow) revert AmountLessMinBorrow();
         if (amount > getRemainingDebtCeiling()) revert AmountExceedGlobalMax();
@@ -555,7 +555,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         totalReserves += fee;
 
         // Withdraw the borrowed amount of tokens from the assetManager and send them to the borrower
-        if (!assetManagerContract.withdraw(underlying, msg.sender, amount)) revert WithdrawFailed();
+        if (!assetManagerContract.withdraw(underlying, to, amount)) revert WithdrawFailed();
 
         // Call update locked on the userManager to lock this borrowers stakers. This function
         // will revert if the account does not have enough vouchers to cover the borrow amount. ie
@@ -569,33 +569,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      * @notice Repay outstanding borrow
      * @dev Repay borrow see _repayBorrowFresh
      */
-    function repayBorrow(uint256 repayAmount) external override whenNotPaused nonReentrant {
-        _repayBorrowFresh(msg.sender, msg.sender, repayAmount);
-    }
-
-    /**
-     * @notice Repay entire outstanding borrow
-     * @dev Repay borrow see _repayBorrowFresh
-     */
-    function repayBorrowAll() external override whenNotPaused nonReentrant {
-        _repayBorrowFresh(msg.sender, msg.sender, type(uint256).max);
-    }
-
-    /**
-     * @notice Repay outstanding borrow on behalf of another member
-     * @dev Repay borrow see _repayBorrowFresh
-     */
-    function repayBorrowBehalf(address borrower, uint256 repayAmount) external override whenNotPaused nonReentrant {
+    function repayBorrow(address borrower, uint256 repayAmount) external override whenNotPaused nonReentrant {
         _repayBorrowFresh(msg.sender, borrower, repayAmount);
-    }
-
-    /**
-     * @notice Repay entire outstanding borrow on behalf of another member
-     * @dev Repay borrow see _repayBorrowFresh
-     * @dev Repay borrow see _repayBorrowFresh
-     */
-    function repayBorrowBehalfAll(address borrower) external override whenNotPaused nonReentrant {
-        _repayBorrowFresh(msg.sender, borrower, type(uint256).max);
     }
 
     /**

@@ -46,7 +46,7 @@ describe("Writing off member debt", () => {
         await contracts.userManager.updateTrust(borrowerAddress, stakeAmount);
         await contracts.dai.approve(contracts.uToken.address, mintAmount);
         await contracts.uToken.mint(mintAmount);
-        await contracts.uToken.connect(borrower).borrow(borrowAmount);
+        await contracts.uToken.connect(borrower).borrow(borrowerAddress, borrowAmount);
     };
 
     context("Staker writing off own locked stake", () => {
