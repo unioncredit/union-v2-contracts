@@ -62,15 +62,9 @@ interface IUToken {
 
     function removeReserves(address receiver, uint256 reduceAmount) external;
 
-    function borrow(uint256 amount) external;
+    function borrow(address to, uint256 amount) external;
 
-    function repayBorrow(uint256 amount) external;
-
-    function repayBorrowAll() external;
-
-    function repayBorrowBehalf(address borrower, uint256 amount) external;
-
-    function repayBorrowBehalfAll(address borrower) external;
+    function repayBorrow(address borrower, uint256 amount) external;
 
     function debtWriteOff(address borrower, uint256 amount) external;
 }
