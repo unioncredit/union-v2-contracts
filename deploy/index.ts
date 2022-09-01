@@ -56,6 +56,7 @@ export interface DeployConfig {
     userManager: {
         maxOverdue: BigNumberish;
         effectiveCount: BigNumberish;
+        maxVouchers: BigNumberish;
     };
     uToken: {
         name: string;
@@ -175,7 +176,8 @@ export default async function (
                 comptroller.address,
                 config.admin,
                 config.userManager.maxOverdue,
-                config.userManager.effectiveCount
+                config.userManager.effectiveCount,
+                config.userManager.maxVouchers
             ]
         });
         userManager = UserManager__factory.connect(proxy.address, signer);

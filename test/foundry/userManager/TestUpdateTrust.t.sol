@@ -84,12 +84,14 @@ contract TestUpdateTrust is TestUserManagerBase {
     }
 
     function testCannotVouchForMoreThanMaxLimit() public {
-        UserManager um = deployMaxVoucheeTest();
+        vm.prank(ADMIN);
+        userManager.setMaxVouchers(2);
+
         vm.startPrank(MEMBER);
-        um.updateTrust(address(123), 10 ether);
-        um.updateTrust(address(1234), 10 ether);
+        userManager.updateTrust(address(123), 10 ether);
+        userManager.updateTrust(address(1234), 10 ether);
         vm.expectRevert(UserManager.MaxVouchees.selector);
-        um.updateTrust(address(12345), 10 ether);
+        userManager.updateTrust(address(12345), 10 ether);
         vm.stopPrank();
     }
 }

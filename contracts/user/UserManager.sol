@@ -105,6 +105,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     uint256 public maxOverdueBlocks;
 
     /**
+     * @dev Max voucher limit
+     */
+    uint256 public maxVouchers;
+
+    /**
      *  @dev Union Stakers
      */
     mapping(address => Staker) public stakers;
@@ -244,6 +249,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      */
     event LogSetEffectiveCount(uint256 oldEffectiveCount, uint256 newEffectiveCount);
 
+    /**
+     * @dev Set max voucher
+     * @param maxVouchers new max voucher limit
+     */
+    event LogSetMaxVouchers(uint256 maxVouchers);
+
     /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
@@ -255,7 +266,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         address comptroller_,
         address admin_,
         uint256 maxOverdueBlocks_,
-        uint256 effectiveCount_
+        uint256 effectiveCount_,
+        uint256 maxVouchers_
     ) public initializer {
         Controller.__Controller_init(admin_);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
@@ -267,6 +279,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         maxStakeAmount = 10_000e18;
         maxOverdueBlocks = maxOverdueBlocks_;
         effectiveCount = effectiveCount_;
+        maxVouchers = maxVouchers_;
     }
 
     /* -------------------------------------------------------------------
@@ -342,6 +355,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 oldEffectiveCount = effectiveCount;
         effectiveCount = _effectiveCount;
         emit LogSetEffectiveCount(oldEffectiveCount, _effectiveCount);
+    }
+
+    function setMaxVouchers(uint256 _maxVouchers) external onlyAdmin {
+        maxVouchers = _maxVouchers;
+        emit LogSetMaxVouchers(_maxVouchers);
     }
 
     /* -------------------------------------------------------------------
@@ -489,7 +507,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         if (!checkIsMember(staker)) revert AuthFailed();
 
         uint256 voucheesLength = vouchees[staker].length;
-        if (vouchees[staker].length >= _getMaxVouchers()) revert MaxVouchees();
+        if (vouchees[staker].length >= maxVouchers) revert MaxVouchees();
 
         // Check if this staker is already vouching for this borrower
         // If they are already vouching then update the existing vouch record
@@ -825,9 +843,5 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     function _vouchee(bytes32 b) private pure returns (address addr, uint96 n) {
         addr = address(bytes20(b));
         n = uint96(bytes12(bytes20(uint160(2**160 - 1)) & (b << 160)));
-    }
-
-    function _getMaxVouchers() internal pure virtual returns (uint256) {
-        return 1000;
     }
 }
