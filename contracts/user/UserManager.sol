@@ -107,12 +107,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     /**
      *  @dev Union Stakers
      */
-    mapping(address => Staker) public stakers;
+    mapping(address => Staker) public override stakers;
 
     /**
      *  @dev Staker (borrower) mapped to recieved vouches (staker)
      */
-    mapping(address => Vouch[]) public vouchers;
+    mapping(address => Vouch[]) public override vouchers;
 
     /**
      * @dev Borrower mapped to Staker mapped to index in vouchers array
@@ -357,24 +357,19 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Get the member's available credit limit
-     *  @param borrower Member address
-     *  @return total Credit line amount
-     */
-    function getCreditLimit(address borrower) external view returns (uint256 total) {
-        for (uint256 i = 0; i < vouchers[borrower].length; i++) {
-            Vouch memory vouch = vouchers[borrower][i];
-            Staker memory staker = stakers[vouch.staker];
-            total += _min(staker.stakedAmount - staker.locked, vouch.amount - vouch.locked);
-        }
-    }
-
-    /**
      *  @dev Get the count of vouchers
      *  @param borrower Address of borrower
      */
     function getVoucherCount(address borrower) external view returns (uint256) {
         return vouchers[borrower].length;
+    }
+
+    /**
+     *  @dev Get the count of vouchees
+     *  @param staker Address of staker
+     */
+    function getVoucheeCount(address staker) external view returns (uint256) {
+        return vouchees[staker].length;
     }
 
     /**

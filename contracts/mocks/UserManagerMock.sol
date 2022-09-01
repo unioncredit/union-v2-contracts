@@ -15,7 +15,6 @@ contract UserManagerMock is IUserManager {
     uint256 public totalStaked;
     uint256 public totalFrozen;
     bool public isMember;
-    uint256 public limit;
     uint256 public stakerBalance;
     uint256 public totalLockedStake;
     uint256 public totalFrozenAmount;
@@ -23,6 +22,27 @@ contract UserManagerMock is IUserManager {
     constructor() {
         newMemberFee = 10**18; // Set the default membership fee
     }
+
+    function vouchers(address borrower, uint256 index)
+        external
+        view
+        returns (
+            address,
+            uint96,
+            uint96,
+            uint64
+        )
+    {}
+
+    function stakers(address staker)
+        external
+        view
+        returns (
+            bool,
+            uint96,
+            uint96
+        )
+    {}
 
     function batchUpdateTotalFrozen(address[] calldata account, bool[] calldata isOverdue) external {}
 
@@ -52,14 +72,6 @@ contract UserManagerMock is IUserManager {
 
     function getTotalLockedStake(address) public view returns (uint256) {
         return totalLockedStake;
-    }
-
-    function setCreditLimit(uint256 limit_) public {
-        limit = limit_;
-    }
-
-    function getCreditLimit(address) public view returns (uint256) {
-        return limit;
     }
 
     function getLockedStake(address staker, address borrower) public view returns (uint256) {}

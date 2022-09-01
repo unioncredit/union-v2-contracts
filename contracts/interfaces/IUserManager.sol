@@ -6,6 +6,25 @@ pragma solidity 0.8.16;
  * @dev Manages the Union members credit lines, and their vouchees and borrowers info.
  */
 interface IUserManager {
+    function vouchers(address borrower, uint256 index)
+        external
+        view
+        returns (
+            address,
+            uint96,
+            uint96,
+            uint64
+        );
+
+    function stakers(address staker)
+        external
+        view
+        returns (
+            bool,
+            uint96,
+            uint96
+        );
+
     function setMaxStakeAmount(uint96 maxStakeAmount) external;
 
     function setUToken(address uToken) external;
@@ -45,13 +64,6 @@ interface IUserManager {
      *  @return Address whether is member
      */
     function checkIsMember(address account) external view returns (bool);
-
-    /**
-     *  @dev Get the member's available credit line
-     *  @param account Member address
-     *  @return Limit
-     */
-    function getCreditLimit(address account) external view returns (uint256);
 
     function totalStaked() external view returns (uint256);
 
