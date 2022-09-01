@@ -7,9 +7,12 @@ import {UnionTokenMock} from "union-v1.5-contracts/mocks/UnionTokenMock.sol";
 import {FaucetERC20} from "union-v1.5-contracts/mocks/FaucetERC20.sol";
 import {ComptrollerMock} from "union-v1.5-contracts/mocks/ComptrollerMock.sol";
 import {UTokenMock} from "union-v1.5-contracts/mocks/UTokenMock.sol";
+import {UnionLens} from "union-v1.5-contracts/UnionLens.sol";
 
 contract TestUserManagerBase is TestWrapper {
     UserManager public userManager;
+    UnionLens public unionLens;
+
     address public constant ADMIN = address(1);
     address public constant MEMBER = address(1);
     address public constant ACCOUNT = address(2);
@@ -48,5 +51,7 @@ contract TestUserManagerBase is TestWrapper {
         vm.prank(MEMBER);
         daiMock.approve(address(userManager), type(uint256).max);
         daiMock.approve(address(userManager), type(uint256).max);
+
+        unionLens = new UnionLens();
     }
 }

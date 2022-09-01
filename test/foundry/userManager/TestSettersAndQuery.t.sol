@@ -87,7 +87,7 @@ contract TestSettersAndQuery is TestUserManagerBase {
     }
 
     function testGetCreditLimit() public {
-        uint256 creditLimit = userManager.getCreditLimit(ACCOUNT);
+        uint256 creditLimit = unionLens.getCreditLimit(userManager, ACCOUNT);
         assertEq(creditLimit, 100 ether);
     }
 

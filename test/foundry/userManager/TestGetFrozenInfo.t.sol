@@ -18,7 +18,7 @@ contract TestGetFrozenInfo is TestUserManagerBase {
 
     function testGetFrozenInfo() public {
         uint96 lockAmount = 10;
-        uint256 creditLimit = userManager.getCreditLimit(ACCOUNT);
+        uint256 creditLimit = unionLens.getCreditLimit(userManager, ACCOUNT);
         vm.assume(lockAmount <= creditLimit);
         uint256 blockNumberBefore = block.number;
 
@@ -36,7 +36,7 @@ contract TestGetFrozenInfo is TestUserManagerBase {
     }
 
     function testGetFrozenInfoPastBlocks(uint96 lockAmount) public {
-        uint256 creditLimit = userManager.getCreditLimit(ACCOUNT);
+        uint256 creditLimit = unionLens.getCreditLimit(userManager, ACCOUNT);
         vm.assume(lockAmount <= creditLimit);
 
         vm.startPrank(address(userManager.uToken()));

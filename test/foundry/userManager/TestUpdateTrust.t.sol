@@ -16,7 +16,7 @@ contract TestUpdateTrust is TestUserManagerBase {
         vm.startPrank(MEMBER);
         userManager.updateTrust(ACCOUNT, trustAmount);
         vm.stopPrank();
-        uint256 newCreditLimit = userManager.getCreditLimit(ACCOUNT);
+        uint256 newCreditLimit = unionLens.getCreditLimit(userManager, ACCOUNT);
         assertEq(newCreditLimit, trustAmount);
     }
 
