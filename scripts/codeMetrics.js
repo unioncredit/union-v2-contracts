@@ -32,9 +32,11 @@ const metrics = new SolidityMetricsContainer("codeMetrics", options);
 async function main() {
     const files = await getAllContracts();
 
+    console.log("[*] Analyzing files");
     for (const file of files) {
         const fullPath = path.resolve(__dirname, "..", file);
         metrics.analyze(fullPath);
+        console.log(`    - ${file}`);
     }
 
     const totals = metrics.totals();
