@@ -119,7 +119,7 @@ describe("Borrowing and repaying", () => {
             await helpers.borrow(borrower, borrowAmount);
         });
         it("cannot repay 0", async () => {
-            const resp = contracts.uToken.repayBorrow(0);
+            const resp = contracts.uToken.repayBorrow(deployerAddress, 0);
             await expect(resp).to.be.revertedWith("AmountZero()");
         });
         it("repaying less than interest doesn't update last repaid", async () => {

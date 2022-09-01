@@ -88,10 +88,10 @@ describe("Minting and redeeming uToken", () => {
             expect(uTokenBal).eq(mintAmount);
 
             const borrowAmount = parseUnits("100");
-            await contracts.uToken.connect(user).borrow(borrowAmount);
+            await contracts.uToken.connect(user).borrow(userAddress, borrowAmount);
             const blocks = 99;
             await roll(blocks);
-            await contracts.uToken.repayBorrowBehalf(userAddress, borrowAmount);
+            await contracts.uToken.repayBorrow(userAddress, borrowAmount);
 
             let exchangeRateStored = await contracts.uToken.exchangeRateStored();
             const expeOriginationFee = borrowAmount.mul(originationFee).div(WAD);
