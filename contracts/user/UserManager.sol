@@ -357,7 +357,10 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Get the member's available credit limit
+     *  @dev  Get the member's available credit limit
+     *  @dev  IMPORTANT: This function can take up a tonne of gas as the vouchers[address] array
+     *        grows in size. the maxVoucher limit will ensure this function can always run within a
+     *        single block but it is intended only to be used as a view function called from a UI
      *  @param borrower Member address
      *  @return total Credit line amount
      */
