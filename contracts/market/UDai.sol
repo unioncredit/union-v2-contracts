@@ -2,9 +2,10 @@
 pragma solidity 0.8.16;
 
 import "../interfaces/IDai.sol";
+import "../interfaces/IUDai.sol";
 import "./UToken.sol";
 
-contract UDai is UToken {
+contract UDai is UToken, IUDai {
     function repayBorrowWithPermit(
         address borrower,
         uint256 amount,

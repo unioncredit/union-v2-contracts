@@ -4,12 +4,20 @@ pragma solidity 0.8.16;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
-contract CompoundAdapterMock is Initializable {
+import "../interfaces/IMoneyMarketAdapter.sol";
+
+contract CompoundAdapterMock is Initializable, IMoneyMarketAdapter {
     bool public isSupport;
     mapping(address => uint256) public floorMap;
     mapping(address => uint256) public ceilingMap;
 
     function __CompoundAdapterMock_init() public initializer {}
+
+    function claimRewards(address tokenAddress, address recipient) external {}
+
+    function getRate(address tokenAddress) external view returns (uint256) {}
+
+    function setAssetManager(address) external {}
 
     function setSupport() external {
         isSupport = !isSupport;

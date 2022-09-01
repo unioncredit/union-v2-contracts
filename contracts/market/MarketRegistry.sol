@@ -2,13 +2,14 @@
 pragma solidity 0.8.16;
 
 import {Controller} from "../Controller.sol";
+import "../interfaces/IMarketRegistry.sol";
 
 /**
  * @title MarketRegistry Contract
  * @author Union
  * @dev Register uToken and UserManager contracts to their tokens
  */
-contract MarketRegistry is Controller {
+contract MarketRegistry is Controller, IMarketRegistry {
     /* -------------------------------------------------------------------
       Storage 
     ------------------------------------------------------------------- */

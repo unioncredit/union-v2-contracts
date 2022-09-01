@@ -7,6 +7,12 @@ pragma solidity 0.8.16;
  */
 interface IAssetManager {
     /**
+     *  @dev Set market registry
+     *  @param marketRegistry contract address
+     */
+    function setMarketRegistry(address marketRegistry) external;
+
+    /**
      *  @dev Returns the balance of asset manager, plus the total amount of tokens deposited to all the underlying lending protocols.
      *  @param tokenAddress ERC20 token address
      *  @return Lending pool balance

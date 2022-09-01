@@ -193,7 +193,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param tokenAddress ERC20 token address
      *  @return tokenSupply Total market balance
      */
-    function totalSupplyView(address tokenAddress) public view override returns (uint256 tokenSupply) {
+    function totalSupplyView(address tokenAddress) public view override returns (uint256) {
         uint256 tokenSupply = 0;
         if (isMarketSupported(tokenAddress)) {
             uint256 moneyMarketsLength = moneyMarkets.length;

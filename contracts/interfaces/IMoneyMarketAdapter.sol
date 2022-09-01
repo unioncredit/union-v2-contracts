@@ -7,6 +7,21 @@ pragma solidity 0.8.16;
  */
 interface IMoneyMarketAdapter {
     /**
+     * @dev set assetmanager.
+     */
+    function setAssetManager(address setAssetManager) external;
+
+    /**
+     * @dev set token floor.
+     */
+    function setFloor(address tokenAddress, uint256 floor) external;
+
+    /**
+     * @dev set token ceiling.
+     */
+    function setCeiling(address tokenAddress, uint256 ceiling) external;
+
+    /**
      * @dev Returns the interest rate per block for the given token.
      */
     function getRate(address tokenAddress) external view returns (uint256);

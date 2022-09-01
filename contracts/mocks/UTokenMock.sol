@@ -5,19 +5,31 @@ import {IUToken} from "../interfaces/IUToken.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
-    function overdueBlocks() external view override returns (uint256) {
+    function setAssetManager(address) external {}
+
+    function setUserManager(address) external {}
+
+    function exchangeRateStored() external pure returns (uint256) {
         return 0;
     }
 
-    function getRemainingDebtCeiling() external view override returns (uint256) {
+    function exchangeRateCurrent() external pure returns (uint256) {
         return 0;
     }
 
-    function getBorrowed(address account) external view override returns (uint256) {
+    function overdueBlocks() external pure override returns (uint256) {
         return 0;
     }
 
-    function getLastRepay(address account) external view override returns (uint256) {
+    function getRemainingDebtCeiling() external pure override returns (uint256) {
+        return 0;
+    }
+
+    function getBorrowed(address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function getLastRepay(address) external pure override returns (uint256) {
         return 0;
     }
 
@@ -25,19 +37,19 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         return false;
     }
 
-    function borrowRatePerBlock() external view override returns (uint256) {
+    function borrowRatePerBlock() external pure override returns (uint256) {
         return 0;
     }
 
-    function calculatingFee(uint256) external view override returns (uint256) {
+    function calculatingFee(uint256) external pure returns (uint256) {
         return 0;
     }
 
-    function calculatingInterest(address) external view override returns (uint256) {
+    function calculatingInterest(address) external pure override returns (uint256) {
         return 0;
     }
 
-    function borrowBalanceView(address) external view override returns (uint256) {
+    function borrowBalanceView(address) external pure override returns (uint256) {
         return 0;
     }
 
@@ -55,15 +67,15 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
 
     function setReserveFactor(uint256) external override {}
 
-    function supplyRatePerBlock() external override returns (uint256) {
+    function supplyRatePerBlock() external pure override returns (uint256) {
         return 1;
     }
 
-    function accrueInterest() external override returns (bool) {
+    function accrueInterest() external pure override returns (bool) {
         return true;
     }
 
-    function balanceOfUnderlying(address) external override returns (uint256) {
+    function balanceOfUnderlying(address) external pure override returns (uint256) {
         return 0;
     }
 
