@@ -506,9 +506,6 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         if (borrower == staker) revert ErrorSelfVouching();
         if (!checkIsMember(staker)) revert AuthFailed();
 
-        uint256 voucheesLength = vouchees[staker].length;
-        if (vouchees[staker].length >= maxVouchers) revert MaxVouchees();
-
         // Check if this staker is already vouching for this borrower
         // If they are already vouching then update the existing vouch record
         // If this is a new vouch then insert a new Vouch record
@@ -520,7 +517,14 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             if (trustAmount < vouch.locked) revert TrustAmountLtLocked();
             vouch.amount = trustAmount;
         } else {
+            // If the member is overdue they cannot create new vouches they can
+            // only update existing vouches
             if (uToken.checkIsOverdue(staker)) revert VouchWhenOverdue();
+
+            // This is a new vouch so we need to check that the
+            // member has not reached the max voucher limit
+            uint256 voucheesLength = vouchees[staker].length;
+            if (vouchees[staker].length >= maxVouchers) revert MaxVouchees();
 
             // Get the new index that this vouch is going to be inserted at
             // Then update the voucher indexes for this borrower as well as
