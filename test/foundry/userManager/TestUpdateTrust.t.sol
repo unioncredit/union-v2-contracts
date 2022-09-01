@@ -69,7 +69,8 @@ contract TestUpdateTrust is TestUserManagerBase {
     }
 
     function testCannotOverdue() public {
-        vm.prank(MEMBER);
+        vm.startPrank(MEMBER);
+        userManager.updateTrust(address(123), 100);
         vm.expectRevert(UserManager.VouchWhenOverdue.selector);
         vm.mockCall(
             address(uTokenMock),
@@ -77,5 +78,9 @@ contract TestUpdateTrust is TestUserManagerBase {
             abi.encode(true)
         );
         userManager.updateTrust(address(1234), 100);
+        
+        // can call update trust on existing users
+        userManager.updateTrust(address(123), 0);
+        vm.stopPrank();
     }
 }

@@ -483,7 +483,6 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
         address staker = msg.sender;
         if (borrower == staker) revert ErrorSelfVouching();
         if (!checkIsMember(staker)) revert AuthFailed();
-        if (uToken.checkIsOverdue(staker)) revert VouchWhenOverdue();
 
         // Check if this staker is already vouching for this borrower
         // If they are already vouching then update the existing vouch record
@@ -496,6 +495,8 @@ contract UserManager is Controller, ReentrancyGuardUpgradeable {
             if (trustAmount < vouch.locked) revert TrustAmountLtLocked();
             vouch.amount = trustAmount;
         } else {
+            if (uToken.checkIsOverdue(staker)) revert VouchWhenOverdue();
+
             // Get the new index that this vouch is going to be inserted at
             // Then update the voucher indexes for this borrower as well as
             // Adding the Vouch the the vouchers array for this staker
