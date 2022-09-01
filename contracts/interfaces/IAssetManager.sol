@@ -7,7 +7,7 @@ pragma solidity 0.8.16;
  */
 interface IAssetManager {
     /**
-     *  @dev Set market register
+     *  @dev Set market registry
      *  @param marketRegistry contract address
      */
     function setMarketRegistry(address marketRegistry) external;
