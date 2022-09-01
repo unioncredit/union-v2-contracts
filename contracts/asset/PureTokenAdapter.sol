@@ -39,6 +39,13 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     }
 
     /* -------------------------------------------------------------------
+      Errors 
+    ------------------------------------------------------------------- */
+
+    error TokenNotSupported();
+    error SenderNotAssetManager();
+
+    /* -------------------------------------------------------------------
       Modifiers 
     ------------------------------------------------------------------- */
 
@@ -46,7 +53,7 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
      * @dev Check supplied token address is supported
      */
     modifier checkTokenSupported(address tokenAddress) {
-        require(_supportsToken(tokenAddress), "PureTokenAdapter: token not supported");
+        if (!_supportsToken(tokenAddress)) revert TokenNotSupported();
         _;
     }
 
@@ -54,7 +61,7 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
      * @dev Check sender is the asset manager
      */
     modifier onlyAssetManager() {
-        require(msg.sender == assetManager, "PureTokenAdapter: only asset manager can call");
+        if (msg.sender != assetManager) revert SenderNotAssetManager();
         _;
     }
 

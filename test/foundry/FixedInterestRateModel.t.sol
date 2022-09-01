@@ -32,7 +32,7 @@ contract TestFixedInterestRateModel is TestWrapper {
 
     function testCannotSetInterestRateTooHigh(uint256 interestRatePerBlock) public {
         vm.assume(interestRatePerBlock > fixedInterestRateModel.BORROW_RATE_MAX_MANTISSA());
-        vm.expectRevert("borrow rate too high");
+        vm.expectRevert(FixedInterestRateModel.BorrowRateExceeded.selector);
         fixedInterestRateModel.setInterestRate(interestRatePerBlock);
     }
 }

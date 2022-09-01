@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v1.5-contracts/user/UserManager.sol";
+import {Controller} from "union-v1.5-contracts/Controller.sol";
 
 contract TestSettersAndQuery is TestUserManagerBase {
     function setUp() public override {
@@ -12,7 +13,7 @@ contract TestSettersAndQuery is TestUserManagerBase {
     }
 
     function testCannotSetMaxStakeAmountNotAdmin(uint96 amount) public {
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         userManager.setMaxStakeAmount(amount);
     }
 
@@ -24,7 +25,7 @@ contract TestSettersAndQuery is TestUserManagerBase {
     }
 
     function testCannotSetUTokenNotAdmin(address uToken) public {
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         userManager.setUToken(uToken);
     }
 
@@ -37,7 +38,7 @@ contract TestSettersAndQuery is TestUserManagerBase {
     }
 
     function testCannotSetNewMemberFeeNotAdmin(uint96 amount) public {
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         userManager.setNewMemberFee(amount);
     }
 
@@ -49,7 +50,7 @@ contract TestSettersAndQuery is TestUserManagerBase {
     }
 
     function testCannotSetMaxOverdueNotAdmin(uint96 amount) public {
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         userManager.setMaxOverdueBlocks(amount);
     }
 
@@ -61,7 +62,7 @@ contract TestSettersAndQuery is TestUserManagerBase {
     }
 
     function testCannotSetEffectiveCountNotAdmin(uint256 count) public {
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         userManager.setEffectiveCount(count);
     }
 
@@ -74,7 +75,7 @@ contract TestSettersAndQuery is TestUserManagerBase {
     }
 
     function testCannotAddMemberNotAdmin(address account) public {
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         userManager.addMember(account);
     }
 

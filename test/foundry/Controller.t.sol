@@ -22,12 +22,6 @@ contract TestController is TestWrapper {
         assertEq(controller.isAdmin(address(2)), false);
     }
 
-    function testCannotSetPendingAdminZeroAddress() public {
-        vm.prank(ADMIN);
-        vm.expectRevert("Controller: address zero");
-        controller.setPendingAdmin(address(0));
-    }
-
     function testSetPendingAdmin(address account) public {
         vm.assume(account != address(0));
         vm.prank(ADMIN);
@@ -37,7 +31,7 @@ contract TestController is TestWrapper {
     }
 
     function testCannotAcceptAdminNonPendingAdminr() public {
-        vm.expectRevert("Controller: not pending admin");
+        vm.expectRevert(Controller.SenderNotPendingAdmin.selector);
         controller.acceptAdmin();
     }
 
@@ -50,7 +44,7 @@ contract TestController is TestWrapper {
     }
 
     function testCannotSetGuardianNonAdmin(address account) public {
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         controller.setGuardian(account);
     }
 
@@ -62,7 +56,7 @@ contract TestController is TestWrapper {
     }
 
     function testCannotPauseNonPauseGuardian() public {
-        vm.expectRevert("Controller: caller does not have the guardian role");
+        vm.expectRevert(Controller.SenderNotGuardian.selector);
         controller.pause();
     }
 
@@ -70,7 +64,7 @@ contract TestController is TestWrapper {
         address pauseGuardian = controller.pauseGuardian();
         vm.prank(pauseGuardian);
         controller.pause();
-        vm.expectRevert("Controller: paused");
+        vm.expectRevert(Controller.Paused.selector);
         vm.prank(pauseGuardian);
         controller.pause();
     }
@@ -88,14 +82,14 @@ contract TestController is TestWrapper {
         vm.prank(pauseGuardian);
         controller.pause();
         vm.prank(address(123));
-        vm.expectRevert("Controller: caller does not have the guardian role");
+        vm.expectRevert(Controller.SenderNotGuardian.selector);
         controller.unpause();
     }
 
     function testCannotUnpauseWhenNopaused() public {
         address pauseGuardian = controller.pauseGuardian();
         vm.prank(pauseGuardian);
-        vm.expectRevert("Controller: not paused");
+        vm.expectRevert(Controller.NotPaused.selector);
         controller.unpause();
     }
 

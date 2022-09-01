@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import {TestWrapper} from "./TestWrapper.sol";
 import {PureTokenAdapter} from "union-v1.5-contracts/asset/PureTokenAdapter.sol";
+import {Controller} from "union-v1.5-contracts/Controller.sol";
 
 contract TestPureTokenAdapter is TestWrapper {
     PureTokenAdapter public pureToken;
@@ -27,7 +28,7 @@ contract TestPureTokenAdapter is TestWrapper {
 
     function testCannotSetAssetManagerNonAdmin() public {
         vm.prank(address(1));
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         pureToken.setAssetManager(address(1));
     }
 
@@ -38,7 +39,7 @@ contract TestPureTokenAdapter is TestWrapper {
 
     function testCannotSetFloorNonAdmin() public {
         vm.prank(address(1));
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         pureToken.setFloor(address(1), 0);
     }
 
@@ -49,7 +50,7 @@ contract TestPureTokenAdapter is TestWrapper {
 
     function testCannotSetCeilingNonAdmin() public {
         vm.prank(address(1));
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         pureToken.setCeiling(address(1), 0);
     }
 
@@ -95,7 +96,7 @@ contract TestPureTokenAdapter is TestWrapper {
     function testCannotWithdrawNonAssetManager(uint256 amount) public {
         address recipient = address(123);
         daiMock.mint(address(pureToken), amount);
-        vm.expectRevert("PureTokenAdapter: only asset manager can call");
+        vm.expectRevert(PureTokenAdapter.SenderNotAssetManager.selector);
         pureToken.withdraw(address(daiMock), recipient, amount);
     }
 
@@ -110,7 +111,7 @@ contract TestPureTokenAdapter is TestWrapper {
 
     function testCannotWithdrawAllNonAssetManager(address recipient, uint256 amount) public {
         daiMock.mint(address(pureToken), amount);
-        vm.expectRevert("PureTokenAdapter: only asset manager can call");
+        vm.expectRevert(PureTokenAdapter.SenderNotAssetManager.selector);
         pureToken.withdrawAll(address(daiMock), recipient);
     }
 

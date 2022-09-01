@@ -2,6 +2,8 @@ pragma solidity ^0.8.0;
 
 import {TestAssetManagerBase} from "./TestAssetManagerBase.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Controller} from "union-v1.5-contracts/Controller.sol";
+import {AssetManager} from "union-v1.5-contracts/asset/AssetManager.sol";
 
 contract FakeAdapter {
     function supportsToken(address) public view returns (bool) {
@@ -67,7 +69,7 @@ contract TestRebalance is TestAssetManagerBase {
     function testCannotRebalanceUnsupported() public {
         uint256[] memory weights = new uint256[](1);
         weights[0] = 7000;
-        vm.expectRevert("AssetManager: unsupported token");
+        vm.expectRevert(AssetManager.UnsupportedToken.selector);
         assetManager.rebalance(address(1), weights);
     } 
 
@@ -75,7 +77,7 @@ contract TestRebalance is TestAssetManagerBase {
         uint256[] memory weights = new uint256[](1);
         weights[0] = 7000;
         vm.prank(address(1));
-        vm.expectRevert("Controller: not admin");
+        vm.expectRevert(Controller.SenderNotAdmin.selector);
         assetManager.rebalance(address(daiMock), weights);
     } 
 }
