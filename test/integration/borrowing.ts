@@ -9,7 +9,7 @@ import deploy, {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";
 import {createHelpers, getDai, getDeployer, getSigners, Helpers, roll} from "../utils";
 
-describe.only("Borrowing and repaying", () => {
+describe("Borrowing and repaying", () => {
     let signers: Signer[];
     let deployer: Signer;
     let deployerAddress: string;
