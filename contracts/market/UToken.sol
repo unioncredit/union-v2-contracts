@@ -200,14 +200,14 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param amount Borrow amount
      *  @param fee Origination fee
      */
-    event LogBorrow(address indexed account, uint256 amount, uint256 fee);
+    event LogBorrow(address indexed account, address indexed to, uint256 amount, uint256 fee);
 
     /**
      *  @dev Event repay
      *  @param account Member address
      *  @param amount Repay amount
      */
-    event LogRepay(address indexed account, uint256 amount);
+    event LogRepay(address indexed payer, address indexed account, uint256 amount);
 
     /* -------------------------------------------------------------------
       Modifiers 
@@ -562,7 +562,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // the borrower is trying to borrow more than is able to be underwritten
         IUserManager(userManager).updateLocked(msg.sender, uint96(amount + fee), true);
 
-        emit LogBorrow(msg.sender, amount, fee);
+        emit LogBorrow(msg.sender, to, amount, fee);
     }
 
     /**
@@ -650,7 +650,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         IERC20Upgradeable(underlying).safeTransferFrom(payer, address(this), repayAmount);
         _depositToAssetManager(repayAmount);
 
-        emit LogRepay(borrower, repayAmount);
+        emit LogRepay(payer, borrower, repayAmount);
     }
 
     /**
