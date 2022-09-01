@@ -95,7 +95,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
 
     error UnsupportedToken();
     error AuthFailed();
-    error Parity();
+    error NotParity();
     error AmountZero();
     error InsufficientBalance();
     error TokenExists();
@@ -137,7 +137,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param newSeq priority sequence of money market indices to be used while withdrawing
      */
     function setWithdrawSequence(uint256[] calldata newSeq) external override onlyAdmin {
-        if (newSeq.length != withdrawSeq.length) revert Parity();
+        if (newSeq.length != withdrawSeq.length) revert NotParity();
         withdrawSeq = newSeq;
     }
 
@@ -517,7 +517,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
             supportedMoneyMarketsSize++;
         }
 
-        if (percentagesLength + 1 != supportedMoneyMarketsSize) revert Parity();
+        if (percentagesLength + 1 != supportedMoneyMarketsSize) revert NotParity();
 
         uint256 tokenSupply = token.balanceOf(address(this));
 
