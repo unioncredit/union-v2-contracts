@@ -2,7 +2,7 @@
 pragma solidity 0.8.16;
 
 import {Controller} from "../Controller.sol";
-import "../interfaces/IMarketRegistry.sol";
+import {IMarketRegistry} from "../interfaces/IMarketRegistry.sol";
 
 /**
  * @title MarketRegistry Contract

@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import "../interfaces/IDai.sol";
-import "../interfaces/IUDai.sol";
-import "./UToken.sol";
+import {IDai} from "../interfaces/IDai.sol";
+import {IUDai} from "../interfaces/IUDai.sol";
+import {UToken} from "./UToken.sol";
 
 contract UDai is UToken, IUDai {
     function repayBorrowWithPermit(

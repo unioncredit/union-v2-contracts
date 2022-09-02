@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import "./UserManager.sol";
-import "../interfaces/IDai.sol";
+import {UserManager} from "./UserManager.sol";
+import {IDai} from "../interfaces/IDai.sol";
 
 contract UserManagerDAI is UserManager {
     /**

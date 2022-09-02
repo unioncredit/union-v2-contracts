@@ -1,16 +1,16 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {ERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-import "../Controller.sol";
-import "../interfaces/IUserManager.sol";
-import "../interfaces/IAssetManager.sol";
-import "../interfaces/IUToken.sol";
-import "../interfaces/IInterestRateModel.sol";
+import {Controller} from "../Controller.sol";
+import {IUserManager} from "../interfaces/IUserManager.sol";
+import {IAssetManager} from "../interfaces/IAssetManager.sol";
+import {IUToken} from "../interfaces/IUToken.sol";
+import {IInterestRateModel} from "../interfaces/IInterestRateModel.sol";
 
 /**
  *  @title UToken Contract
