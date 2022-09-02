@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
 import {TestComptrollerBase} from "./TestComptrollerBase.sol";
-import {Controller} from "union-v1.5-contracts/Controller.sol";
-import {Comptroller} from "union-v1.5-contracts/token/Comptroller.sol";
+import {Controller} from "union-v2-contracts/Controller.sol";
+import {Comptroller} from "union-v2-contracts/token/Comptroller.sol";
 
 contract TestSetters is TestComptrollerBase {
     function testSetHalfDecayPoint(uint256 amount) public {

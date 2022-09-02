@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TestAssetManagerBase} from "./TestAssetManagerBase.sol";
-import {AssetManager} from "union-v1.5-contracts/asset/AssetManager.sol";
+import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestDepositWithdraw is TestAssetManagerBase {
     uint256 public daiAmount = 1_000_000 ether;

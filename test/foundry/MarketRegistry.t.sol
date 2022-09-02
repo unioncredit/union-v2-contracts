@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
 import {TestWrapper} from "./TestWrapper.sol";
-import {MarketRegistry} from "union-v1.5-contracts/market/MarketRegistry.sol";
-import {Controller} from "union-v1.5-contracts/Controller.sol";
+import {MarketRegistry} from "union-v2-contracts/market/MarketRegistry.sol";
+import {Controller} from "union-v2-contracts/Controller.sol";
 
 contract TestMarketRegistry is TestWrapper {
     MarketRegistry public marketRegistry;

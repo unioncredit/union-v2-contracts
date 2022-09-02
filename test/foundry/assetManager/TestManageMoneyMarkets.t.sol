@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
 import {TestAssetManagerBase} from "./TestAssetManagerBase.sol";
-import {Controller} from "union-v1.5-contracts/Controller.sol";
-import {AssetManager} from "union-v1.5-contracts/asset/AssetManager.sol";
+import {Controller} from "union-v2-contracts/Controller.sol";
+import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestManageMoneyMarkets is TestAssetManagerBase {
     function setUp() public override {

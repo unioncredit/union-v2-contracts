@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TestUTokenBase} from "./TestUTokenBase.sol";
-import {UToken} from "union-v1.5-contracts/market/UToken.sol";
+import {UToken} from "union-v2-contracts/market/UToken.sol";
 
 contract TestReserves is TestUTokenBase {
 

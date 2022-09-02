@@ -1,5 +1,5 @@
 {
-    "name": "union-v1.5-contracts",
+    "name": "union-v2-contracts",
     "version": "0.1.0",
     "description": "",
     "main": "index.js",
@@ -20,7 +20,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git@github.com:unioncredit/union-v1.5-contracts.git"
+        "url": "git@github.com:unioncredit/union-v2-contracts.git"
     },
     "author": "",
     "license": "ISC",

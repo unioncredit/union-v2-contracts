@@ -1,12 +1,12 @@
 pragma solidity ^0.8.0;
 
 import {TestWrapper} from "../TestWrapper.sol";
-import {UserManager} from "union-v1.5-contracts/user/UserManager.sol";
-import {AssetManagerMock} from "union-v1.5-contracts/mocks/AssetManagerMock.sol";
-import {UnionTokenMock} from "union-v1.5-contracts/mocks/UnionTokenMock.sol";
-import {FaucetERC20} from "union-v1.5-contracts/mocks/FaucetERC20.sol";
-import {ComptrollerMock} from "union-v1.5-contracts/mocks/ComptrollerMock.sol";
-import {UTokenMock} from "union-v1.5-contracts/mocks/UTokenMock.sol";
+import {UserManager} from "union-v2-contracts/user/UserManager.sol";
+import {AssetManagerMock} from "union-v2-contracts/mocks/AssetManagerMock.sol";
+import {UnionTokenMock} from "union-v2-contracts/mocks/UnionTokenMock.sol";
+import {FaucetERC20} from "union-v2-contracts/mocks/FaucetERC20.sol";
+import {ComptrollerMock} from "union-v2-contracts/mocks/ComptrollerMock.sol";
+import {UTokenMock} from "union-v2-contracts/mocks/UTokenMock.sol";
 
 contract TestUserManagerBase is TestWrapper {
     UserManager public userManager;

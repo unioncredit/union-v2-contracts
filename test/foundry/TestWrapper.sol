@@ -2,14 +2,14 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {AssetManagerMock} from "union-v1.5-contracts/mocks/AssetManagerMock.sol";
-import {UnionTokenMock} from "union-v1.5-contracts/mocks/UnionTokenMock.sol";
-import {FaucetERC20} from "union-v1.5-contracts/mocks/FaucetERC20.sol";
-import {ComptrollerMock} from "union-v1.5-contracts/mocks/ComptrollerMock.sol";
-import {UTokenMock} from "union-v1.5-contracts/mocks/UTokenMock.sol";
-import {MarketRegistryMock} from "union-v1.5-contracts/mocks/MarketRegistryMock.sol";
-import {UserManagerMock} from "union-v1.5-contracts/mocks/UserManagerMock.sol";
-import {FixedInterestRateModelMock} from "union-v1.5-contracts/mocks/FixedInterestRateModelMock.sol";
+import {AssetManagerMock} from "union-v2-contracts/mocks/AssetManagerMock.sol";
+import {UnionTokenMock} from "union-v2-contracts/mocks/UnionTokenMock.sol";
+import {FaucetERC20} from "union-v2-contracts/mocks/FaucetERC20.sol";
+import {ComptrollerMock} from "union-v2-contracts/mocks/ComptrollerMock.sol";
+import {UTokenMock} from "union-v2-contracts/mocks/UTokenMock.sol";
+import {MarketRegistryMock} from "union-v2-contracts/mocks/MarketRegistryMock.sol";
+import {UserManagerMock} from "union-v2-contracts/mocks/UserManagerMock.sol";
+import {FixedInterestRateModelMock} from "union-v2-contracts/mocks/FixedInterestRateModelMock.sol";
 
 contract TestWrapper is Test {
     AssetManagerMock public assetManagerMock;

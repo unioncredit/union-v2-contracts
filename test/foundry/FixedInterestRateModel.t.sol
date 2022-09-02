@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TestWrapper} from "./TestWrapper.sol";
-import {FixedInterestRateModel} from "union-v1.5-contracts/market/FixedInterestRateModel.sol";
+import {FixedInterestRateModel} from "union-v2-contracts/market/FixedInterestRateModel.sol";
 
 contract TestFixedInterestRateModel is TestWrapper {
     FixedInterestRateModel public fixedInterestRateModel;

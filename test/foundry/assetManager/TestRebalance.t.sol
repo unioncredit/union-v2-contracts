@@ -2,8 +2,8 @@ pragma solidity ^0.8.0;
 
 import {TestAssetManagerBase} from "./TestAssetManagerBase.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Controller} from "union-v1.5-contracts/Controller.sol";
-import {AssetManager} from "union-v1.5-contracts/asset/AssetManager.sol";
+import {Controller} from "union-v2-contracts/Controller.sol";
+import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract FakeAdapter {
     function supportsToken(address) public view returns (bool) {

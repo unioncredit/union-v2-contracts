@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
-import {UserManager} from "union-v1.5-contracts/user/UserManager.sol";
-import {UToken} from "union-v1.5-contracts/market/UToken.sol";
+import {UserManager} from "union-v2-contracts/user/UserManager.sol";
+import {UToken} from "union-v2-contracts/market/UToken.sol";
 
 contract TestWriteOffDebt is TestUserManagerBase {
     address staker = MEMBER;

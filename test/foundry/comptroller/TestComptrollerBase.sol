@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TestWrapper} from "../TestWrapper.sol";
-import {Comptroller} from "union-v1.5-contracts/token/Comptroller.sol";
+import {Comptroller} from "union-v2-contracts/token/Comptroller.sol";
 
 contract ComptrollerInternals is Comptroller {
     function getInflationIndex(

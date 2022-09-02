@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TestWrapper} from "../TestWrapper.sol";
-import {AssetManager} from "union-v1.5-contracts/asset/AssetManager.sol";
+import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestAssetManagerBase is TestWrapper {
     AssetManager public assetManager;

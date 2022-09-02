@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
 import {TestWrapper} from "./TestWrapper.sol";
-import {PureTokenAdapter} from "union-v1.5-contracts/asset/PureTokenAdapter.sol";
-import {Controller} from "union-v1.5-contracts/Controller.sol";
+import {PureTokenAdapter} from "union-v2-contracts/asset/PureTokenAdapter.sol";
+import {Controller} from "union-v2-contracts/Controller.sol";
 
 contract TestPureTokenAdapter is TestWrapper {
     PureTokenAdapter public pureToken;

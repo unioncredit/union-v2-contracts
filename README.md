@@ -4,7 +4,7 @@ Built using [foundry](https://book.getfoundry.sh/) and [hardhat](https://hardhat
 
 ## Difference from V1
 
-View the [diff](https://github.com/unioncredit/union-v1.5-contracts/compare/v1...v1.5)
+View the [diff](https://github.com/unioncredit/union-v2-contracts/compare/v1...v1.5)
 
 -   Does not lock interest, only locks principal
 -   First in first out locks for vouchers
@@ -14,7 +14,7 @@ View the [diff](https://github.com/unioncredit/union-v1.5-contracts/compare/v1..
 To install dependencies:
 
 ```
-git clone git@github.com:unioncredit/union-v1.5-contracts.git && cd union-v1.5-contracts
+git clone git@github.com:unioncredit/union-v2-contracts.git && cd union-v2-contracts
 yarn install
 ```
 

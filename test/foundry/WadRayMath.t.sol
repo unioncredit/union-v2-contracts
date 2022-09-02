@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TestWrapper} from "./TestWrapper.sol";
-import {WadRayMath} from "union-v1.5-contracts/WadRayMath.sol";
+import {WadRayMath} from "union-v2-contracts/WadRayMath.sol";
 
 contract TestWadRayMath is TestWrapper {
     function testWadMul() public {

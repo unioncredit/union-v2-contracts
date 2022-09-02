@@ -8,7 +8,7 @@ remappings = [
   'forge-std=lib/forge-std/src/',
   '@openzeppelin/contracts=node_modules/@openzeppelin/contracts',
   '@openzeppelin/contracts-upgradeable=node_modules/@openzeppelin/contracts-upgradeable',
-  'union-v1.5-contracts=contracts'
+  'union-v2-contracts=contracts'
 ]
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config

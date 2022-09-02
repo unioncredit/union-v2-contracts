@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
-import {UserManager} from "union-v1.5-contracts/user/UserManager.sol";
+import {UserManager} from "union-v2-contracts/user/UserManager.sol";
 
 contract TestUpdateFrozenInfo is TestUserManagerBase {
     uint96 stakeAmount = 100 ether;
