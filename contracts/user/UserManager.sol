@@ -105,6 +105,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     uint256 public maxOverdueBlocks;
 
     /**
+     * @dev Max voucher limit
+     */
+    uint256 public maxVouchers;
+
+    /**
      *  @dev Union Stakers
      */
     mapping(address => Staker) public stakers;
@@ -154,6 +159,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     error LockedRemaining();
     error VoucherNotFound();
     error VouchWhenOverdue();
+    error MaxVouchees();
 
     /* -------------------------------------------------------------------
       Events 
@@ -243,6 +249,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      */
     event LogSetEffectiveCount(uint256 oldEffectiveCount, uint256 newEffectiveCount);
 
+    /**
+     * @dev Set max voucher
+     * @param maxVouchers new max voucher limit
+     */
+    event LogSetMaxVouchers(uint256 maxVouchers);
+
     /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
@@ -254,7 +266,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         address comptroller_,
         address admin_,
         uint256 maxOverdueBlocks_,
-        uint256 effectiveCount_
+        uint256 effectiveCount_,
+        uint256 maxVouchers_
     ) public initializer {
         Controller.__Controller_init(admin_);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
@@ -266,6 +279,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         maxStakeAmount = 10_000e18;
         maxOverdueBlocks = maxOverdueBlocks_;
         effectiveCount = effectiveCount_;
+        maxVouchers = maxVouchers_;
     }
 
     /* -------------------------------------------------------------------
@@ -341,6 +355,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 oldEffectiveCount = effectiveCount;
         effectiveCount = _effectiveCount;
         emit LogSetEffectiveCount(oldEffectiveCount, _effectiveCount);
+    }
+
+    function setMaxVouchers(uint256 _maxVouchers) external onlyAdmin {
+        maxVouchers = _maxVouchers;
+        emit LogSetMaxVouchers(_maxVouchers);
     }
 
     /* -------------------------------------------------------------------
@@ -498,7 +517,14 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             if (trustAmount < vouch.locked) revert TrustAmountLtLocked();
             vouch.amount = trustAmount;
         } else {
+            // If the member is overdue they cannot create new vouches they can
+            // only update existing vouches
             if (uToken.checkIsOverdue(staker)) revert VouchWhenOverdue();
+
+            // This is a new vouch so we need to check that the
+            // member has not reached the max voucher limit
+            uint256 voucheesLength = vouchees[staker].length;
+            if (voucheesLength >= maxVouchers) revert MaxVouchees();
 
             // Get the new index that this vouch is going to be inserted at
             // Then update the voucher indexes for this borrower as well as
@@ -509,7 +535,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
             // Add the voucherIndex of this new vouch to the vouchees array for this
             // staker then update the voucheeIndexes with the voucheeIndex
-            uint256 voucheeIndex = vouchees[staker].length;
+            uint256 voucheeIndex = voucheesLength;
             vouchees[staker].push(_vouchee(borrower, uint96(voucherIndex)));
             voucheeIndexes[borrower][staker] = Index(true, uint128(voucheeIndex));
         }
