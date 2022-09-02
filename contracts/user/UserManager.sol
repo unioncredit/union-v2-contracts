@@ -524,7 +524,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             // This is a new vouch so we need to check that the
             // member has not reached the max voucher limit
             uint256 voucheesLength = vouchees[staker].length;
-            if (vouchees[staker].length >= maxVouchers) revert MaxVouchees();
+            if (voucheesLength >= maxVouchers) revert MaxVouchees();
 
             // Get the new index that this vouch is going to be inserted at
             // Then update the voucher indexes for this borrower as well as
