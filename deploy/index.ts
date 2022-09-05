@@ -88,7 +88,7 @@ export interface Contracts {
     unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
         pureToken: PureTokenAdapter;
-        aaveV3Adapter: AaveV3Adapter;
+        aaveV3Adapter?: AaveV3Adapter;
     };
 }
 
@@ -244,16 +244,18 @@ export default async function (
     }
 
     // deploy aave v3 adapter
-    let aaveV3Adapter: AaveV3Adapter;
+    let aaveV3Adapter: AaveV3Adapter | undefined = undefined;
     if (config.addresses.adapters?.aaveV3Adapter) {
         aaveV3Adapter = AaveV3Adapter__factory.connect(config.addresses.adapters?.aaveV3Adapter, signer);
     } else {
         // Only deploy the aaveV3Adapter if the lendingPool and aave market address are in the config
-        const {proxy} = await deployProxy<AaveV3Adapter>(new AaveV3Adapter__factory(signer), "AaveV3Adapter", {
-            signature: "__AaveV3Adapter_init(address,address,address)",
-            args: [assetManager.address, config.addresses.aave?.lendingPool, config.addresses.aave?.market]
-        });
-        aaveV3Adapter = AaveV3Adapter__factory.connect(proxy.address, signer);
+        if (config.addresses.aave?.lendingPool && config.addresses.aave?.market) {
+            const {proxy} = await deployProxy<AaveV3Adapter>(new AaveV3Adapter__factory(signer), "AaveV3Adapter", {
+                signature: "__AaveV3Adapter_init(address,address,address)",
+                args: [assetManager.address, config.addresses.aave?.lendingPool, config.addresses.aave?.market]
+            });
+            aaveV3Adapter = AaveV3Adapter__factory.connect(proxy.address, signer);
+        }
     }
 
     if (!config.addresses.assetManager) {

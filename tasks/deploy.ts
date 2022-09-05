@@ -18,8 +18,8 @@ const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {
         assetManager: contracts.assetManager.address,
         dai: contracts.dai.address,
         adapters: {
-            pureToken: contracts.adapters.pureToken.address,
-            aaveV3Adapter: contracts.adapters.aaveV3Adapter.address
+            pureToken: contracts.adapters.pureToken?.address || ethers.constants.AddressZero,
+            aaveV3Adapter: contracts.adapters.aaveV3Adapter?.address || ethers.constants.AddressZero
         }
     };
 };

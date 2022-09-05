@@ -4,12 +4,20 @@ import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import "solidity-coverage";
 
+console.log("[*] Environment");
+console.log(`    - ETHERSCAN_API_KEY: ${process.env.ETHERSCAN_API_KEY}`);
+console.log(`    - NODE_URL: ${process.env.NODE_URL}`);
+
 export default {
     networks: {
         hardhat: {
             accounts: {
                 count: 13
             }
+        },
+        goerli: {
+            url: process.env.NODE_URL || "",
+            gasPrice: 3000000000
         }
     },
     solidity: {
@@ -27,5 +35,8 @@ export default {
         ]
     },
     paths: {cache: "hh-cache", tests: "./test/integration"},
-    mocha: {timeout: 400000000000, require: ["./test/integration/helper.ts"]}
+    mocha: {timeout: 400000000000, require: ["./test/integration/helper.ts"]},
+    etherscan: {
+        apiKey: process.env.ETHERSCAN_API_KEY
+    }
 };

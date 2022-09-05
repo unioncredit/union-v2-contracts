@@ -35,9 +35,12 @@ export const baseConfig = {
 } as DeployConfig;
 
 export const getConfig = () => {
-    if (process.env.CONFIG === "arbitrum") {
-        return {...baseConfig, ...arbitrumConfig};
+    switch (process.env.CONFIG) {
+        case "arbitrum":
+            return {...baseConfig, ...arbitrumConfig};
+        case "goerli":
+            return {...baseConfig};
+        default:
+            return baseConfig;
     }
-
-    return baseConfig;
 };
