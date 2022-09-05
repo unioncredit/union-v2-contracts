@@ -26,7 +26,7 @@ const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {
 
 task("deploy", "Deploy Union V2 contracts")
     .addParam("pk", "Private key to use for deployment")
-    .addParam("confirmations", "How many confimations to wait for")
+    .addParam("confirmations", "How many confirmations to wait for")
     .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
         // ------------------------------------------------------
         // Setup
@@ -34,7 +34,7 @@ task("deploy", "Deploy Union V2 contracts")
 
         const config = getConfig();
         const privateKey = taskArguments.pk;
-        const waitForBlocks = taskArguments.confimations;
+        const waitForBlocks = taskArguments.confirmations;
 
         if (!privateKey.match(/^[A-Fa-f0-9]{1,64}$/)) {
             console.log("[!] Invalid format of private key");

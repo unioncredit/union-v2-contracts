@@ -1,7 +1,11 @@
-import {parseUnits} from "ethers/lib/utils";
-import arbitrumConfig from "./arbitrum";
-import {DeployConfig} from "../index";
 import {ethers} from "ethers";
+import {parseUnits} from "ethers/lib/utils";
+
+import {DeployConfig} from "../index";
+
+// Config
+import arbitrumConfig from "./arbitrum";
+import goerliConfig from "./goerli";
 
 export const baseConfig = {
     addresses: {
@@ -39,7 +43,7 @@ export const getConfig = () => {
         case "arbitrum":
             return {...baseConfig, ...arbitrumConfig};
         case "goerli":
-            return {...baseConfig};
+            return {...baseConfig, ...goerliConfig};
         default:
             return baseConfig;
     }
