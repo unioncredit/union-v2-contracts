@@ -4,9 +4,10 @@ import {expect} from "chai";
 import {Signer} from "ethers";
 import {ethers} from "hardhat";
 
-import deploy, {Contracts, DeployConfig} from "../../deploy";
+import {isForked} from "../utils/fork";
+import {getDeployer, fork} from "../utils";
 import {getConfig} from "../../deploy/config";
-import {getDeployer} from "../utils";
+import deploy, {Contracts, DeployConfig} from "../../deploy";
 
 describe("Test deployment configs", () => {
     let deployer: Signer;
@@ -15,6 +16,8 @@ describe("Test deployment configs", () => {
     let config: Omit<DeployConfig, "admin">;
 
     before(async function () {
+        if(isForked()) await fork();
+
         deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
 

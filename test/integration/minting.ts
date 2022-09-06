@@ -4,10 +4,11 @@ import {expect} from "chai";
 import {BigNumber, Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
 
-import {roll} from "../utils";
+import error from "../utils/error";
+import {isForked} from "../utils/fork";
 import deploy, {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";
-import {getDai, getDeployer, getSigners} from "../utils";
+import {fork, roll, getDai, getDeployer, getSigners} from "../utils";
 
 describe("Minting and redeeming uToken", () => {
     let deployer: Signer;
@@ -20,7 +21,9 @@ describe("Minting and redeeming uToken", () => {
 
     const mintAmount = parseUnits("1000");
 
-    before(async function () {
+    const beforeContext = async () => {
+        if(isForked()) await fork();
+
         const signers = await getSigners();
         deployer = await getDeployer();
 
@@ -28,9 +31,7 @@ describe("Minting and redeeming uToken", () => {
 
         deployerAddress = await deployer.getAddress();
         userAddress = await user.getAddress();
-    });
 
-    const beforeContext = async () => {
         contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         assetManagerAddress = await contracts.uToken.assetManager();
         WAD = await contracts.uToken.WAD();

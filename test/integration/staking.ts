@@ -4,9 +4,11 @@ import {expect} from "chai";
 import {Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
 
+import error from "../utils/error";
+import {isForked} from "../utils/fork";
 import {getConfig} from "../../deploy/config";
 import deploy, {Contracts} from "../../deploy";
-import {createHelpers, roll, Helpers, getDeployer, getSigners, getDai, getUnion} from "../utils";
+import {createHelpers, roll, Helpers, getDeployer, getSigners, getDai, getUnion, fork} from "../utils";
 
 describe("Staking and unstaking", () => {
     let deployer: Signer;
@@ -18,16 +20,16 @@ describe("Staking and unstaking", () => {
     // Member accounts
     let members: Signer[];
 
-    before(async function () {
+    const beforeContext = async () => {
+        if (isForked()) await fork();
+
         deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
 
         const signers = await getSigners();
         accounts = signers.slice(-(signers.length / 2));
         members = signers.slice(0, signers.length / 2);
-    });
 
-    const beforeContext = async () => {
         contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         helpers = createHelpers(contracts);
 
@@ -50,7 +52,7 @@ describe("Staking and unstaking", () => {
         before(beforeContext);
         it("cannot stake more than limit", async () => {
             const maxStake = await contracts.userManager.maxStakeAmount();
-            await expect(contracts.userManager.stake(maxStake.add(1))).to.be.revertedWith("StakeLimitReached()");
+            await expect(contracts.userManager.stake(maxStake.add(1))).to.be.revertedWithSig(error.StakeLimitReached);
         });
         it("transfers underlying token to assetManager", async () => {
             const stakeAmount = parseUnits("100");
@@ -66,7 +68,7 @@ describe("Staking and unstaking", () => {
         it("cannot unstake more than staked", async () => {
             const stakeAmount = await contracts.userManager.getStakerBalance(deployerAddress);
             const resp = contracts.userManager.unstake(stakeAmount.add(1));
-            await expect(resp).to.be.revertedWith("InsufficientBalance()");
+            await expect(resp).to.be.revertedWithSig(error.InsufficientBalance);
         });
         it("unstaking transfers underlying token from assetManager", async () => {
             const stakeAmount = await contracts.userManager.getStakerBalance(deployerAddress);
@@ -168,7 +170,8 @@ describe("Staking and unstaking", () => {
             await beforeContext();
 
             const amount = parseUnits("10000");
-            await contracts.unionToken.mint(contracts.comptroller.address, amount);
+
+            await getUnion(contracts.unionToken, contracts.comptroller.address, amount);
             await getDai(contracts.dai, deployer, amount);
             await contracts.dai.approve(contracts.uToken.address, amount);
             await contracts.uToken.addReserves(amount);
@@ -183,7 +186,7 @@ describe("Staking and unstaking", () => {
             await helpers.borrow(borrower, borrowAmount);
 
             const resp = contracts.userManager.connect(staker).unstake(stakedAmount);
-            await expect(resp).to.be.revertedWith("InsufficientBalance()");
+            await expect(resp).to.be.revertedWithSig(error.InsufficientBalance);
         });
     });
 });

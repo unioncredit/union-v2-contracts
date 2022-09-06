@@ -4,7 +4,7 @@ export default {
     admin: "0x23BBC53E1904b589d685e811c5D3410146f0Ab02", // deployer EOA
     addresses: {
         unionToken: "0x23B0483E07196c425d771240E81A9c2f1E113D3A",
-        dai: "0x73967c6a0904aa032c103b4104747e88c566b1a2",
+        dai: "0x73967c6a0904aA032C103b4104747E88c566B1A2",
         userManager: "0x4A6aeBbfFFa78D9b3434d604B7c85f3C57aaE1C4",
         uToken: "0x79f3AD63E9016eD7b0FB7153509C4CaCba4812D9",
         marketRegistry: "0xC47d41874b9b4434da9D39eF5AD6820D6C32375b",
