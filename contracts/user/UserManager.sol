@@ -730,7 +730,6 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         totalStaked -= amount;
 
         // update vouch trust amount
-        vouch.lastUpdated = uint64(block.number);
         vouch.amount -= amount;
         vouch.locked -= amount;
 
