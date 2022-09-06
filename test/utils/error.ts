@@ -1,5 +1,6 @@
 export default {
     AmountZero: "0xcbca5aa2",
+    SenderNotAdmin: "0xa6c827a9",
     // UToken
     AccrueInterestFailed: "0x8cfcf2b4",
     AmountExceedGlobalMax: "0xfb373779",

@@ -11,7 +11,7 @@ import {createHelpers, fork, getDai, getDeployer, getSigners, Helpers, roll} fro
 import {isForked} from "../utils/fork";
 import error from "../utils/error";
 
-describe.only("Borrowing and repaying", () => {
+describe("Borrowing and repaying", () => {
     let signers: Signer[];
     let deployer: Signer;
     let deployerAddress: string;
