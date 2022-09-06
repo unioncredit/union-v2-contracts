@@ -1,8 +1,9 @@
-import "@nomiclabs/hardhat-waffle";
+// import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import "solidity-coverage";
+import "@nomicfoundation/hardhat-chai-matchers";
 
 console.log("[*] Environment");
 console.log(`    - ETHERSCAN_API_KEY: ${process.env.ETHERSCAN_API_KEY}`);

@@ -7,9 +7,11 @@ import {ethers} from "hardhat";
 
 import deploy, {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";
-import {createHelpers, getDai, getDeployer, getSigners, Helpers, roll} from "../utils";
+import {createHelpers, fork, getDai, getDeployer, getSigners, Helpers, roll} from "../utils";
+import {isForked} from "../utils/fork";
+import error from "../utils/error";
 
-describe("Borrowing and repaying", () => {
+describe.only("Borrowing and repaying", () => {
     let signers: Signer[];
     let deployer: Signer;
     let deployerAddress: string;
@@ -22,13 +24,13 @@ describe("Borrowing and repaying", () => {
     const stakeAmount = parseUnits("1500");
     const mintAmount = parseUnits("10000");
 
-    before(async function () {
+    const beforeContext = async () => {
+        if (isForked()) await fork();
+
         signers = await getSigners();
         deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
-    });
 
-    const beforeContext = async () => {
         contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         helpers = createHelpers(contracts);
         staker = signers[0];
@@ -50,7 +52,7 @@ describe("Borrowing and repaying", () => {
         before(beforeContext);
         it("cannot borrow with no DAI in reserves", async () => {
             const resp = helpers.borrow(borrower, borrowAmount);
-            await expect(resp).to.be.revertedWith("InsufficientFundsLeft()");
+            await expect(resp).to.be.revertedWithSig(error.InsufficientFundsLeft);
         });
         it("add DAI to reservers", async () => {
             await contracts.uToken.addReserves(mintAmount);
@@ -59,7 +61,7 @@ describe("Borrowing and repaying", () => {
             const [creditLimit] = await helpers.getCreditLimits(borrower);
             expect(creditLimit).eq(0);
             const resp = helpers.borrow(borrower, borrowAmount);
-            await expect(resp).to.be.revertedWith("LockedRemaining()");
+            await expect(resp).to.be.revertedWithSig(error.LockedRemaining);
         });
         it("vouch for member", async () => {
             await helpers.updateTrust(staker, borrower, mintAmount);
@@ -75,7 +77,7 @@ describe("Borrowing and repaying", () => {
             await helpers.withOverdueblocks(1, async () => {
                 const minBorrow = await contracts.uToken.minBorrow();
                 const resp = helpers.borrow(borrower, minBorrow);
-                await expect(resp).to.be.revertedWith("MemberIsOverdue()");
+                await expect(resp).to.be.revertedWithSig(error.MemberIsOverdue);
             });
         });
     });
@@ -120,7 +122,7 @@ describe("Borrowing and repaying", () => {
         });
         it("cannot repay 0", async () => {
             const resp = contracts.uToken.repayBorrow(deployerAddress, 0);
-            await expect(resp).to.be.revertedWith("AmountZero()");
+            await expect(resp).to.be.revertedWithSig(error.AmountZero);
         });
         it("repaying less than interest doesn't update last repaid", async () => {
             const [lastRepayBefore] = await helpers.getBorrowed(borrower);
