@@ -237,8 +237,8 @@ export const createHelpers = (contracts: Contracts): Helpers => {
         const borrowerAddress = await borrower.getAddress();
         const owed = await contracts.uToken.borrowBalanceView(borrowerAddress);
         const daiBalance = await contracts.dai.balanceOf(borrowerAddress);
-        if (daiBalance.lt(owed) && "mint" in contracts.dai) {
-            await contracts.dai.mint(borrowerAddress, owed.mul(1100).div(1000));
+        if (daiBalance.lt(owed)) {
+            await getDai(contracts.dai, borrower, owed.mul(1100).div(1000));
         }
         await contracts.dai.connect(borrower).approve(contracts.uToken.address, ethers.constants.MaxUint256);
         return contracts.uToken.connect(borrower).repayBorrow(borrowerAddress, ethers.constants.MaxUint256);
