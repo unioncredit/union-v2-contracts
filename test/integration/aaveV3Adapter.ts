@@ -28,6 +28,11 @@ describe.fork("Aave V3 Adapter", () => {
         const amount = parseUnits("10000");
         await getDai(contracts.dai, deployer, amount);
 
+        if (!contracts.adapters.aaveV3Adapter) {
+            console.log("[!] AaveV3Adapter not found");
+            return;
+        }
+
         aaveV3Adapter = contracts.adapters.aaveV3Adapter;
         await aaveV3Adapter.mapTokenToAToken(contracts.dai.address);
     };

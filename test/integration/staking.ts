@@ -6,7 +6,7 @@ import {parseUnits} from "ethers/lib/utils";
 
 import {getConfig} from "../../deploy/config";
 import deploy, {Contracts} from "../../deploy";
-import {createHelpers, roll, Helpers, getDeployer, getSigners, getDai} from "../utils";
+import {createHelpers, roll, Helpers, getDeployer, getSigners, getDai, getUnion} from "../utils";
 
 describe("Staking and unstaking", () => {
     let deployer: Signer;
@@ -86,7 +86,7 @@ describe("Staking and unstaking", () => {
             await beforeContext();
 
             const amount = parseUnits("10000");
-            await contracts.unionToken.mint(contracts.comptroller.address, amount);
+            await getUnion(contracts.unionToken, contracts.comptroller.address, amount);
             await getDai(contracts.dai, deployer, amount);
             await contracts.dai.approve(contracts.uToken.address, amount);
             await contracts.uToken.addReserves(amount);

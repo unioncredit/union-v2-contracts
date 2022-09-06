@@ -2,7 +2,6 @@ import "./testSetup";
 
 import {expect} from "chai";
 import {Signer} from "ethers";
-import {ethers} from "hardhat";
 
 import deploy, {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";

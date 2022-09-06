@@ -1,12 +1,10 @@
 import {BigNumber, BigNumberish, ContractTransaction, Signer} from "ethers";
 import {ethers, network} from "hardhat";
+
+import {isForked} from "./fork";
 import {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";
-import {FaucetERC20, IDai} from "../../typechain-types";
-
-export const isForked = () => {
-    return process.env.FORK_NODE_URL && process.env.FORK_BLOCK;
-};
+import {FaucetERC20, FaucetERC20_ERC20Permit, IDai, IUnionToken} from "../../typechain-types";
 
 export const roll = async (n: number) => {
     await Promise.all(
@@ -54,7 +52,8 @@ export const fork = (forkBlock?: number) => {
 export const getDeployer = async () => {
     const signers = await ethers.getSigners();
     if (isForked()) {
-        await prank(signers[0].address);
+        const config = getConfig();
+        return prank(config.admin || signers[0].address);
     }
     return ethers.provider.getSigner(signers[0].address);
 };
@@ -84,6 +83,26 @@ export const getDai = async (dai: IDai | FaucetERC20, account: Signer, amount: B
         // Transfer DAI from the dai whale on this network
         const daiWhale = await prank(config.addresses.whales.dai);
         await dai.connect(daiWhale).transfer(address, amount);
+    }
+};
+
+export const getUnion = async (union: IUnionToken | FaucetERC20_ERC20Permit, address: string, amount: BigNumberish) => {
+    const config = getConfig();
+
+    if (!("getPriorVotes" in union)) {
+        // Just mint DAI from the mock faucet
+        await union.mint(address, amount);
+    } else {
+        if (!config.addresses?.whales?.union) {
+            console.log("[!] Not UNION whale found in config");
+            process.exit();
+        }
+
+        // Transfer DAI from the dai whale on this network
+        const whale = await prank(config.addresses.whales.union);
+        const owner = await prank(await union.owner());
+        await union.connect(owner).disableWhitelist();
+        await union.connect(whale).transfer(address, amount);
     }
 };
 

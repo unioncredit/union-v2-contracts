@@ -47,6 +47,7 @@ export interface Addresses {
     };
     whales?: {
         dai?: string;
+        union?: string;
     };
 }
 

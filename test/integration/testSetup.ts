@@ -1,5 +1,6 @@
 import {SuiteFunction} from "mocha";
-import {isForked, fork} from "../utils";
+import {fork} from "../utils";
+import {isForked} from "../utils/fork";
 
 const noop = () => {};
 
