@@ -1,5 +1,6 @@
 import {parseUnits} from "ethers/lib/utils";
 import arbitrumConfig from "./arbitrum";
+import mainnetConfig from "./mainnet";
 import {DeployConfig} from "../index";
 import {ethers} from "ethers";
 
@@ -37,6 +38,10 @@ export const baseConfig = {
 export const getConfig = () => {
     if (process.env.CONFIG === "arbitrum") {
         return {...baseConfig, ...arbitrumConfig};
+    }
+
+    if (process.env.CONFIG === "mainnet") {
+        return {...baseConfig, ...mainnetConfig};
     }
 
     return baseConfig;

@@ -8,7 +8,7 @@ export default {
             lendingPool: "0x794a61358d6845594f94dc1db02a252b5b4814ad"
         },
         whales: {
-            dai: "0xba479d5585ecec47edc2a571da430a40f43c3851"
+            dai: "0xc5ed2333f8a2c351fca35e5ebadb2a82f5d254c3"
         }
     }
 } as DeployConfig;
