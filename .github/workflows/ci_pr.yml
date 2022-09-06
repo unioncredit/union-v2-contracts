@@ -30,6 +30,3 @@ jobs:
 
             - name: Run int tests 
               run: yarn hh:test
-
-            - name: Run int coverage 
-              run: yarn coverage
