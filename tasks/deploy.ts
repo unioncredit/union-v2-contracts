@@ -68,7 +68,7 @@ task("deploy", "Deploy Union V2 contracts")
 
         // create save directory
         const dir = path.resolve(__dirname, "../deployments", hre.network.name);
-        fs.mkdirSync(dir);
+        !fs.existsSync(dir) && fs.mkdirSync(dir);
 
         // save deployment
         const saveDeploymentPath = path.resolve(dir, "deployment.json");

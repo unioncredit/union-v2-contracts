@@ -4,9 +4,11 @@ import {expect} from "chai";
 import {Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
 
+import error from "../utils/error";
+import {isForked} from "../utils/fork";
 import deploy, {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";
-import {createHelpers, getDai, getDeployer, getSigners, Helpers} from "../utils";
+import {fork, createHelpers, getDai, getDeployer, getSigners, Helpers} from "../utils";
 
 describe("Vouching", () => {
     let signers: Signer[];
@@ -17,13 +19,15 @@ describe("Vouching", () => {
 
     const trustAmount = parseUnits("1000");
 
-    before(async function () {
+    before(async function () {});
+
+    const beforeContext = async () => {
+        if (isForked()) await fork();
+
         signers = await getSigners();
         deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
-    });
 
-    const beforeContext = async () => {
         contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         helpers = createHelpers(contracts);
 
@@ -55,11 +59,11 @@ describe("Vouching", () => {
         });
         it("can only be called by a member", async () => {
             const resp = helpers.updateTrust(deployer, signers[0], parseUnits("10"));
-            await expect(resp).to.be.revertedWith("AuthFailed()");
+            await expect(resp).to.be.revertedWithSig(error.AuthFailed);
         });
         it("cannot vouch for self", async () => {
             const resp = helpers.updateTrust(signers[0], signers[0], parseUnits("10"));
-            await expect(resp).to.be.revertedWith("ErrorSelfVouching()");
+            await expect(resp).to.be.revertedWithSig(error.ErrorSelfVouching);
         });
         it("cannot increase vouch when updating trust with no stake", async () => {
             await helpers.updateTrust(staker, borrower, trustAmount);
@@ -90,7 +94,7 @@ describe("Vouching", () => {
             const [creditLimit] = await helpers.getCreditLimits(borrower);
             await helpers.borrow(borrower, creditLimit.mul(900).div(1000));
             const resp = helpers.updateTrust(staker, borrower, 0);
-            await expect(resp).to.be.revertedWith("TrustAmountLtLocked()");
+            await expect(resp).to.be.revertedWithSig(error.TrustAmountLtLocked);
         });
     });
 
@@ -107,13 +111,13 @@ describe("Vouching", () => {
         });
         it("only staker or borrower can cancel vouch", async () => {
             const resp = helpers.cancelVouch(staker, borrower, signers[3]);
-            await expect(resp).to.be.revertedWith("AuthFailed()");
+            await expect(resp).to.be.revertedWithSig(error.AuthFailed);
         });
         it("cannot cancel a vouch with locked amount", async () => {
             const [creditLimit] = await helpers.getCreditLimits(borrower);
             await helpers.borrow(borrower, creditLimit.mul(900).div(1000));
             const resp = helpers.cancelVouch(staker, borrower, staker);
-            await expect(resp).to.be.revertedWith("LockedStakeNonZero()");
+            await expect(resp).to.be.revertedWithSig(error.LockedStakeNonZero);
         });
         it("cancelling vouch removes member from vouchers array and correctly re-indexes", async () => {
             await helpers.repayFull(borrower);
