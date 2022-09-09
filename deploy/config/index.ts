@@ -1,8 +1,11 @@
-import {parseUnits} from "ethers/lib/utils";
-import arbitrumConfig from "./arbitrum";
-import mainnetConfig from "./mainnet";
-import {DeployConfig} from "../index";
 import {ethers} from "ethers";
+import {parseUnits} from "ethers/lib/utils";
+
+import {DeployConfig} from "../index";
+
+// Config
+import arbitrumConfig from "./arbitrum";
+import goerliConfig from "./goerli";
 
 export const baseConfig = {
     addresses: {
@@ -36,13 +39,12 @@ export const baseConfig = {
 } as DeployConfig;
 
 export const getConfig = () => {
-    if (process.env.CONFIG === "arbitrum") {
-        return {...baseConfig, ...arbitrumConfig};
+    switch (process.env.CONFIG) {
+        case "arbitrum":
+            return {...baseConfig, ...arbitrumConfig};
+        case "goerli":
+            return {...baseConfig, ...goerliConfig};
+        default:
+            return baseConfig;
     }
-
-    if (process.env.CONFIG === "mainnet") {
-        return {...baseConfig, ...mainnetConfig};
-    }
-
-    return baseConfig;
 };

@@ -88,7 +88,7 @@ export interface Contracts {
     unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
         pureToken: PureTokenAdapter;
-        aaveV3Adapter: AaveV3Adapter;
+        aaveV3Adapter?: AaveV3Adapter;
     };
 }
 
@@ -103,10 +103,15 @@ export default async function (
     if (config.addresses.marketRegistry) {
         marketRegistry = MarketRegistry__factory.connect(config.addresses.marketRegistry, signer);
     } else {
-        const {proxy} = await deployProxy<MarketRegistry>(new MarketRegistry__factory(signer), "MarketRegistry", {
-            signature: "__MarketRegistry_init()",
-            args: []
-        });
+        const {proxy} = await deployProxy<MarketRegistry>(
+            new MarketRegistry__factory(signer),
+            "MarketRegistry",
+            {
+                signature: "__MarketRegistry_init()",
+                args: []
+            },
+            debug
+        );
         marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
     }
 
@@ -155,10 +160,15 @@ export default async function (
     if (config.addresses.assetManager) {
         assetManager = AssetManager__factory.connect(config.addresses.assetManager, signer);
     } else {
-        const {proxy} = await deployProxy<AssetManager>(new AssetManager__factory(signer), "AssetManager", {
-            signature: "__AssetManager_init(address)",
-            args: [marketRegistry.address]
-        });
+        const {proxy} = await deployProxy<AssetManager>(
+            new AssetManager__factory(signer),
+            "AssetManager",
+            {
+                signature: "__AssetManager_init(address)",
+                args: [marketRegistry.address]
+            },
+            debug
+        );
         assetManager = AssetManager__factory.connect(proxy.address, signer);
     }
 
@@ -167,19 +177,24 @@ export default async function (
     if (config.addresses.userManager) {
         userManager = UserManager__factory.connect(config.addresses.userManager, signer);
     } else {
-        const {proxy} = await deployProxy<UserManager>(new UserManager__factory(signer), "UserManager", {
-            signature: "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256)",
-            args: [
-                assetManager.address,
-                unionToken.address,
-                dai.address,
-                comptroller.address,
-                config.admin,
-                config.userManager.maxOverdue,
-                config.userManager.effectiveCount,
-                config.userManager.maxVouchers
-            ]
-        });
+        const {proxy} = await deployProxy<UserManager>(
+            new UserManager__factory(signer),
+            "UserManager",
+            {
+                signature: "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256)",
+                args: [
+                    assetManager.address,
+                    unionToken.address,
+                    dai.address,
+                    comptroller.address,
+                    config.admin,
+                    config.userManager.maxOverdue,
+                    config.userManager.effectiveCount,
+                    config.userManager.maxVouchers
+                ]
+            },
+            debug
+        );
         userManager = UserManager__factory.connect(proxy.address, signer);
         await marketRegistry.setUserManager(dai.address, userManager.address);
     }
@@ -206,23 +221,28 @@ export default async function (
     if (config.addresses.uToken) {
         uToken = UToken__factory.connect(config.addresses.uToken, signer);
     } else {
-        const {proxy} = await deployProxy<UToken>(new UToken__factory(signer), "UToken", {
-            signature:
-                "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
-            args: [
-                config.uToken.name,
-                config.uToken.symbol,
-                dai.address,
-                config.uToken.initialExchangeRateMantissa,
-                config.uToken.reserveFactorMantissa,
-                config.uToken.originationFee,
-                config.uToken.debtCeiling,
-                config.uToken.maxBorrow,
-                config.uToken.minBorrow,
-                config.uToken.overdueBlocks,
-                config.admin
-            ]
-        });
+        const {proxy} = await deployProxy<UToken>(
+            new UToken__factory(signer),
+            "UToken",
+            {
+                signature:
+                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
+                args: [
+                    config.uToken.name,
+                    config.uToken.symbol,
+                    dai.address,
+                    config.uToken.initialExchangeRateMantissa,
+                    config.uToken.reserveFactorMantissa,
+                    config.uToken.originationFee,
+                    config.uToken.debtCeiling,
+                    config.uToken.maxBorrow,
+                    config.uToken.minBorrow,
+                    config.uToken.overdueBlocks,
+                    config.admin
+                ]
+            },
+            debug
+        );
         uToken = UToken__factory.connect(proxy.address, signer);
         await userManager.setUToken(uToken.address);
         await marketRegistry.setUToken(dai.address, uToken.address);
@@ -236,24 +256,36 @@ export default async function (
     if (config.addresses.adapters?.pureTokenAdapter) {
         pureToken = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
     } else {
-        const {proxy} = await deployProxy<PureTokenAdapter>(new PureTokenAdapter__factory(signer), "PureTokenAdapter", {
-            signature: "__PureTokenAdapter_init(address)",
-            args: [assetManager.address]
-        });
+        const {proxy} = await deployProxy<PureTokenAdapter>(
+            new PureTokenAdapter__factory(signer),
+            "PureTokenAdapter",
+            {
+                signature: "__PureTokenAdapter_init(address)",
+                args: [assetManager.address]
+            },
+            debug
+        );
         pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
     }
 
     // deploy aave v3 adapter
-    let aaveV3Adapter: AaveV3Adapter;
+    let aaveV3Adapter: AaveV3Adapter | undefined = undefined;
     if (config.addresses.adapters?.aaveV3Adapter) {
         aaveV3Adapter = AaveV3Adapter__factory.connect(config.addresses.adapters?.aaveV3Adapter, signer);
     } else {
         // Only deploy the aaveV3Adapter if the lendingPool and aave market address are in the config
-        const {proxy} = await deployProxy<AaveV3Adapter>(new AaveV3Adapter__factory(signer), "AaveV3Adapter", {
-            signature: "__AaveV3Adapter_init(address,address,address)",
-            args: [assetManager.address, config.addresses.aave?.lendingPool, config.addresses.aave?.market]
-        });
-        aaveV3Adapter = AaveV3Adapter__factory.connect(proxy.address, signer);
+        if (config.addresses.aave?.lendingPool && config.addresses.aave?.market) {
+            const {proxy} = await deployProxy<AaveV3Adapter>(
+                new AaveV3Adapter__factory(signer),
+                "AaveV3Adapter",
+                {
+                    signature: "__AaveV3Adapter_init(address,address,address)",
+                    args: [assetManager.address, config.addresses.aave?.lendingPool, config.addresses.aave?.market]
+                },
+                debug
+            );
+            aaveV3Adapter = AaveV3Adapter__factory.connect(proxy.address, signer);
+        }
     }
 
     if (!config.addresses.assetManager) {
