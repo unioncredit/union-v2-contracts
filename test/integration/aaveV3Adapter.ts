@@ -46,7 +46,8 @@ describe.fork("Aave V3 Adapter", () => {
         await getDai(contracts.dai, staker, mintAmount);
         await contracts.dai.connect(staker).approve(contracts.userManager.address, ethers.constants.MaxUint256);
 
-        aaveV3Adapter = contracts.adapters.aaveV3Adapter;
+        aaveV3Adapter = contracts.adapters.aaveV3Adapter!;
+
         await aaveV3Adapter.mapTokenToAToken(contracts.dai.address);
         await aaveV3Adapter.tokenToAToken(contracts.dai.address);
         await aaveV3Adapter.setCeiling(contracts.dai.address, ethers.constants.MaxUint256);
