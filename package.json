@@ -16,7 +16,8 @@
         "f:compile": "forge build",
         "f:test": "forge test",
         "clean": "forge clean && yarn hardhat clean && rm -rf ./typechain-types",
-        "coverage": "yarn hardhat coverage"
+        "coverage": "yarn hardhat coverage",
+        "slither": "slither ."
     },
     "repository": {
         "type": "git",
