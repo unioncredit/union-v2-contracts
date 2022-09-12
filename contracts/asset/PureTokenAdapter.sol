@@ -186,9 +186,7 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     ------------------------------------------------------------------- */
 
     function _supportsToken(address tokenAddress) internal view returns (bool) {
-        // Check if balanceOf reverst as a simple check to see if the token is ERC20 compatible
-        // this is obviosly not a flawless check but it is good enough for the intention here
-        return tokenAddress != address(0) && IERC20Upgradeable(tokenAddress).balanceOf(address(this)) >= 0;
+        return tokenAddress != address(0);
     }
 
     function _getSupply(address tokenAddress) internal view returns (uint256) {
