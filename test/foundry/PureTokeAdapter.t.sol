@@ -69,7 +69,6 @@ contract TestPureTokenAdapter is TestWrapper {
     }
 
     function testSupportsToken() public {
-        vm.expectRevert();
         pureToken.supportsToken(address(pureToken));
         assert(pureToken.supportsToken(address(daiMock)));
     }
@@ -80,8 +79,8 @@ contract TestPureTokenAdapter is TestWrapper {
     }
 
     function testCannotDepositUnsupportedToken() public {
-        vm.expectRevert();
-        pureToken.deposit(address(pureToken));
+        vm.expectRevert(PureTokenAdapter.TokenNotSupported.selector);
+        pureToken.deposit(address(0));
     }
 
     function testWithdraw(uint256 amount) public {
