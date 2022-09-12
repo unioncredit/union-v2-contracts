@@ -304,7 +304,7 @@ contract Comptroller is Controller, IComptroller {
      * @dev Get UserManager global state values
      */
     function _getUserManagerState(IUserManager userManager) internal view returns (UserManagerState memory) {
-        UserManagerState memory userManagerState;
+        UserManagerState memory userManagerState = UserManagerState(0, 0);
 
         userManagerState.totalFrozen = userManager.totalFrozen();
         userManagerState.totalStaked = userManager.totalStaked() - userManagerState.totalFrozen;
@@ -344,7 +344,7 @@ contract Comptroller is Controller, IComptroller {
 
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        UserManagerAccountState memory userManagerAccountState;
+        UserManagerAccountState memory userManagerAccountState = UserManagerAccountState(0, 0, 0, 0, false);
         (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
             .getFrozenInfo(account, pastBlocks);
 
@@ -379,7 +379,7 @@ contract Comptroller is Controller, IComptroller {
 
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        UserManagerAccountState memory userManagerAccountState;
+        UserManagerAccountState memory userManagerAccountState = UserManagerAccountState(0, 0, 0, 0, false);
         (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
             .updateFrozenInfo(account, pastBlocks);
 
