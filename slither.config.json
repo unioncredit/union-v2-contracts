@@ -1,5 +1,5 @@
 {
-    "detectors_to_exclude": "external-function",
+    "detectors_to_exclude": "external-function, unused-return",
     "exclude_informational": true,
     "exclude_low": true,
     "exclude_medium": false,
