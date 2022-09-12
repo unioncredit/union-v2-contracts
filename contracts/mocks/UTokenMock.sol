@@ -33,7 +33,7 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         return 0;
     }
 
-    function checkIsOverdue(address account) external view override returns (bool) {
+    function checkIsOverdue(address) external pure override returns (bool) {
         return false;
     }
 
