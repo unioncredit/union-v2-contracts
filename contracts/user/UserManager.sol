@@ -836,7 +836,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @return  memberTotalFrozen Total frozen amount for this staker
      *          memberFrozenCoinAge Total frozen coin age for this staker
      */
-    function updateFrozenInfo(address staker, uint256 pastBlocks) public returns (uint256, uint256) {
+    function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256) {
         (uint256 memberTotalFrozen, uint256 memberFrozenCoinAge) = getFrozenInfo(staker, pastBlocks);
 
         // Cache the current member frozen to a varaible then update it with
