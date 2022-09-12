@@ -7,10 +7,12 @@ import {ethers} from "hardhat";
 
 import {getConfig} from "../../deploy/config";
 import {createHelpers, getSigners, getDai, getDeployer, warp, Helpers} from "../utils";
-import deploy, {Contracts} from "../../deploy";
-import {AaveV3Adapter} from "../../typechain-types";
 
-describe.fork("Aave V3 Adapter", () => {
+import deploy, {Contracts} from "../../deploy";
+
+import {PureTokenAdapter} from "../../typechain-types";
+
+describe("Pure Token Adapter", () => {
     let signers: Signer[];
     let deployer: Signer;
     let deployerAddress: string;
@@ -18,7 +20,7 @@ describe.fork("Aave V3 Adapter", () => {
     let helpers: Helpers;
     let borrower: Signer;
     let staker: Signer;
-    let aaveV3Adapter: AaveV3Adapter;
+    let adapter: PureTokenAdapter;
 
     const borrowAmount = parseUnits("1000");
     const stakeAmount = parseUnits("1500");
@@ -46,29 +48,21 @@ describe.fork("Aave V3 Adapter", () => {
         await getDai(contracts.dai, staker, mintAmount);
         await contracts.dai.connect(staker).approve(contracts.userManager.address, ethers.constants.MaxUint256);
 
-        if (contracts.adapters.aaveV3Adapter) {
-            aaveV3Adapter = contracts.adapters.aaveV3Adapter;
-
-            await aaveV3Adapter.mapTokenToAToken(contracts.dai.address);
-            await aaveV3Adapter.tokenToAToken(contracts.dai.address);
-            await aaveV3Adapter.setCeiling(contracts.dai.address, ethers.constants.MaxUint256);
-            await contracts.adapters.pureToken.setCeiling(contracts.dai.address, 0);
-            await contracts.userManager.connect(staker).stake(stakeAmount);
-            await helpers.updateTrust(staker, borrower, stakeAmount);
-        } else {
-            throw new Error("AaveV3Adapter not found");
-        }
+        adapter = contracts.adapters.pureToken;
+        await contracts.adapters.pureToken.setCeiling(contracts.dai.address, ethers.constants.MaxUint256);
+        await contracts.userManager.connect(staker).stake(stakeAmount);
+        await helpers.updateTrust(staker, borrower, stakeAmount);
     };
 
     context("Deposit and Withdraw", () => {
         before(beforeContext);
 
         it("add DAI to reservers", async () => {
-            let aaveAdapterBal = await aaveV3Adapter.getSupplyView(contracts.dai.address);
-            expect(aaveAdapterBal).gt(stakeAmount); //Interest greater than zero
+            let adapterBal = await adapter.getSupplyView(contracts.dai.address);
+            expect(adapterBal).eq(stakeAmount);
             await contracts.uToken.addReserves(mintAmount);
-            aaveAdapterBal = await aaveV3Adapter.getSupplyView(contracts.dai.address);
-            expect(aaveAdapterBal).gt(mintAmount.add(stakeAmount));
+            adapterBal = await adapter.getSupplyView(contracts.dai.address);
+            expect(adapterBal).eq(mintAmount.add(stakeAmount));
         });
 
         it("borrow and locks stakers", async () => {
@@ -80,8 +74,8 @@ describe.fork("Aave V3 Adapter", () => {
             await helpers.borrow(borrower, borrowAmount);
             const [, , locked] = await helpers.getVouch(staker, borrower);
             expect(locked).eq(await helpers.borrowWithFee(borrowAmount));
-            const aaveAdapterBal = await await aaveV3Adapter.getSupplyView(contracts.dai.address);
-            expect(aaveAdapterBal).gt(mintAmount.add(stakeAmount).sub(borrowAmount));
+            const adapterBal = await await adapter.getSupplyView(contracts.dai.address);
+            expect(adapterBal).eq(mintAmount.add(stakeAmount).sub(borrowAmount));
             bal = await contracts.dai.balanceOf(borrowerAddress);
             expect(bal).eq(borrowAmount);
         });
@@ -107,14 +101,8 @@ describe.fork("Aave V3 Adapter", () => {
             await helpers.repay(borrower, repayAmount);
             const [, , lockedAfter] = await helpers.getVouchByIndex(borrower, 0);
             expect(lockedBefore).gt(lockedAfter);
-            const aaveAdapterBal = await aaveV3Adapter.getSupplyView(contracts.dai.address);
-            expect(aaveAdapterBal).gt(mintAmount.add(stakeAmount).sub(borrowAmount).add(repayAmount));
-        });
-
-        it("claim rewards from the adapter", async () => {
-            await warp(60 * 60 * 24);
-            await aaveV3Adapter.claimRewards(contracts.dai.address, deployerAddress);
-            // Nothing to expect we can just check that this call doesn't fail
+            const adapterBal = await adapter.getSupplyView(contracts.dai.address);
+            expect(adapterBal).gt(mintAmount.add(stakeAmount).sub(borrowAmount).add(repayAmount));
         });
     });
 });
