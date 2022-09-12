@@ -47,14 +47,28 @@ contract TestWriteOffDebt is TestUserManagerBase {
         userManager.debtWriteOff(staker, borrower, amount);
     }
 
-    function testDebtWriteOffPart(uint96 amount) public {
-        vm.assume(amount > 0 && amount < 100 ether);
+    function testDebtWriteOffPart(uint96 writeOffAmount, uint96 amount) public {
+        vm.assume(amount > 2 && amount < 100 ether);
+        vm.assume(writeOffAmount > 1 && writeOffAmount < amount);
+
         vm.prank(address(uTokenMock));
         userManager.updateLocked(borrower, amount, true);
+
+        vm.roll(2);
+        userManager.updateFrozenInfo(staker, block.number);
+
+        uint256 totalFrozen = userManager.totalFrozen();
+        uint256 memberFrozen = userManager.memberFrozen(staker);
+        assertEq(totalFrozen, amount);
+        assertEq(memberFrozen, amount);
+
         vm.prank(staker);
-        userManager.debtWriteOff(staker, borrower, amount);
+        userManager.debtWriteOff(staker, borrower, writeOffAmount);
         uint256 stakeAmount = userManager.getStakerBalance(staker);
-        assertEq(stakeAmount, 100 ether - amount);
+        assertEq(stakeAmount, 100 ether - writeOffAmount);
+
+        assertEq(userManager.totalFrozen(), totalFrozen - writeOffAmount);
+        assertEq(userManager.memberFrozen(staker), memberFrozen - writeOffAmount);
 
         (bool isSet, ) = userManager.voucherIndexes(borrower, staker);
         assertEq(isSet, true);

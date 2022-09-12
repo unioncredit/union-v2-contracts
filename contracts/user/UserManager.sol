@@ -730,9 +730,10 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         totalStaked -= amount;
 
         // update vouch trust amount
-        vouch.lastUpdated = uint64(block.number);
         vouch.amount -= amount;
         vouch.locked -= amount;
+
+        updateFrozenInfo(staker, 0);
 
         if (vouch.amount == 0) {
             cancelVouch(staker, borrower);
@@ -818,7 +819,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @return  memberTotalFrozen Total frozen amount for this staker
      *          memberFrozenCoinAge Total frozen coin age for this staker
      */
-    function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256) {
+    function updateFrozenInfo(address staker, uint256 pastBlocks) public returns (uint256, uint256) {
         (uint256 memberTotalFrozen, uint256 memberFrozenCoinAge) = getFrozenInfo(staker, pastBlocks);
 
         // Cache the current member frozen to a varaible then update it with
