@@ -46,14 +46,18 @@ describe.fork("Aave V3 Adapter", () => {
         await getDai(contracts.dai, staker, mintAmount);
         await contracts.dai.connect(staker).approve(contracts.userManager.address, ethers.constants.MaxUint256);
 
-        aaveV3Adapter = contracts.adapters.aaveV3Adapter!;
+        if (contracts.adapters.aaveV3Adapter) {
+            aaveV3Adapter = contracts.adapters.aaveV3Adapter;
 
-        await aaveV3Adapter.mapTokenToAToken(contracts.dai.address);
-        await aaveV3Adapter.tokenToAToken(contracts.dai.address);
-        await aaveV3Adapter.setCeiling(contracts.dai.address, ethers.constants.MaxUint256);
-        await contracts.adapters.pureToken.setCeiling(contracts.dai.address, 0);
-        await contracts.userManager.connect(staker).stake(stakeAmount);
-        await helpers.updateTrust(staker, borrower, stakeAmount);
+            await aaveV3Adapter.mapTokenToAToken(contracts.dai.address);
+            await aaveV3Adapter.tokenToAToken(contracts.dai.address);
+            await aaveV3Adapter.setCeiling(contracts.dai.address, ethers.constants.MaxUint256);
+            await contracts.adapters.pureToken.setCeiling(contracts.dai.address, 0);
+            await contracts.userManager.connect(staker).stake(stakeAmount);
+            await helpers.updateTrust(staker, borrower, stakeAmount);
+        } else {
+            throw new Error("AaveV3Adapter not found");
+        }
     };
 
     context("Deposit and Withdraw", () => {
