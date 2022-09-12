@@ -733,7 +733,24 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         vouch.amount -= amount;
         vouch.locked -= amount;
 
-        updateFrozenInfo(staker, 0);
+        // Update total frozen and member frozen. We don't want to move th
+        // burden of calling updateFrozenInfo into this function as it is quite
+        // gas intensive. Instead we just want to remove the amount that was
+        // frozen which is now being written off. However, it is possible that
+        // member frozen has not been updated prior to calling debtWriteOff and
+        // the amount being written off could be greater than the amount frozen.
+        // To avoid an underflow here we need to check this condition
+        uint256 stakerFrozen = memberFrozen[staker];
+        if (amount > stakerFrozen) {
+            // The amount being written off is more than the amount that has
+            // been previously frozen for this staker. Reset their frozen stake
+            // to zero and adjust totalFrozen
+            memberFrozen[staker] = 0;
+            totalFrozen -= stakerFrozen;
+        } else {
+            totalFrozen -= amount;
+            memberFrozen[staker] -= amount;
+        }
 
         if (vouch.amount == 0) {
             cancelVouch(staker, borrower);
