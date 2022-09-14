@@ -27,6 +27,7 @@ const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {
 task("deploy", "Deploy Union V2 contracts")
     .addParam("pk", "Private key to use for deployment")
     .addParam("confirmations", "How many confirmations to wait for")
+    .addParam("members", "Initial union members")
     .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
         // ------------------------------------------------------
         // Setup
@@ -79,6 +80,17 @@ task("deploy", "Deploy Union V2 contracts")
         const saveConfigPath = path.resolve(dir, "config.json");
         fs.writeFileSync(saveConfigPath, JSON.stringify(config, null, 2));
         console.log(`    - config: ${saveConfigPath}`);
+
+        // ------------------------------------------------------
+        // Add initial members
+        // ------------------------------------------------------
+
+        console.log("[*] Adding initial members");
+        const members = taskArguments.members.split(",");
+        for (const member of members) {
+            console.log(`    - ${member}`);
+            await deployment.userManager.addMember(member);
+        }
 
         console.log("[*] Complete");
     });

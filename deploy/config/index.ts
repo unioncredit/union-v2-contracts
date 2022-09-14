@@ -7,6 +7,9 @@ import {DeployConfig} from "../index";
 import arbitrumConfig from "./arbitrum";
 import goerliConfig from "./goerli";
 
+// Fork Configs
+import goerliForkConfig from "./goerli-fork";
+
 export const baseConfig = {
     addresses: {
         aave: {
@@ -44,6 +47,8 @@ export const getConfig = () => {
             return {...baseConfig, ...arbitrumConfig};
         case "goerli":
             return {...baseConfig, ...goerliConfig};
+        case "goerli-fork":
+            return {...baseConfig, ...goerliForkConfig};
         default:
             return baseConfig;
     }

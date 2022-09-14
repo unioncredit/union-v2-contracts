@@ -392,11 +392,21 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Get the count of vouchers
+     *  @dev  Get the count of vouchers
+     *        Vouchers are addresses that this borrower is recieving a vouch from.
      *  @param borrower Address of borrower
      */
     function getVoucherCount(address borrower) external view returns (uint256) {
         return vouchers[borrower].length;
+    }
+
+    /**
+     *  @dev  Get the count of vouchees
+     *        Voucheers are addresses that this staker is vouching for
+     *  @param staker Address of staker
+     */
+    function getVoucheeCount(address staker) external view returns (uint256) {
+        return vouchees[staker].length;
     }
 
     /**
