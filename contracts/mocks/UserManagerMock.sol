@@ -1,13 +1,11 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import "../interfaces/IUserManager.sol";
-
 /**
  * @title UserManager Contract
  * @dev Manages the Union members credit lines, and their vouchees and borrowers info.
  */
-contract UserManagerMock is IUserManager {
+contract UserManagerMock {
     uint256 public constant MAX_TRUST_LIMIT = 100;
     uint256 public constant MAX_STAKE_AMOUNT = 1000e18;
 
