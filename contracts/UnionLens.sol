@@ -7,7 +7,7 @@ import {IMarketRegistry} from "./interfaces/IMarketRegistry.sol";
 
 /**
  * @author Union
- * @title UnionLens
+ * @title UnionLens is a view layer contract intended to be used by a UI
  */
 contract UnionLens {
     /* -------------------------------------------------------------------
@@ -29,6 +29,7 @@ contract UnionLens {
         uint256 vouchLastUpdated;
         uint256 voucheeAmount;
     }
+
     /* -------------------------------------------------------------------
       Storage 
     ------------------------------------------------------------------- */
