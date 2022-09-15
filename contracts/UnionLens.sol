@@ -21,13 +21,19 @@ contract UnionLens {
         uint256 locked;
         uint256 voucherCount;
         uint256 voucheeCount;
+        uint256 accountBorrow;
+    }
+
+    struct VouchInfo {
+        uint256 trust;
+        uint256 vouch;
+        uint256 locked;
+        uint256 lastUpdated;
     }
 
     struct RelatedInfo {
-        uint256 vouchTrustAmount;
-        uint256 vouchLocked;
-        uint256 vouchLastUpdated;
-        uint256 voucheeAmount;
+        VouchInfo voucher;
+        VouchInfo vouchee;
     }
 
     /* -------------------------------------------------------------------
@@ -62,6 +68,8 @@ contract UnionLens {
 
         userInfo.voucherCount = userManager.getVoucherCount(user);
         userInfo.voucheeCount = userManager.getVoucheeCount(user);
+
+        userInfo.accountBorrow = uToken.getBorrowed(user);
     }
 
     function getRelatedInfo(
@@ -72,22 +80,37 @@ contract UnionLens {
         IUserManager userManager = IUserManager(marketRegistry.userManagers(underlying));
         IUToken uToken = IUToken(marketRegistry.uTokens(underlying));
 
+        (, , uint96 stakerStakedAmount) = userManager.stakers(staker);
+        (, , uint96 borrowerStakedAmount) = userManager.stakers(borrower);
+
         bool isSet;
         uint256 idx;
 
-        (isSet, idx) = userManager.voucheeIndexes(borrower, staker);
-        if (isSet) {
-            bytes32 vouchee = userManager.vouchees(staker, idx);
-            (, uint256 amount) = _vouchee(vouchee);
-            related.voucheeAmount = amount;
-        }
-
+        // Information about the relationship of this borrower to the
+        // staker such as how much trust has this staker given the borrower
+        // and how much of the vouch has this borrower locked
         (isSet, idx) = userManager.voucherIndexes(borrower, staker);
         if (isSet) {
-            (, uint96 amount, uint96 locked, uint64 lastUpdated) = userManager.vouchers(borrower, idx);
-            related.vouchTrustAmount = uint256(amount);
-            related.vouchLocked = uint256(locked);
-            related.vouchLastUpdated = uint256(lastUpdated);
+            (, uint96 trust, uint96 locked, uint64 lastUpdated) = userManager.vouchers(borrower, idx);
+            VouchInfo memory vouchInfo;
+            vouchInfo.trust = uint256(trust);
+            vouchInfo.vouch = trust > stakerStakedAmount ? stakerStakedAmount : trust;
+            vouchInfo.locked = uint256(locked);
+            vouchInfo.lastUpdated = uint256(lastUpdated);
+            related.voucher = vouchInfo;
+        }
+
+        // Information about the relationship of this staker to the borrower
+        // How much trust has this staker given the borrower, what is the vouch
+        (isSet, idx) = userManager.voucherIndexes(staker, borrower);
+        if (isSet) {
+            (, uint96 trust, uint96 locked, uint64 lastUpdated) = userManager.vouchers(staker, idx);
+            VouchInfo memory vouchInfo;
+            vouchInfo.trust = uint256(trust);
+            vouchInfo.vouch = trust > borrowerStakedAmount ? borrowerStakedAmount : trust;
+            vouchInfo.locked = uint256(locked);
+            vouchInfo.lastUpdated = uint256(lastUpdated);
+            related.vouchee = vouchInfo;
         }
     }
 
