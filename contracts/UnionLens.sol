@@ -16,6 +16,7 @@ contract UnionLens {
 
     struct UserInfo {
         bool isMember;
+        bool isOverdue;
         uint256 memberFrozen;
         uint256 stakedAmount;
         uint256 locked;
@@ -60,6 +61,7 @@ contract UnionLens {
 
         (bool isMember, uint96 locked, uint96 stakedAmount) = userManager.stakers(user);
 
+        userInfo.isOverdue = uToken.checkIsOverdue(user);
         userInfo.memberFrozen = userManager.memberFrozen(user);
 
         userInfo.isMember = isMember;
@@ -78,7 +80,6 @@ contract UnionLens {
         address borrower
     ) public view returns (RelatedInfo memory related) {
         IUserManager userManager = IUserManager(marketRegistry.userManagers(underlying));
-        IUToken uToken = IUToken(marketRegistry.uTokens(underlying));
 
         (, , uint96 stakerStakedAmount) = userManager.stakers(staker);
         (, , uint96 borrowerStakedAmount) = userManager.stakers(borrower);
