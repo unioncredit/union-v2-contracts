@@ -1,4 +1,4 @@
-# Union Contracts V1.5
+# Union Contracts V2
 
 Built using [foundry](https://book.getfoundry.sh/) and [hardhat](https://hardhat.org/)
 
