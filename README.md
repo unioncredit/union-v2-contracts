@@ -2,12 +2,11 @@
 
 Built using [foundry](https://book.getfoundry.sh/) and [hardhat](https://hardhat.org/)
 
-## Difference from V1
+## Deployments
 
-View the [diff](https://github.com/unioncredit/union-v2-contracts/compare/v1...v1.5)
-
--   Does not lock interest, only locks principal
--   First in first out locks for vouchers
+- Goerli
+  - [contract addersses](https://github.com/unioncredit/union-v2-contracts/blob/master/deployments/goerli/deployment.json)
+  - [deployment config](https://github.com/unioncredit/union-v2-contracts/blob/master/deployments/goerli/config.json)
 
 ## Install
 
