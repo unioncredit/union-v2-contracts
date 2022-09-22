@@ -16,7 +16,7 @@
         "f:compile": "forge build",
         "f:test": "forge test",
         "clean": "forge clean && yarn hardhat clean && rm -rf ./typechain-types",
-        "coverage": "yarn hardhat coverage"
+        "coverage": "./run-coverage.sh"
     },
     "repository": {
         "type": "git",
