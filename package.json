@@ -18,7 +18,8 @@
         "sim": "yarn hardhat test --config hardhat-sim.config.ts",
         "task": "yarn hardhat --config hardhat-task.config.ts",
         "clean": "forge clean && yarn hardhat clean && rm -rf ./typechain-types",
-        "coverage": "yarn hardhat coverage"
+        "coverage": "yarn hardhat coverage",
+        "reports": "yarn task report --network goerli"
     },
     "repository": {
         "type": "git",

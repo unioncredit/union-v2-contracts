@@ -42,16 +42,18 @@ export const baseConfig = {
     }
 } as DeployConfig;
 
-export const getConfig = () => {
-    if (isForked()) {
-        switch (process.env.CONFIG) {
+export const getConfig = (name?: string, forked: boolean = false) => {
+    const configName = name || process.env.CONFIG;
+
+    if (forked || isForked()) {
+        switch (configName) {
             case "goerli":
                 return {...baseConfig, ...goerliForkConfig};
             default:
                 return baseConfig;
         }
     } else {
-        switch (process.env.CONFIG) {
+        switch (configName) {
             case "arbitrum":
                 return {...baseConfig, ...arbitrumConfig};
             case "goerli":
