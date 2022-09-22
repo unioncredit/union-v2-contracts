@@ -4,8 +4,8 @@ import {
     AssetManager__factory,
     Comptroller,
     Comptroller__factory,
-    UserManager,
-    UserManager__factory,
+    UserManagerDAI,
+    UserManagerDAI__factory,
     UToken,
     UToken__factory,
     AssetManager,
@@ -79,7 +79,7 @@ export interface DeployConfig {
 }
 
 export interface Contracts {
-    userManager: UserManager;
+    userManager: UserManagerDAI;
     uToken: UToken;
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
@@ -174,13 +174,13 @@ export default async function (
     }
 
     // deploy user manager
-    let userManager: UserManager;
+    let userManager: UserManagerDAI;
     if (config.addresses.userManager) {
-        userManager = UserManager__factory.connect(config.addresses.userManager, signer);
+        userManager = UserManagerDAI__factory.connect(config.addresses.userManager, signer);
     } else {
-        const {proxy} = await deployProxy<UserManager>(
-            new UserManager__factory(signer),
-            "UserManager",
+        const {proxy} = await deployProxy<UserManagerDAI>(
+            new UserManagerDAI__factory(signer),
+            "UserManagerDAI",
             {
                 signature: "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256)",
                 args: [
@@ -196,7 +196,7 @@ export default async function (
             },
             debug
         );
-        userManager = UserManager__factory.connect(proxy.address, signer);
+        userManager = UserManagerDAI__factory.connect(proxy.address, signer);
         await marketRegistry.setUserManager(dai.address, userManager.address);
     }
 
