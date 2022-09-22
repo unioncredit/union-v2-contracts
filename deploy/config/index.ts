@@ -2,10 +2,14 @@ import {ethers} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
 
 import {DeployConfig} from "../index";
+import {isForked} from "../../test/utils/fork";
 
 // Config
 import arbitrumConfig from "./arbitrum";
 import goerliConfig from "./goerli";
+
+// Fork Config
+import goerliForkConfig from "./fork/goerli";
 
 export const baseConfig = {
     addresses: {
@@ -39,12 +43,21 @@ export const baseConfig = {
 } as DeployConfig;
 
 export const getConfig = () => {
-    switch (process.env.CONFIG) {
-        case "arbitrum":
-            return {...baseConfig, ...arbitrumConfig};
-        case "goerli":
-            return {...baseConfig, ...goerliConfig};
-        default:
-            return baseConfig;
+    if (isForked()) {
+        switch (process.env.CONFIG) {
+            case "goerli":
+                return {...baseConfig, ...goerliForkConfig};
+            default:
+                return baseConfig;
+        }
+    } else {
+        switch (process.env.CONFIG) {
+            case "arbitrum":
+                return {...baseConfig, ...arbitrumConfig};
+            case "goerli":
+                return {...baseConfig, ...goerliConfig};
+            default:
+                return baseConfig;
+        }
     }
 };

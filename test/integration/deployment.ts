@@ -16,7 +16,7 @@ describe("Test deployment configs", () => {
     let config: Omit<DeployConfig, "admin">;
 
     before(async function () {
-        if(isForked()) await fork();
+        if (isForked()) await fork();
 
         deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();

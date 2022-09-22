@@ -9,12 +9,14 @@
     "scripts": {
         "format": "prettier --write 'contracts/**/*.sol'",
         "format:check": "prettier --check 'contracts/**/*.sol'",
+        "compile": "yarn hh:compile && yarn f:compile",
         "hh:compile": "yarn hardhat compile",
-        "hh:test": "yarn hardhat test",
-        "hh:sim": "yarn hardhat test --config hardhat-sim.config.ts",
-        "task": "yarn hardhat --config hardhat-task.config.ts",
         "f:compile": "forge build",
-        "f:test": "forge test",
+        "test": "yarn test:int && yarn test:unit",
+        "test:int": "yarn hardhat test",
+        "test:unit": "forge test",
+        "sim": "yarn hardhat test --config hardhat-sim.config.ts",
+        "task": "yarn hardhat --config hardhat-task.config.ts",
         "clean": "forge clean && yarn hardhat clean && rm -rf ./typechain-types",
         "coverage": "yarn hardhat coverage"
     },
