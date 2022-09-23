@@ -43,7 +43,7 @@ contract TestUpdateTrust is TestUserManagerBase {
         vm.stopPrank();
     }
 
-    function testCancelNotStakerOrBorrower() public {
+    function testCannotCancelNotStakerOrBorrower() public {
         vm.startPrank(MEMBER);
         vm.expectRevert(UserManager.AuthFailed.selector);
         userManager.cancelVouch(address(3), address(4));
@@ -62,7 +62,6 @@ contract TestUpdateTrust is TestUserManagerBase {
         userManager.updateTrust(ACCOUNT, 100);
         vm.prank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, 100, true);
-        //vm.startPrank(MEMBER);
         vm.expectRevert(UserManager.LockedStakeNonZero.selector);
         vm.prank(MEMBER);
         userManager.cancelVouch(MEMBER, ACCOUNT);
