@@ -3,6 +3,7 @@ pragma solidity 0.8.16;
 
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 import {Controller} from "../Controller.sol";
 import {WadRayMath} from "../WadRayMath.sol";
@@ -17,7 +18,7 @@ import {IUserManager} from "../interfaces/IUserManager.sol";
  *        token is supported, and the contract needs to be revised after
  *        determining the reward calculation scheme of multiple tokens
  */
-contract Comptroller is Controller, IComptroller {
+contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
     using WadRayMath for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -79,6 +80,11 @@ contract Comptroller is Controller, IComptroller {
     uint256 public gLastUpdatedBlock;
 
     /**
+     *  @dev Max amount that can be staked of the staking token
+     */
+    uint96 public maxStakeAmount;
+
+    /**
      * @dev $UNION token contract
      */
     IERC20Upgradeable public unionToken;
@@ -93,6 +99,11 @@ contract Comptroller is Controller, IComptroller {
      */
     mapping(address => mapping(address => Info)) public users;
 
+    mapping(address => bool) public isSupportUToken;
+
+    mapping(address => mapping(address => uint256)) public stakers; //user => utoken => stake amount
+
+    mapping(address => uint256) public uTokenTotalStaked; //utoken => total staked
     /* -------------------------------------------------------------------
       Events 
     ------------------------------------------------------------------- */
@@ -104,6 +115,29 @@ contract Comptroller is Controller, IComptroller {
      */
     event LogWithdrawRewards(address indexed account, uint256 amount);
 
+    /**
+     *  @dev set max stake amount
+     *  @param oldMaxStakeAmount Old amount
+     *  @param newMaxStakeAmount New amount
+     */
+    event LogSetMaxStakeAmount(uint256 oldMaxStakeAmount, uint256 newMaxStakeAmount);
+
+    /**
+     *  @dev Stake event
+     *  @param account The staker's address
+     *  @param uToken The utoken address
+     *  @param amount The amount of tokens to stake
+     */
+    event LogStake(address indexed account, address indexed uToken, uint256 amount);
+
+    /**
+     *  @dev Unstake event
+     *  @param account The staker's address
+     *  @param uToken The utoken address
+     *  @param amount The amount of tokens to unstake
+     */
+    event LogUnstake(address indexed account, address indexed uToken, uint256 amount);
+
     /* -------------------------------------------------------------------
       Errors
     ------------------------------------------------------------------- */
@@ -112,6 +146,7 @@ contract Comptroller is Controller, IComptroller {
     error NotZero();
     error FrozenCoinAge();
     error InflationIndexTooSmall();
+    error StakeLimitReached();
 
     /* -------------------------------------------------------------------
       Constructor/Initializer 
@@ -153,6 +188,22 @@ contract Comptroller is Controller, IComptroller {
         halfDecayPoint = point;
     }
 
+    function setSupportUToken(address uToken, bool isSupport) public onlyAdmin {
+        require(marketRegistry.hasUToken(uToken), "utoken not exit");
+        isSupportUToken[uToken] = isSupport;
+    }
+
+    /**
+     * @dev Set the max amount that a user can stake
+     * Emits {LogSetMaxStakeAmount} event
+     * @param maxStakeAmount_ The max stake amount
+     */
+    function setMaxStakeAmount(uint96 maxStakeAmount_) external onlyAdmin {
+        uint96 oldMaxStakeAmount = maxStakeAmount;
+        maxStakeAmount = maxStakeAmount_;
+        emit LogSetMaxStakeAmount(uint256(oldMaxStakeAmount), uint256(maxStakeAmount));
+    }
+
     /* -------------------------------------------------------------------
       View Functions 
     ------------------------------------------------------------------- */
@@ -170,6 +221,10 @@ contract Comptroller is Controller, IComptroller {
         (uint256 totalFrozen, ) = userManagerContract.getFrozenInfo(account, block.number);
         bool isMember = userManagerContract.checkIsMember(account);
         return _getRewardsMultiplier(stakingAmount, lockedStake, totalFrozen, isMember);
+    }
+
+    function getUTokenRewardsMultiplier() external pure override returns (uint256) {
+        return _getUTokenRewardsMultiplier();
     }
 
     /**
@@ -191,13 +246,52 @@ contract Comptroller is Controller, IComptroller {
             UserManagerAccountState memory userManagerAccountState,
             Info memory userInfo,
             uint256 pastBlocks
-        ) = _getUserInfoView(userManager, account, token, futureBlocks);
+        ) = _getUserInfoView(address(userManager), account, token, futureBlocks);
 
         // Lookup global state from UserManager
         UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
         return
-            _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, userManagerState, userManagerAccountState);
+            _calculateRewardsByBlocks(
+                false,
+                account,
+                token,
+                pastBlocks,
+                userInfo,
+                userManagerState,
+                userManagerAccountState
+            );
+    }
+
+    function calculateUTokenRewardsByBlocks(
+        address account,
+        address token,
+        uint256 futureBlocks
+    ) public view override returns (uint256) {
+        if (!isSupportUToken[token]) return 0;
+
+        (
+            UserManagerAccountState memory userManagerAccountState,
+            Info memory userInfo,
+            uint256 pastBlocks
+        ) = _getUserInfoView(address(0), account, token, futureBlocks);
+
+        UserManagerState memory userManagerState;
+        userManagerState.totalStaked = uTokenTotalStaked[token];
+        if (userManagerState.totalStaked < 1e18) {
+            userManagerState.totalStaked = 1e18;
+        }
+
+        return
+            _calculateRewardsByBlocks(
+                true,
+                account,
+                token,
+                pastBlocks,
+                userInfo,
+                userManagerState,
+                userManagerAccountState
+            );
     }
 
     /**
@@ -222,6 +316,78 @@ contract Comptroller is Controller, IComptroller {
     /* -------------------------------------------------------------------
       Core Functions 
     ------------------------------------------------------------------- */
+    function stake(address utoken, uint96 amount) public whenNotPaused nonReentrant {
+        require(isSupportUToken[utoken], "utoken not support");
+        IERC20Upgradeable erc20Token = IERC20Upgradeable(utoken);
+        withdrawUTokenRewards(utoken);
+
+        if (stakers[msg.sender][utoken] + amount > maxStakeAmount) revert StakeLimitReached();
+
+        stakers[msg.sender][utoken] += amount;
+        uTokenTotalStaked[utoken] += amount;
+
+        erc20Token.safeTransferFrom(msg.sender, address(this), amount);
+
+        emit LogStake(msg.sender, utoken, amount);
+    }
+
+    function unstake(address token, uint96 amount) external whenNotPaused nonReentrant {
+        require(isSupportUToken[token], "utoken not support");
+        require(stakers[msg.sender][token] >= amount, "exceed the stake amount");
+        IERC20Upgradeable erc20Token = IERC20Upgradeable(token);
+        withdrawUTokenRewards(token);
+
+        stakers[msg.sender][token] -= amount;
+        uTokenTotalStaked[token] -= amount;
+
+        erc20Token.safeTransfer(msg.sender, amount);
+
+        emit LogUnstake(msg.sender, token, amount);
+    }
+
+    function withdrawUTokenRewards(address token) public override whenNotPaused returns (uint256) {
+        require(isSupportUToken[token], "utoken not support");
+        (
+            UserManagerAccountState memory userManagerAccountState,
+            Info memory userInfo,
+            uint256 pastBlocks
+        ) = _getUserInfo(address(0), msg.sender, token, 0);
+
+        UserManagerState memory userManagerState;
+        userManagerState.totalStaked = uTokenTotalStaked[token];
+        if (userManagerState.totalStaked < 1e18) {
+            userManagerState.totalStaked = 1e18;
+        }
+
+        uint256 amount = _calculateRewardsByBlocks(
+            true,
+            msg.sender,
+            token,
+            pastBlocks,
+            userInfo,
+            userManagerState,
+            userManagerAccountState
+        );
+
+        // update the global states
+        uint256 totalStaked_ = userManagerState.totalStaked;
+        gInflationIndex = _getInflationIndexNew(totalStaked_, block.number - gLastUpdatedBlock);
+        gLastUpdatedBlock = block.number;
+        users[msg.sender][token].updatedBlock = block.number;
+        users[msg.sender][token].inflationIndex = gInflationIndex;
+        if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
+            unionToken.safeTransfer(msg.sender, amount);
+            users[msg.sender][token].accrued = 0;
+            emit LogWithdrawRewards(msg.sender, amount);
+
+            return amount;
+        } else {
+            users[msg.sender][token].accrued = amount;
+            emit LogWithdrawRewards(msg.sender, 0);
+
+            return 0;
+        }
+    }
 
     /**
      *  @dev Withdraw rewards
@@ -242,12 +408,13 @@ contract Comptroller is Controller, IComptroller {
             UserManagerAccountState memory userManagerAccountState,
             Info memory userInfo,
             uint256 pastBlocks
-        ) = _getUserInfo(userManager, account, token, 0);
+        ) = _getUserInfo(address(userManager), account, token, 0);
 
         // Lookup global state from UserManager
         UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
         uint256 amount = _calculateRewardsByBlocks(
+            false,
             account,
             token,
             pastBlocks,
@@ -317,13 +484,13 @@ contract Comptroller is Controller, IComptroller {
 
     /**
      * @dev Get UserManager user specific state (view function does NOT update UserManage state)
-     * @param userManager UserManager contract
+     * @param userManagerAddress UserManager contract
      * @param account Account address
      * @param token Token address
      * @param futureBlocks Blocks in the future
      */
     function _getUserInfoView(
-        IUserManager userManager,
+        address userManagerAddress,
         address account,
         address token,
         uint256 futureBlocks
@@ -336,6 +503,7 @@ contract Comptroller is Controller, IComptroller {
             uint256
         )
     {
+        IUserManager userManager = IUserManager(userManagerAddress);
         Info memory userInfo = users[account][token];
         uint256 lastUpdatedBlock = userInfo.updatedBlock;
         if (block.number < lastUpdatedBlock) {
@@ -345,21 +513,23 @@ contract Comptroller is Controller, IComptroller {
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
         UserManagerAccountState memory userManagerAccountState;
-        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
-            .getFrozenInfo(account, pastBlocks);
+        if (address(userManager) != address(0)) {
+            (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
+                .getFrozenInfo(account, pastBlocks);
+        }
 
         return (userManagerAccountState, userInfo, pastBlocks);
     }
 
     /**
      * @dev Get UserManager user specific state (function does update UserManage state)
-     * @param userManager UserManager contract
+     * @param userManagerAddress UserManager contract
      * @param account Account address
      * @param token Token address
      * @param futureBlocks Blocks in the future
      */
     function _getUserInfo(
-        IUserManager userManager,
+        address userManagerAddress,
         address account,
         address token,
         uint256 futureBlocks
@@ -371,6 +541,7 @@ contract Comptroller is Controller, IComptroller {
             uint256
         )
     {
+        IUserManager userManager = IUserManager(userManagerAddress);
         Info memory userInfo = users[account][token];
         uint256 lastUpdatedBlock = userInfo.updatedBlock;
         if (block.number < lastUpdatedBlock) {
@@ -380,8 +551,10 @@ contract Comptroller is Controller, IComptroller {
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
         UserManagerAccountState memory userManagerAccountState;
-        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
-            .updateFrozenInfo(account, pastBlocks);
+        if (address(userManager) != address(0)) {
+            (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
+                .updateFrozenInfo(account, pastBlocks);
+        }
 
         return (userManagerAccountState, userInfo, pastBlocks);
     }
@@ -394,6 +567,7 @@ contract Comptroller is Controller, IComptroller {
      *  @return Unclaimed rewards
      */
     function _calculateRewardsByBlocks(
+        bool isUToken,
         address account,
         address token,
         uint256 pastBlocks,
@@ -401,19 +575,25 @@ contract Comptroller is Controller, IComptroller {
         UserManagerState memory userManagerState,
         UserManagerAccountState memory userManagerAccountState
     ) internal view returns (uint256) {
-        IUserManager userManagerContract = _getUserManager(token);
+        uint256 inflationIndex;
+        if (isUToken) {
+            userManagerAccountState.totalStaked = uTokenTotalStaked[token];
+            inflationIndex = _getUTokenRewardsMultiplier();
+        } else {
+            IUserManager userManagerContract = _getUserManager(token);
 
-        // Lookup account state from UserManager
-        userManagerAccountState.totalStaked = userManagerContract.getStakerBalance(account);
-        userManagerAccountState.totalLocked = userManagerContract.getTotalLockedStake(account);
-        userManagerAccountState.isMember = userManagerContract.checkIsMember(account);
+            // Lookup account state from UserManager
+            userManagerAccountState.totalStaked = userManagerContract.getStakerBalance(account);
+            userManagerAccountState.totalLocked = userManagerContract.getTotalLockedStake(account);
+            userManagerAccountState.isMember = userManagerContract.checkIsMember(account);
 
-        uint256 inflationIndex = _getRewardsMultiplier(
-            userManagerAccountState.totalStaked,
-            userManagerAccountState.totalLocked,
-            userManagerAccountState.totalFrozen,
-            userManagerAccountState.isMember
-        );
+            inflationIndex = _getRewardsMultiplier(
+                userManagerAccountState.totalStaked,
+                userManagerAccountState.totalLocked,
+                userManagerAccountState.totalFrozen,
+                userManagerAccountState.isMember
+            );
+        }
 
         return
             userInfo.accrued +
@@ -540,5 +720,9 @@ contract Comptroller is Controller, IComptroller {
         } else {
             return nonMemberRatio;
         }
+    }
+
+    function _getUTokenRewardsMultiplier() internal pure returns (uint256) {
+        return 10**18;
     }
 }

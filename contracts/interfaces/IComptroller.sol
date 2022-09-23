@@ -17,11 +17,15 @@ interface IComptroller {
      */
     function getRewardsMultiplier(address account, address token) external view returns (uint256);
 
+    function getUTokenRewardsMultiplier() external view returns (uint256);
+
     /**
      *  @dev Withdraw rewards
      *  @return Amount of rewards
      */
     function withdrawRewards(address sender, address token) external returns (uint256);
+
+    function withdrawUTokenRewards(address token) external returns (uint256);
 
     function updateTotalStaked(address token, uint256 totalStaked) external returns (bool);
 
@@ -32,6 +36,12 @@ interface IComptroller {
      *  @return Unclaimed rewards
      */
     function calculateRewardsByBlocks(
+        address account,
+        address token,
+        uint256 futureBlocks
+    ) external view returns (uint256);
+
+    function calculateUTokenRewardsByBlocks(
         address account,
         address token,
         uint256 futureBlocks

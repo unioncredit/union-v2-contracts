@@ -12,7 +12,15 @@ contract ComptrollerMock is IComptroller {
         return 0;
     }
 
+    function getUTokenRewardsMultiplier() external pure override returns (uint256) {
+        return 0;
+    }
+
     function withdrawRewards(address, address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function withdrawUTokenRewards(address) external pure override returns (uint256) {
         return 0;
     }
 
@@ -21,6 +29,14 @@ contract ComptrollerMock is IComptroller {
     }
 
     function calculateRewardsByBlocks(
+        address,
+        address,
+        uint256
+    ) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function calculateUTokenRewardsByBlocks(
         address,
         address,
         uint256
