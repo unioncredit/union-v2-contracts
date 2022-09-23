@@ -27,7 +27,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         // staker recieveing the vouch
         address staker;
         // trust amount
-        uint96 amount;
+        uint96 trust;
         // amount of stake locked by this vouch
         uint96 locked;
         // block number of last update
@@ -387,16 +387,26 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         for (uint256 i = 0; i < vouchers[borrower].length; i++) {
             Vouch memory vouch = vouchers[borrower][i];
             Staker memory staker = stakers[vouch.staker];
-            total += _min(staker.stakedAmount - staker.locked, vouch.amount - vouch.locked);
+            total += _min(staker.stakedAmount - staker.locked, vouch.trust - vouch.locked);
         }
     }
 
     /**
-     *  @dev Get the count of vouchers
+     *  @dev  Get the count of vouchers
+     *        Vouchers are addresses that this borrower is recieving a vouch from.
      *  @param borrower Address of borrower
      */
     function getVoucherCount(address borrower) external view returns (uint256) {
         return vouchers[borrower].length;
+    }
+
+    /**
+     *  @dev  Get the count of vouchees
+     *        Voucheers are addresses that this staker is vouching for
+     *  @param staker Address of staker
+     */
+    function getVoucheeCount(address staker) external view returns (uint256) {
+        return vouchees[staker].length;
     }
 
     /**
@@ -473,7 +483,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         Index memory index = voucherIndexes[borrower][_staker];
         Staker memory staker = stakers[_staker];
         if (!index.isSet) return 0;
-        uint96 trustAmount = vouchers[borrower][index.idx].amount;
+        uint96 trustAmount = vouchers[borrower][index.idx].trust;
         return trustAmount < staker.stakedAmount ? trustAmount : staker.stakedAmount;
     }
 
@@ -515,7 +525,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             // not less than the amount of stake currently locked by the borrower
             Vouch storage vouch = vouchers[borrower][index.idx];
             if (trustAmount < vouch.locked) revert TrustAmountLtLocked();
-            vouch.amount = trustAmount;
+            vouch.trust = trustAmount;
         } else {
             // If the member is overdue they cannot create new vouches they can
             // only update existing vouches
@@ -730,7 +740,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         totalStaked -= amount;
 
         // update vouch trust amount
-        vouch.amount -= amount;
+        vouch.trust -= amount;
         vouch.locked -= amount;
 
         // Update total frozen and member frozen. We don't want to move th
@@ -752,7 +762,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             memberFrozen[staker] -= amount;
         }
 
-        if (vouch.amount == 0) {
+        if (vouch.trust == 0) {
             cancelVouch(staker, borrower);
         }
 
@@ -792,7 +802,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                 uint96 stakerLocked = stakers[vouch.staker].locked;
                 uint96 stakerStakedAmount = stakers[vouch.staker].stakedAmount;
                 uint96 availableStake = stakerStakedAmount - stakerLocked;
-                uint96 lockAmount = _min(availableStake, vouch.amount - vouch.locked);
+                uint96 lockAmount = _min(availableStake, vouch.trust - vouch.locked);
                 if (lockAmount == 0) continue;
 
                 // Calculate the amount to add to the lock then
