@@ -762,7 +762,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             memberFrozen[staker] -= amount;
         }
 
-        if (vouch.amount == 0) {
+        if (vouch.trust == 0) {
             cancelVouch(staker, borrower);
         }
 
