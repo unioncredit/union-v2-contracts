@@ -242,7 +242,7 @@ contract Comptroller is Controller, IComptroller {
             UserManagerAccountState memory userManagerAccountState,
             Info memory userInfo,
             uint256 pastBlocks
-        ) = _getUserInfo(userManager, account, token, 0);
+        ) = _getUserInfoView(userManager, account, token, 0);
 
         // Lookup global state from UserManager
         UserManagerState memory userManagerState = _getUserManagerState(userManager);
@@ -347,41 +347,6 @@ contract Comptroller is Controller, IComptroller {
         UserManagerAccountState memory userManagerAccountState;
         (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
             .getFrozenInfo(account, pastBlocks);
-
-        return (userManagerAccountState, userInfo, pastBlocks);
-    }
-
-    /**
-     * @dev Get UserManager user specific state (function does update UserManage state)
-     * @param userManager UserManager contract
-     * @param account Account address
-     * @param token Token address
-     * @param futureBlocks Blocks in the future
-     */
-    function _getUserInfo(
-        IUserManager userManager,
-        address account,
-        address token,
-        uint256 futureBlocks
-    )
-        internal
-        returns (
-            UserManagerAccountState memory,
-            Info memory,
-            uint256
-        )
-    {
-        Info memory userInfo = users[account][token];
-        uint256 lastUpdatedBlock = userInfo.updatedBlock;
-        if (block.number < lastUpdatedBlock) {
-            lastUpdatedBlock = block.number;
-        }
-
-        uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
-
-        UserManagerAccountState memory userManagerAccountState;
-        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
-            .updateFrozenInfo(account, pastBlocks);
 
         return (userManagerAccountState, userInfo, pastBlocks);
     }
