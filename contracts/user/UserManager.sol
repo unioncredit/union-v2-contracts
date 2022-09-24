@@ -674,10 +674,10 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         // becomes locked when it is used to underwrite a borrow.
         if (staker.stakedAmount - staker.locked < amount) revert InsufficientBalance();
 
+        comptroller.withdrawRewards(msg.sender, stakingToken);
+
         staker.stakedAmount -= amount;
         totalStaked -= amount;
-
-        comptroller.withdrawRewards(msg.sender, stakingToken);
 
         if (!IAssetManager(assetManager).withdraw(stakingToken, msg.sender, amount)) {
             revert AssetManagerWithdrawFailed();
