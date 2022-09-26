@@ -4,7 +4,7 @@ import {ethers, network} from "hardhat";
 import {isForked} from "./fork";
 import {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";
-import {FaucetERC20, FaucetERC20_ERC20Permit, IDai, IUnionToken} from "../../typechain-types";
+import {FaucetERC20_ERC20Permit, IDai, IUnionToken} from "../../typechain-types";
 
 export const roll = async (n: number) => {
     await Promise.all(
@@ -67,7 +67,7 @@ export const getSigners = async () => {
     return accounts;
 };
 
-export const getDai = async (dai: IDai | FaucetERC20, account: Signer, amount: BigNumberish) => {
+export const getDai = async (dai: IDai | FaucetERC20_ERC20Permit, account: Signer, amount: BigNumberish) => {
     const address = await account.getAddress();
     const config = getConfig();
 

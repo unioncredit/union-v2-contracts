@@ -1,18 +1,14 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /**
  * @title UnionToken Interface
  * @dev Mint and distribute UnionTokens.
  */
-interface IUnionToken {
+interface IUnionToken is IERC20 {
     function owner() external view returns (address);
-
-    function totalSupply() external view returns (uint256);
-
-    function balanceOf(address account) external view returns (uint256);
-
-    function transfer(address recipient, uint256 amount) external returns (bool);
 
     function mint(address account, uint256 amount) external returns (bool);
 

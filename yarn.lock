@@ -2845,10 +2845,10 @@ eth-lib@^0.1.26:
     ws "^3.0.0"
     xhr-request-promise "^0.1.2"
 
-eth-permit@^0.2.1:
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/eth-permit/-/eth-permit-0.2.1.tgz#360bbf33bfeb70ad212e9cfa820370e8f827bdff"
-  integrity sha512-+a91Il8JDsKXnib6a5CWEwBc9OOR93IYM1GRGlcnEa+NwMHkWLg4P8lyEHnUmoMVfjutoQTz8wnEWr5Y+k3QOQ==
+eth-permit@^0.2.3:
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/eth-permit/-/eth-permit-0.2.3.tgz#7d8b051e329d2166fef32553ed397970d369cafe"
+  integrity sha512-d4tbiRQgbpdeJbdC9hdyT0SUJcJx28FIy3o2RxEAoeYI+zyYbNC0ZpdE6kxBK+7iY2payjHRE7rs7tr5EcOVLg==
   dependencies:
     utf8 "^3.0.0"
 

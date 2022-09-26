@@ -4,15 +4,13 @@ import {
     AssetManager__factory,
     Comptroller,
     Comptroller__factory,
-    UserManager,
-    UserManager__factory,
+    UserManagerERC20,
+    UserManagerERC20__factory,
     UToken,
     UToken__factory,
     AssetManager,
     PureTokenAdapter,
     PureTokenAdapter__factory,
-    FaucetERC20,
-    FaucetERC20__factory,
     IUnionToken,
     IUnionToken__factory,
     FaucetERC20_ERC20Permit,
@@ -79,12 +77,12 @@ export interface DeployConfig {
 }
 
 export interface Contracts {
-    userManager: UserManager;
+    userManager: UserManagerERC20;
     uToken: UToken;
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
     assetManager: AssetManager;
-    dai: IDai | FaucetERC20;
+    dai: IDai | FaucetERC20_ERC20Permit;
     marketRegistry: MarketRegistry;
     unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
@@ -131,12 +129,12 @@ export default async function (
     }
 
     // deploy DAI
-    let dai: IDai | FaucetERC20;
+    let dai: IDai | FaucetERC20_ERC20Permit;
     if (config.addresses.dai) {
         dai = IDai__factory.connect(config.addresses.dai, signer);
     } else {
-        dai = await deployContract<FaucetERC20>(
-            new FaucetERC20__factory(signer),
+        dai = await deployContract<FaucetERC20_ERC20Permit>(
+            new FaucetERC20_ERC20Permit__factory(signer),
             "DAI",
             ["DAI", "DAI"],
             debug,
@@ -174,13 +172,13 @@ export default async function (
     }
 
     // deploy user manager
-    let userManager: UserManager;
+    let userManager: UserManagerERC20;
     if (config.addresses.userManager) {
-        userManager = UserManager__factory.connect(config.addresses.userManager, signer);
+        userManager = UserManagerERC20__factory.connect(config.addresses.userManager, signer);
     } else {
-        const {proxy} = await deployProxy<UserManager>(
-            new UserManager__factory(signer),
-            "UserManager",
+        const {proxy} = await deployProxy<UserManagerERC20>(
+            new UserManagerERC20__factory(signer),
+            "UserManagerERC20",
             {
                 signature: "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256)",
                 args: [
@@ -196,7 +194,7 @@ export default async function (
             },
             debug
         );
-        userManager = UserManager__factory.connect(proxy.address, signer);
+        userManager = UserManagerERC20__factory.connect(proxy.address, signer);
         await marketRegistry.setUserManager(dai.address, userManager.address);
     }
 
