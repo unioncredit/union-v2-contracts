@@ -1,6 +1,7 @@
 import "./testSetup";
 
 import {expect} from "chai";
+import {ethers} from "hardhat";
 import {Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
 
@@ -9,6 +10,7 @@ import {isForked} from "../utils/fork";
 import {getConfig} from "../../deploy/config";
 import deploy, {Contracts} from "../../deploy";
 import {createHelpers, roll, Helpers, getDeployer, getSigners, getDai, getUnion, fork} from "../utils";
+import {signERC2612Permit} from "eth-permit";
 
 describe("Staking and unstaking", () => {
     let deployer: Signer;
@@ -38,7 +40,7 @@ describe("Staking and unstaking", () => {
         for (const signer of [deployer, ...accounts, ...members]) {
             const amount = stakeAmount;
             await getDai(contracts.dai, signer, amount);
-            await contracts.dai.connect(signer).approve(contracts.userManager.address, amount);
+            await contracts.dai.connect(signer).approve(contracts.userManager.address, ethers.constants.MaxUint256);
         }
 
         for (const member of members) {
@@ -54,10 +56,39 @@ describe("Staking and unstaking", () => {
             const maxStake = await contracts.userManager.maxStakeAmount();
             await expect(contracts.userManager.stake(maxStake.add(1))).to.be.revertedWithSig(error.StakeLimitReached);
         });
+        it("stake with DAI permit", async () => {
+            const stakeAmount = parseUnits("1");
+            const stakeBalBefore = await contracts.userManager.getStakerBalance(deployerAddress);
+
+            const result = await signERC2612Permit(
+                ethers.provider,
+                {
+                    name: "DAI",
+                    chainId: 31337,
+                    version: "1",
+                    verifyingContract: contracts.dai.address
+                },
+                deployerAddress,
+                contracts.userManager.address,
+                stakeAmount.toString()
+            );
+
+            await contracts.userManager.stakeWithERC20Permit(
+                stakeAmount,
+                result.deadline,
+                result.v,
+                result.r,
+                result.s
+            );
+            const stakeBalAfter = await contracts.userManager.getStakerBalance(deployerAddress);
+
+            expect(stakeBalAfter.sub(stakeBalBefore)).eq(stakeAmount);
+        });
         it("transfers underlying token to assetManager", async () => {
             const stakeAmount = parseUnits("100");
             const assetManagerBalanceBefore = await contracts.assetManager.getPoolBalance(contracts.dai.address);
             const totalStakedBefore = await contracts.userManager.totalStaked();
+            await contracts.dai.approve(contracts.userManager.address, stakeAmount);
             await contracts.userManager.stake(stakeAmount);
             const totalStakedAfter = await contracts.userManager.totalStaked();
             const assetManagerBalanceAfter = await contracts.assetManager.getPoolBalance(contracts.dai.address);
