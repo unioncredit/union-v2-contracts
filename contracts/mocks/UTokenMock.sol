@@ -79,7 +79,9 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         return 0;
     }
 
-    function mint(uint256) external override {}
+    function mint(uint256 mintTokens) external override {
+        _mint(msg.sender, mintTokens);
+    }
 
     function redeem(uint256) external override {}
 

@@ -20,6 +20,7 @@ contract ComptrollerInternals is Comptroller {
 contract TestComptrollerBase is TestWrapper {
     Comptroller public comptroller;
     ComptrollerInternals public comptrollerInternals;
+    address public constant MEMBER = address(1);
 
     uint256 public halfDecayPoint = 1000000;
 

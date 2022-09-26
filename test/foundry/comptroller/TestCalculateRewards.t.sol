@@ -64,6 +64,11 @@ contract TestCalculateRewards is TestComptrollerBase {
         assertEq(multiplier, comptroller.memberRatio());
     }
 
+    function testGetRewardsMultiplierUToken() public {
+        uint256 multiplier = comptroller.getUTokenRewardsMultiplier();
+        assertEq(multiplier, 1e18);
+    }
+
     function testCalculateRewardsByBlocks() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
@@ -71,6 +76,22 @@ contract TestCalculateRewards is TestComptrollerBase {
         comptroller.withdrawRewards(address(this), address(daiMock));
         uint256 rewards = comptroller.calculateRewardsByBlocks(address(this), address(daiMock), 1000);
         assertEq(rewards, 900000000000000000000);
+    }
+
+    function testCalculateUTokenRewardsByBlocks() public {
+        uTokenMock.mint(100 ether);
+        uTokenMock.transfer(MEMBER, 100 ether);
+        marketRegistryMock.setUToken(address(daiMock), address(uTokenMock));
+        comptroller.setSupportUToken(address(daiMock), true);
+        comptroller.setMaxStakeAmount(100 ether);
+
+        vm.startPrank(MEMBER);
+        uTokenMock.approve(address(comptroller), type(uint256).max);
+
+        comptroller.stake(address(uTokenMock), 100 ether);
+        uint256 rewards = comptroller.calculateUTokenRewardsByBlocks(MEMBER, address(uTokenMock), 1000);
+        assertEq(rewards, 900000000000000000000);
+        vm.stopPrank();
     }
 
     function testInflationPerBlock0() public {

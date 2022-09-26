@@ -147,6 +147,9 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
     error FrozenCoinAge();
     error InflationIndexTooSmall();
     error StakeLimitReached();
+    error NotExit();
+    error NotSupport();
+    error ExceedStake();
 
     /* -------------------------------------------------------------------
       Constructor/Initializer 
@@ -188,8 +191,9 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         halfDecayPoint = point;
     }
 
-    function setSupportUToken(address uToken, bool isSupport) public onlyAdmin {
-        require(marketRegistry.hasUToken(uToken), "utoken not exit");
+    function setSupportUToken(address token, bool isSupport) public onlyAdmin {
+        if (!marketRegistry.hasUToken(token)) revert NotExit();
+        address uToken = marketRegistry.uTokens(token);
         isSupportUToken[uToken] = isSupport;
     }
 
@@ -317,7 +321,7 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
       Core Functions 
     ------------------------------------------------------------------- */
     function stake(address utoken, uint96 amount) public whenNotPaused nonReentrant {
-        require(isSupportUToken[utoken], "utoken not support");
+        if (!isSupportUToken[utoken]) revert NotSupport();
         IERC20Upgradeable erc20Token = IERC20Upgradeable(utoken);
         withdrawUTokenRewards(utoken);
 
@@ -332,8 +336,8 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
     }
 
     function unstake(address token, uint96 amount) external whenNotPaused nonReentrant {
-        require(isSupportUToken[token], "utoken not support");
-        require(stakers[msg.sender][token] >= amount, "exceed the stake amount");
+        if (!isSupportUToken[token]) revert NotSupport();
+        if (stakers[msg.sender][token] < amount) revert ExceedStake();
         IERC20Upgradeable erc20Token = IERC20Upgradeable(token);
         withdrawUTokenRewards(token);
 
@@ -345,16 +349,16 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         emit LogUnstake(msg.sender, token, amount);
     }
 
-    function withdrawUTokenRewards(address token) public override whenNotPaused returns (uint256) {
-        require(isSupportUToken[token], "utoken not support");
+    function withdrawUTokenRewards(address uToken) public override whenNotPaused returns (uint256) {
+        if (!isSupportUToken[uToken]) revert NotSupport();
         (
             UserManagerAccountState memory userManagerAccountState,
             Info memory userInfo,
             uint256 pastBlocks
-        ) = _getUserInfo(address(0), msg.sender, token, 0);
+        ) = _getUserInfo(address(0), msg.sender, uToken, 0);
 
         UserManagerState memory userManagerState;
-        userManagerState.totalStaked = uTokenTotalStaked[token];
+        userManagerState.totalStaked = uTokenTotalStaked[uToken];
         if (userManagerState.totalStaked < 1e18) {
             userManagerState.totalStaked = 1e18;
         }
@@ -362,7 +366,7 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         uint256 amount = _calculateRewardsByBlocks(
             true,
             msg.sender,
-            token,
+            uToken,
             pastBlocks,
             userInfo,
             userManagerState,
@@ -373,16 +377,16 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         uint256 totalStaked_ = userManagerState.totalStaked;
         gInflationIndex = _getInflationIndexNew(totalStaked_, block.number - gLastUpdatedBlock);
         gLastUpdatedBlock = block.number;
-        users[msg.sender][token].updatedBlock = block.number;
-        users[msg.sender][token].inflationIndex = gInflationIndex;
+        users[msg.sender][uToken].updatedBlock = block.number;
+        users[msg.sender][uToken].inflationIndex = gInflationIndex;
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
             unionToken.safeTransfer(msg.sender, amount);
-            users[msg.sender][token].accrued = 0;
+            users[msg.sender][uToken].accrued = 0;
             emit LogWithdrawRewards(msg.sender, amount);
 
             return amount;
         } else {
-            users[msg.sender][token].accrued = amount;
+            users[msg.sender][uToken].accrued = amount;
             emit LogWithdrawRewards(msg.sender, 0);
 
             return 0;
@@ -541,7 +545,6 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
             uint256
         )
     {
-        IUserManager userManager = IUserManager(userManagerAddress);
         Info memory userInfo = users[account][token];
         uint256 lastUpdatedBlock = userInfo.updatedBlock;
         if (block.number < lastUpdatedBlock) {
@@ -551,7 +554,8 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
         UserManagerAccountState memory userManagerAccountState;
-        if (address(userManager) != address(0)) {
+        if (userManagerAddress != address(0)) {
+            IUserManager userManager = IUserManager(userManagerAddress);
             (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
                 .updateFrozenInfo(account, pastBlocks);
         }
@@ -577,7 +581,7 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
     ) internal view returns (uint256) {
         uint256 inflationIndex;
         if (isUToken) {
-            userManagerAccountState.totalStaked = uTokenTotalStaked[token];
+            userManagerAccountState.totalStaked = stakers[account][token];
             inflationIndex = _getUTokenRewardsMultiplier();
         } else {
             IUserManager userManagerContract = _getUserManager(token);
