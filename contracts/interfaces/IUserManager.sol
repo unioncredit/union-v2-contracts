@@ -27,7 +27,7 @@ interface IUserManager {
             uint64
         );
 
-    function vouchees(address staker, uint256 index) external view returns (bytes32);
+    function vouchees(address staker, uint256 index) external view returns (address, uint96);
 
     function voucherIndexes(address borrower, address staker) external view returns (bool, uint128);
 
