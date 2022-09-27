@@ -42,14 +42,14 @@ contract TestMarketRegistry is TestWrapper {
     }
 
     function testHasUToken(address token, address uToken) public {
-        vm.assume(token != address(123));
+        vm.assume(token != address(123) && token != address(0) && uToken != address(0));
         marketRegistry.setUToken(token, uToken);
         assert(marketRegistry.hasUToken(token));
         assert(!marketRegistry.hasUToken(address(123)));
     }
 
     function testHasUserManager(address token, address userManager) public {
-        vm.assume(token != address(123));
+        vm.assume(token != address(123) && token != address(0) && userManager != address(0));
         marketRegistry.setUserManager(token, userManager);
         assert(marketRegistry.hasUserManager(token));
         assert(!marketRegistry.hasUserManager(address(123)));
