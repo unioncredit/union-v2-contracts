@@ -28,8 +28,6 @@ contract TestComptrollerBase is TestWrapper {
 
         deployMocks();
 
-        uint256 halfDecayPoint = 1000000;
-
         comptroller = Comptroller(
             deployProxy(
                 logic,

@@ -24,15 +24,15 @@ contract TestFixedInterestRateModel is TestWrapper {
         assertEq(expected, fixedInterestRateModel.getSupplyRate(reserveFactorMantissa));
     }
 
-    function testSetInterestRate(uint256 interestRatePerBlock) public {
-        vm.assume(interestRatePerBlock <= fixedInterestRateModel.BORROW_RATE_MAX_MANTISSA());
-        fixedInterestRateModel.setInterestRate(interestRatePerBlock);
-        assertEq(interestRatePerBlock, fixedInterestRateModel.interestRatePerBlock());
+    function testSetInterestRate(uint256 interestRatePerBlock_) public {
+        vm.assume(interestRatePerBlock_ <= fixedInterestRateModel.BORROW_RATE_MAX_MANTISSA());
+        fixedInterestRateModel.setInterestRate(interestRatePerBlock_);
+        assertEq(interestRatePerBlock_, fixedInterestRateModel.interestRatePerBlock());
     }
 
-    function testCannotSetInterestRateTooHigh(uint256 interestRatePerBlock) public {
-        vm.assume(interestRatePerBlock > fixedInterestRateModel.BORROW_RATE_MAX_MANTISSA());
+    function testCannotSetInterestRateTooHigh(uint256 interestRatePerBlock_) public {
+        vm.assume(interestRatePerBlock_ > fixedInterestRateModel.BORROW_RATE_MAX_MANTISSA());
         vm.expectRevert(FixedInterestRateModel.BorrowRateExceeded.selector);
-        fixedInterestRateModel.setInterestRate(interestRatePerBlock);
+        fixedInterestRateModel.setInterestRate(interestRatePerBlock_);
     }
 }

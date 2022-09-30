@@ -6,7 +6,7 @@ import {Controller} from "union-v2-contracts/Controller.sol";
 import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract FakeAdapter {
-    function supportsToken(address) public view returns (bool) {
+    function supportsToken(address) public pure returns (bool) {
         return true;
     }
 
@@ -71,7 +71,7 @@ contract TestRebalance is TestAssetManagerBase {
         weights[0] = 7000;
         vm.expectRevert(AssetManager.UnsupportedToken.selector);
         assetManager.rebalance(address(1), weights);
-    } 
+    }
 
     function testCannotRebalanceNonAdmin() public {
         uint256[] memory weights = new uint256[](1);
@@ -79,5 +79,5 @@ contract TestRebalance is TestAssetManagerBase {
         vm.prank(address(1));
         vm.expectRevert(Controller.SenderNotAdmin.selector);
         assetManager.rebalance(address(daiMock), weights);
-    } 
+    }
 }

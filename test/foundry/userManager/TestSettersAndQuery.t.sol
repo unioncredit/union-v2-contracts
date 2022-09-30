@@ -33,8 +33,8 @@ contract TestSettersAndQuery is TestUserManagerBase {
         vm.assume(uToken != address(0));
         vm.prank(ADMIN);
         userManager.setUToken(uToken);
-        address uToken = address(userManager.uToken());
-        assertEq(uToken, uToken);
+        address newUToken = address(userManager.uToken());
+        assertEq(newUToken, uToken);
     }
 
     function testCannotSetNewMemberFeeNotAdmin(uint96 amount) public {
