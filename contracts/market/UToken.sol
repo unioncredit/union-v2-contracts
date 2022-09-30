@@ -335,10 +335,21 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     function setInterestRateModel(address newInterestRateModel_) external override onlyAdmin {
         address oldInterestRateModel = address(interestRateModel);
         address newInterestRateModel = newInterestRateModel_;
-        if (!IInterestRateModel(newInterestRateModel).isInterestRateModel()) revert ContractNotInterestModel();
-        interestRateModel = IInterestRateModel(newInterestRateModel);
 
-        emit LogNewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel);
+        uint256 csize;
+        assembly {
+            csize := extcodesize(newInterestRateModel_)
+        }
+        if (csize == 0) {
+            revert ContractNotInterestModel();
+        }
+
+        try IInterestRateModel(newInterestRateModel).isInterestRateModel() returns (bool) {
+            interestRateModel = IInterestRateModel(newInterestRateModel);
+            emit LogNewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel);
+        } catch {
+            revert ContractNotInterestModel();
+        }
     }
 
     /**
