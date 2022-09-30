@@ -186,7 +186,11 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     ------------------------------------------------------------------- */
 
     function _supportsToken(address tokenAddress) internal view returns (bool) {
-        return tokenAddress != address(0);
+        uint32 size;
+        assembly {
+            size := extcodesize(tokenAddress)
+        }
+        return size > 0;
     }
 
     function _getSupply(address tokenAddress) internal view returns (uint256) {
