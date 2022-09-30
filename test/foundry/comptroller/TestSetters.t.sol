@@ -28,13 +28,13 @@ contract TestSetters is TestComptrollerBase {
         marketRegistryMock.setUserManager(address(daiMock), address(this));
         uint256 previousBlock = block.number;
         assertEq(comptroller.gLastUpdatedBlock(), block.number);
-        assertEq(comptroller.gInflationIndex(), comptroller.INIT_INFLATION_INDEX());
 
         vm.roll(100);
         comptroller.updateTotalStaked(address(daiMock), amount);
         assert(previousBlock != block.number);
         assertEq(comptroller.gLastUpdatedBlock(), block.number);
-        assert(comptroller.gInflationIndex() != comptroller.INIT_INFLATION_INDEX());
+        assert(comptroller.gInflationIndex(address(daiMock)) != 0);
+        assert(comptroller.gInflationIndex(address(daiMock)) != comptroller.INIT_INFLATION_INDEX());
     }
 
     function testCannotUpdateTotalStakedNotUserManager() public {
