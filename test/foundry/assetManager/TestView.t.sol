@@ -9,7 +9,7 @@ contract FakeAdapter {
         supply = _supply;
     }
 
-    function supportsToken(address) public view returns (bool) {
+    function supportsToken(address) public pure returns (bool) {
         return true;
     }
 

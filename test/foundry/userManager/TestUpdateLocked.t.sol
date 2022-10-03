@@ -32,7 +32,7 @@ contract TestUpdateLocked is TestUserManagerBase {
         userManager.updateLocked(ACCOUNT, lockAmount, true);
         vm.stopPrank();
 
-        (, uint96 amount, uint96 locked, ) = userManager.vouchers(ACCOUNT, 0);
+        (, , uint96 locked, ) = userManager.vouchers(ACCOUNT, 0);
         assertEq(locked, lockAmount);
     }
 
@@ -57,7 +57,7 @@ contract TestUpdateLocked is TestUserManagerBase {
         vm.stopPrank();
 
         for (uint256 i = 0; i < MEMBERS.length; i++) {
-            (, uint96 amount, uint96 locked, ) = userManager.vouchers(ACCOUNT, i);
+            (, , uint96 locked, ) = userManager.vouchers(ACCOUNT, i);
             assertEq(locked, stakeAmount);
         }
     }
@@ -69,7 +69,7 @@ contract TestUpdateLocked is TestUserManagerBase {
         userManager.updateLocked(ACCOUNT, stakeAmount, false);
         vm.stopPrank();
 
-        (, uint96 amount, uint96 locked, ) = userManager.vouchers(ACCOUNT, 0);
+        (, , uint96 locked, ) = userManager.vouchers(ACCOUNT, 0);
         assertEq(locked, 0);
     }
 

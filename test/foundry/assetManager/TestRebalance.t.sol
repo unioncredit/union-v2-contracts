@@ -6,7 +6,7 @@ import {Controller} from "union-v2-contracts/Controller.sol";
 import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract FakeAdapter {
-    function supportsToken(address) public view returns (bool) {
+    function supportsToken(address) public pure returns (bool) {
         return true;
     }
 

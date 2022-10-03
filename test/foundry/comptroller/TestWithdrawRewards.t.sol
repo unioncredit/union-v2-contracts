@@ -18,7 +18,7 @@ contract FakeUserManager {
         uint256 _frozenCoinAge,
         uint256 _totalFrozen,
         bool _isMember
-    ) public {
+    ) {
         totalStaked = _totalStaked;
         stakerBalance = _stakerBalance;
         totalLockedStake = _totalLockedStake;
@@ -39,7 +39,7 @@ contract FakeUserManager {
         return (frozenCoinAge, totalFrozen);
     }
 
-    function updateFrozenInfo(address, uint256) public returns (uint256, uint256) {
+    function updateFrozenInfo(address, uint256) public view returns (uint256, uint256) {
         return (frozenCoinAge, totalFrozen);
     }
 
