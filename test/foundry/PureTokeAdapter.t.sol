@@ -78,11 +78,6 @@ contract TestPureTokenAdapter is TestWrapper {
         pureToken.deposit(address(daiMock));
     }
 
-    function testCannotDepositUnsupportedToken() public {
-        vm.expectRevert(PureTokenAdapter.TokenNotSupported.selector);
-        pureToken.deposit(address(0));
-    }
-
     function testWithdraw(uint256 amount) public {
         address recipient = address(123);
         daiMock.mint(address(pureToken), amount);
