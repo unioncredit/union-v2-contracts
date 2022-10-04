@@ -148,7 +148,7 @@ contract Comptroller is Controller, IComptroller {
     /**
      * @dev Set the half decay point
      */
-    function setHalfDecayPoint(uint256 point) public onlyAdmin {
+    function setHalfDecayPoint(uint256 point) external onlyAdmin {
         if (point == 0) revert NotZero();
         halfDecayPoint = point;
     }
@@ -215,7 +215,7 @@ contract Comptroller is Controller, IComptroller {
      *  @param effectiveTotalStake Effective total stake
      *  @return Inflation amount, div totalSupply is the inflation rate
      */
-    function inflationPerBlock(uint256 effectiveTotalStake) public view returns (uint256) {
+    function inflationPerBlock(uint256 effectiveTotalStake) external view returns (uint256) {
         return _inflationPerBlock(effectiveTotalStake);
     }
 
