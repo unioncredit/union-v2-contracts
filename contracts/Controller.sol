@@ -109,7 +109,7 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
      * @dev Check if the address provided is the admin
      * @param account Account address
      */
-    function isAdmin(address account) public view returns (bool) {
+    function isAdmin(address account) external view returns (bool) {
         return account == admin;
     }
 
@@ -117,11 +117,11 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
      * @dev set new admin account
      * @param account Account address
      */
-    function setPendingAdmin(address account) public onlyAdmin {
+    function setPendingAdmin(address account) external onlyAdmin {
         pendingAdmin = account;
     }
 
-    function acceptAdmin() public {
+    function acceptAdmin() external {
         if (pendingAdmin != msg.sender) revert SenderNotPendingAdmin();
         admin = pendingAdmin;
     }
@@ -137,7 +137,7 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
     /**
      * @dev Returns true if the contract is paused, and false otherwise.
      */
-    function paused() public view returns (bool) {
+    function paused() external view returns (bool) {
         return _paused;
     }
 

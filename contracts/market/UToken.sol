@@ -588,6 +588,9 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 toReserveAmount;
         uint256 toRedeemableAmount;
 
+        accountBorrows[borrower].interestIndex = borrowIndex;
+        totalBorrows -= repayAmount;
+
         if (repayAmount >= interest) {
             // If the repayment amount is greater than the interest (min payment)
             bool isOverdue = checkIsOverdue(borrower);
@@ -632,9 +635,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         totalReserves += toReserveAmount;
         totalRedeemable += toRedeemableAmount;
-
-        accountBorrows[borrower].interestIndex = borrowIndex;
-        totalBorrows -= repayAmount;
 
         // Transfer underlying token that have been repaid and then deposit
         // then in the asset manager so they can be distributed between the

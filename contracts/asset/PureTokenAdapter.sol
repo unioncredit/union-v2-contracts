@@ -50,14 +50,6 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     ------------------------------------------------------------------- */
 
     /**
-     * @dev Check supplied token address is supported
-     */
-    modifier checkTokenSupported(address tokenAddress) {
-        if (!_supportsToken(tokenAddress)) revert TokenNotSupported();
-        _;
-    }
-
-    /**
      * @dev Check sender is the asset manager
      */
     modifier onlyAssetManager() {
@@ -129,10 +121,10 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
 
     /**
      * @dev Check if this token is supported
-     * @param tokenAddress The token to check
      */
-    function supportsToken(address tokenAddress) external view override returns (bool) {
-        return _supportsToken(tokenAddress);
+    function supportsToken(address) external view override returns (bool) {
+        // Any token can be deposited this is just here to conform to the interface
+        return true;
     }
 
     /* -------------------------------------------------------------------
@@ -140,7 +132,7 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     ------------------------------------------------------------------- */
 
     // solhint-disable-next-line no-empty-blocks
-    function deposit(address tokenAddress) external view override checkTokenSupported(tokenAddress) {
+    function deposit(address tokenAddress) external view override {
         // Don't have to do anything because AssetManager already transfered tokens here
     }
 
@@ -155,7 +147,7 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
         address tokenAddress,
         address recipient,
         uint256 tokenAmount
-    ) external override onlyAssetManager checkTokenSupported(tokenAddress) {
+    ) external override onlyAssetManager {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.safeTransfer(recipient, tokenAmount);
     }
@@ -166,12 +158,7 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
      * @param tokenAddress Token to withdraw
      * @param recipient Recieved by
      */
-    function withdrawAll(address tokenAddress, address recipient)
-        external
-        override
-        onlyAssetManager
-        checkTokenSupported(tokenAddress)
-    {
+    function withdrawAll(address tokenAddress, address recipient) external override onlyAssetManager {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.safeTransfer(recipient, token.balanceOf(address(this)));
     }
@@ -184,12 +171,6 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     /* -------------------------------------------------------------------
       Internal Functions 
     ------------------------------------------------------------------- */
-
-    function _supportsToken(address tokenAddress) internal view returns (bool) {
-        // Check if balanceOf reverst as a simple check to see if the token is ERC20 compatible
-        // this is obviosly not a flawless check but it is good enough for the intention here
-        return tokenAddress != address(0) && IERC20Upgradeable(tokenAddress).balanceOf(address(this)) >= 0;
-    }
 
     function _getSupply(address tokenAddress) internal view returns (uint256) {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);

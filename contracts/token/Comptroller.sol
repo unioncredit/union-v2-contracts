@@ -148,7 +148,7 @@ contract Comptroller is Controller, IComptroller {
     /**
      * @dev Set the half decay point
      */
-    function setHalfDecayPoint(uint256 point) public onlyAdmin {
+    function setHalfDecayPoint(uint256 point) external onlyAdmin {
         if (point == 0) revert NotZero();
         halfDecayPoint = point;
     }
@@ -215,7 +215,7 @@ contract Comptroller is Controller, IComptroller {
      *  @param effectiveTotalStake Effective total stake
      *  @return Inflation amount, div totalSupply is the inflation rate
      */
-    function inflationPerBlock(uint256 effectiveTotalStake) public view returns (uint256) {
+    function inflationPerBlock(uint256 effectiveTotalStake) external view returns (uint256) {
         return _inflationPerBlock(effectiveTotalStake);
     }
 
@@ -263,8 +263,8 @@ contract Comptroller is Controller, IComptroller {
         users[account][token].updatedBlock = block.number;
         users[account][token].inflationIndex = gInflationIndex;
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
-            unionToken.safeTransfer(account, amount);
             users[account][token].accrued = 0;
+            unionToken.safeTransfer(account, amount);
             emit LogWithdrawRewards(account, amount);
 
             return amount;
@@ -303,9 +303,11 @@ contract Comptroller is Controller, IComptroller {
     /**
      * @dev Get UserManager global state values
      */
-    function _getUserManagerState(IUserManager userManager) internal view returns (UserManagerState memory) {
-        UserManagerState memory userManagerState;
-
+    function _getUserManagerState(IUserManager userManager)
+        internal
+        view
+        returns (UserManagerState memory userManagerState)
+    {
         userManagerState.totalFrozen = userManager.totalFrozen();
         userManagerState.totalStaked = userManager.totalStaked() - userManagerState.totalFrozen;
         if (userManagerState.totalStaked < 1e18) {
@@ -331,7 +333,7 @@ contract Comptroller is Controller, IComptroller {
         internal
         view
         returns (
-            UserManagerAccountState memory,
+            UserManagerAccountState memory userManagerAccountState,
             Info memory,
             uint256
         )
@@ -344,7 +346,6 @@ contract Comptroller is Controller, IComptroller {
 
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        UserManagerAccountState memory userManagerAccountState;
         (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
             .getFrozenInfo(account, pastBlocks);
 
@@ -366,7 +367,7 @@ contract Comptroller is Controller, IComptroller {
     )
         internal
         returns (
-            UserManagerAccountState memory,
+            UserManagerAccountState memory userManagerAccountState,
             Info memory,
             uint256
         )
@@ -379,7 +380,6 @@ contract Comptroller is Controller, IComptroller {
 
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        UserManagerAccountState memory userManagerAccountState;
         (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
             .updateFrozenInfo(account, pastBlocks);
 
