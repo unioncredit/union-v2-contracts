@@ -4,12 +4,12 @@ import {TestWrapper} from "../TestWrapper.sol";
 import {Comptroller} from "union-v2-contracts/token/Comptroller.sol";
 
 contract ComptrollerInternals is Comptroller {
-    function getRewardIndex(
+    function getInflationIndex(
         uint256 effectiveAmount,
-        uint256 rewardIndex,
+        uint256 inflationIndex,
         uint256 blockDelta
     ) public view returns (uint256) {
-        return _getRewardIndex(effectiveAmount, rewardIndex, blockDelta);
+        return _getInflationIndex(effectiveAmount, inflationIndex, blockDelta);
     }
 
     function lookup(uint256 index) public pure returns (uint256) {

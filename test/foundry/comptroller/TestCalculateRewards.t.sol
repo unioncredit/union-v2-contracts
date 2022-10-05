@@ -73,43 +73,43 @@ contract TestCalculateRewards is TestComptrollerBase {
         assertEq(rewards, 900000000000000000000);
     }
 
-    function testRewardsPerBlock0() public {
-        uint256 rewards = comptroller.rewardsPerBlock(1 ether);
-        assertEq(rewards, 1000000000000000000);
+    function testInflationPerBlock0() public {
+        uint256 inflation = comptroller.inflationPerBlock(1 ether);
+        assertEq(inflation, 1000000000000000000);
     }
 
-    function testRewardsPerBlock1() public {
-        uint256 rewards = comptroller.rewardsPerBlock(100 ether);
-        assertEq(rewards, 900000000000000000);
+    function testInflationPerBlock1() public {
+        uint256 inflation = comptroller.inflationPerBlock(100 ether);
+        assertEq(inflation, 900000000000000000);
     }
 
-    function testRewardsPerBlock2() public {
-        uint256 rewards = comptroller.rewardsPerBlock(1000 ether);
-        assertEq(rewards, 800000000000000000);
+    function testInflationPerBlock2() public {
+        uint256 inflation = comptroller.inflationPerBlock(1000 ether);
+        assertEq(inflation, 800000000000000000);
     }
 
-    function testRewardsPerBlock3() public {
-        uint256 rewards = comptroller.rewardsPerBlock(10000 ether);
-        assertEq(rewards, 700000000000000000);
+    function testInflationPerBlock3() public {
+        uint256 inflation = comptroller.inflationPerBlock(10000 ether);
+        assertEq(inflation, 700000000000000000);
     }
 
-    function testRewardsPerBlock4() public {
-        uint256 rewards = comptroller.rewardsPerBlock(100000 ether);
-        assertEq(rewards, 600000000000000000);
+    function testInflationPerBlock4() public {
+        uint256 inflation = comptroller.inflationPerBlock(100000 ether);
+        assertEq(inflation, 600000000000000000);
     }
 
-    function testRewardsPerBlock5() public {
-        uint256 rewards = comptroller.rewardsPerBlock(1000000 ether);
-        assertEq(rewards, 500000000000000000);
+    function testInflationPerBlock5() public {
+        uint256 inflation = comptroller.inflationPerBlock(1000000 ether);
+        assertEq(inflation, 500000000000000000);
     }
 
-    function testRewardsPerBlock6() public {
-        uint256 rewards = comptroller.rewardsPerBlock(5_000_000 ether);
-        assertEq(rewards, 250000000000000000);
+    function testInflationPerBlock6() public {
+        uint256 inflation = comptroller.inflationPerBlock(5_000_000 ether);
+        assertEq(inflation, 250000000000000000);
     }
 
-    function testRewardsPerBlock7() public {
-        uint256 rewards = comptroller.rewardsPerBlock(type(uint256).max);
-        assertEq(rewards, 1000000000000);
+    function testInflationPerBlock7() public {
+        uint256 inflation = comptroller.inflationPerBlock(type(uint256).max);
+        assertEq(inflation, 1000000000000);
     }
 }

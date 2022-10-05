@@ -27,7 +27,7 @@ contract Comptroller is Controller, IComptroller {
 
     struct Info {
         uint256 updatedBlock; //last withdraw rewards block
-        uint256 rewardIndex; //last withdraw rewards index
+        uint256 inflationIndex; //last withdraw rewards inflationIndex
         uint256 accrued; //the unionToken accrued but not yet transferred to each user
     }
 
@@ -49,9 +49,9 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     /**
-     * @dev Initial reward index
+     * @dev Initial inflation index
      */
-    uint256 public constant INIT_REWARD_INDEX = 10**18;
+    uint256 public constant INIT_INFLATION_INDEX = 10**18;
 
     /**
      * @dev Non member reward multiplier rate (75%)
@@ -69,12 +69,12 @@ contract Comptroller is Controller, IComptroller {
     uint256 public halfDecayPoint;
 
     /**
-     * @dev store the latest reward index
+     * @dev store the latest inflation index
      */
-    uint256 public gRewardIndex;
+    uint256 public gInflationIndex;
 
     /**
-     * @dev block number when updating the reward index
+     * @dev block number when updating the inflation index
      */
     uint256 public gLastUpdatedBlock;
 
@@ -111,7 +111,7 @@ contract Comptroller is Controller, IComptroller {
     error SenderNotUserManager();
     error NotZero();
     error FrozenCoinAge();
-    error RewardIndexTooSmall();
+    error InflationIndexTooSmall();
 
     /* -------------------------------------------------------------------
       Constructor/Initializer 
@@ -124,7 +124,7 @@ contract Comptroller is Controller, IComptroller {
     ) public initializer {
         Controller.__Controller_init(msg.sender);
 
-        gRewardIndex = INIT_REWARD_INDEX;
+        gInflationIndex = INIT_INFLATION_INDEX;
         gLastUpdatedBlock = block.number;
 
         unionToken = IERC20Upgradeable(unionToken_);
@@ -211,12 +211,12 @@ contract Comptroller is Controller, IComptroller {
     }
 
     /**
-     *  @dev Calculate rewards per block
+     *  @dev Calculate inflation per block
      *  @param effectiveTotalStake Effective total stake
-     *  @return rewards amount, div totalSupply is the rewards rate
+     *  @return Inflation amount, div totalSupply is the inflation rate
      */
-    function rewardsPerBlock(uint256 effectiveTotalStake) public view returns (uint256) {
-        return _rewardsPerBlock(effectiveTotalStake);
+    function inflationPerBlock(uint256 effectiveTotalStake) public view returns (uint256) {
+        return _inflationPerBlock(effectiveTotalStake);
     }
 
     /* -------------------------------------------------------------------
@@ -258,10 +258,10 @@ contract Comptroller is Controller, IComptroller {
 
         // update the global states
         uint256 totalStaked_ = userManagerState.totalStaked - userManagerState.totalFrozen;
-        gRewardIndex = _getRewardIndexNew(totalStaked_, block.number - gLastUpdatedBlock);
+        gInflationIndex = _getInflationIndexNew(totalStaked_, block.number - gLastUpdatedBlock);
         gLastUpdatedBlock = block.number;
         users[account][token].updatedBlock = block.number;
-        users[account][token].rewardIndex = gRewardIndex;
+        users[account][token].inflationIndex = gInflationIndex;
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
             unionToken.safeTransfer(account, amount);
             users[account][token].accrued = 0;
@@ -277,7 +277,7 @@ contract Comptroller is Controller, IComptroller {
     }
 
     /**
-     *  @dev When total staked change update reward index
+     *  @dev When total staked change update inflation index
      *  @param totalStaked totalStaked amount
      *  @return Whether succeeded
      */
@@ -289,7 +289,7 @@ contract Comptroller is Controller, IComptroller {
         returns (bool)
     {
         if (totalStaked > 0) {
-            gRewardIndex = _getRewardIndexNew(totalStaked, block.number - gLastUpdatedBlock);
+            gInflationIndex = _getInflationIndexNew(totalStaked, block.number - gLastUpdatedBlock);
         }
         gLastUpdatedBlock = block.number;
 
@@ -408,7 +408,7 @@ contract Comptroller is Controller, IComptroller {
         userManagerAccountState.totalLocked = userManagerContract.getTotalLockedStake(account);
         userManagerAccountState.isMember = userManagerContract.checkIsMember(account);
 
-        uint256 rewardIndex = _getRewardsMultiplier(
+        uint256 inflationIndex = _getRewardsMultiplier(
             userManagerAccountState.totalStaked,
             userManagerAccountState.totalLocked,
             userManagerAccountState.totalFrozen,
@@ -424,20 +424,20 @@ contract Comptroller is Controller, IComptroller {
                 userManagerAccountState.totalStaked,
                 userManagerAccountState.pastBlocksFrozenCoinAge,
                 pastBlocks,
-                rewardIndex
+                inflationIndex
             );
     }
 
     /**
-     *  @dev Calculate new reward index based on # of blocks
+     *  @dev Calculate new inflation index based on # of blocks
      *  @param totalStaked_ Number of total staked tokens in the system
      *  @param blockDelta Number of blocks
-     *  @return New reward index
+     *  @return New inflation index
      */
-    function _getRewardIndexNew(uint256 totalStaked_, uint256 blockDelta) internal view returns (uint256) {
-        if (totalStaked_ == 0) return INIT_REWARD_INDEX;
-        if (blockDelta == 0) return gRewardIndex;
-        return _getRewardIndex(totalStaked_, gRewardIndex, blockDelta);
+    function _getInflationIndexNew(uint256 totalStaked_, uint256 blockDelta) internal view returns (uint256) {
+        if (totalStaked_ == 0) return INIT_INFLATION_INDEX;
+        if (blockDelta == 0) return gInflationIndex;
+        return _getInflationIndex(totalStaked_, gInflationIndex, blockDelta);
     }
 
     function _calculateRewards(
@@ -447,22 +447,22 @@ contract Comptroller is Controller, IComptroller {
         uint256 userStaked,
         uint256 frozenCoinAge,
         uint256 pastBlocks,
-        uint256 rewardIndex
+        uint256 inflationIndex
     ) internal view returns (uint256) {
-        uint256 startRewardIndex = users[account][token].rewardIndex;
+        uint256 startInflationIndex = users[account][token].inflationIndex;
         if (userStaked * pastBlocks < frozenCoinAge) revert FrozenCoinAge();
 
-        if (userStaked == 0 || totalStaked == 0 || startRewardIndex == 0 || pastBlocks == 0) {
+        if (userStaked == 0 || totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
             return 0;
         }
 
         uint256 effectiveStakeAmount = (userStaked * pastBlocks - frozenCoinAge) / pastBlocks;
 
-        uint256 currRewardIndex = _getRewardIndexNew(totalStaked, pastBlocks);
+        uint256 curInflationIndex = _getInflationIndexNew(totalStaked, pastBlocks);
 
-        if (currRewardIndex < startRewardIndex) revert RewardIndexTooSmall();
+        if (curInflationIndex < startInflationIndex) revert InflationIndexTooSmall();
 
-        return (currRewardIndex - startRewardIndex).wadMul(effectiveStakeAmount).wadMul(rewardIndex);
+        return (curInflationIndex - startInflationIndex).wadMul(effectiveStakeAmount).wadMul(inflationIndex);
     }
 
     /**
@@ -475,9 +475,9 @@ contract Comptroller is Controller, IComptroller {
     }
 
     /**
-     *  @dev See Comptroller.rewardsPerBlock
+     *  @dev See Comptroller.inflationPerBlock
      */
-    function _rewardsPerBlock(uint256 effectiveTotalStake) internal view returns (uint256) {
+    function _inflationPerBlock(uint256 effectiveTotalStake) internal view returns (uint256) {
         uint256 index = effectiveTotalStake / halfDecayPoint;
         return _lookup(index);
     }
@@ -512,12 +512,12 @@ contract Comptroller is Controller, IComptroller {
         }
     }
 
-    function _getRewardIndex(
+    function _getInflationIndex(
         uint256 effectiveAmount,
-        uint256 rewardIndex,
+        uint256 inflationIndex,
         uint256 blockDelta
     ) internal view returns (uint256) {
-        return blockDelta * _rewardsPerBlock(effectiveAmount).wadDiv(effectiveAmount) + rewardIndex;
+        return blockDelta * _inflationPerBlock(effectiveAmount).wadDiv(effectiveAmount) + inflationIndex;
     }
 
     function _getRewardsMultiplier(

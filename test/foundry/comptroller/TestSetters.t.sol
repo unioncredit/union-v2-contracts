@@ -22,24 +22,24 @@ contract TestSetters is TestComptrollerBase {
         comptroller.setHalfDecayPoint(1);
     }
 
-    function testupdateRewardIndex(uint256 amount) public {
+    function testUpdateTotalStaked(uint256 amount) public {
         vm.assume(amount != 0 && amount < 1_000_000 ether);
 
         marketRegistryMock.setUserManager(address(daiMock), address(this));
         uint256 previousBlock = block.number;
         assertEq(comptroller.gLastUpdatedBlock(), block.number);
-        assertEq(comptroller.gRewardIndex(), comptroller.INIT_REWARD_INDEX());
+        assertEq(comptroller.gInflationIndex(), comptroller.INIT_INFLATION_INDEX());
 
         vm.roll(100);
-        comptroller.updateRewardIndex(address(daiMock), amount);
+        comptroller.updateTotalStaked(address(daiMock), amount);
         assert(previousBlock != block.number);
         assertEq(comptroller.gLastUpdatedBlock(), block.number);
-        assert(comptroller.gRewardIndex() != comptroller.INIT_REWARD_INDEX());
+        assert(comptroller.gInflationIndex() != comptroller.INIT_INFLATION_INDEX());
     }
 
-    function testCannotupdateRewardIndexNotUserManager() public {
+    function testCannotUpdateTotalStakedNotUserManager() public {
         marketRegistryMock.setUserManager(address(daiMock), address(1));
         vm.expectRevert(Comptroller.SenderNotUserManager.selector);
-        comptroller.updateRewardIndex(address(daiMock), 1);
+        comptroller.updateTotalStaked(address(daiMock), 1);
     }
 }

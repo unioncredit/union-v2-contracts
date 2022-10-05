@@ -8,7 +8,7 @@ contract TestInternals is TestComptrollerBase {
         deployComtrollerExposedInternals();
     }
 
-    function testGetRewardIndex() public {
+    function testGetInflationIndex() public {
         uint256[][] memory set = new uint256[][](3);
 
         set[0] = new uint256[](4);
@@ -30,7 +30,7 @@ contract TestInternals is TestComptrollerBase {
         set[2][3] = 10000000100000000;
 
         for (uint256 i = 0; i < set.length; i++) {
-            uint256 res = comptrollerInternals.getRewardIndex(set[i][0], set[i][1], set[i][2]);
+            uint256 res = comptrollerInternals.getInflationIndex(set[i][0], set[i][1], set[i][2]);
             assertEq(res, set[i][3]);
         }
     }

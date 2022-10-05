@@ -6,7 +6,7 @@ import {IComptroller} from "../interfaces/IComptroller.sol";
 contract ComptrollerMock is IComptroller {
     function setHalfDecayPoint(uint256 point) external {}
 
-    function rewardsPerBlock(uint256 effectiveTotalStake) external view returns (uint256) {}
+    function inflationPerBlock(uint256 effectiveTotalStake) external view returns (uint256) {}
 
     function getRewardsMultiplier(address, address) external pure override returns (uint256) {
         return 0;
