@@ -105,11 +105,11 @@ describe("Borrowing and repaying", () => {
             expect(totalBorrowsAfter.sub(totalBorrowsBefore)).gte(borrowAmount);
         });
         it("Interest is accrued", async () => {
-            const totalBorrowsBefore = await contracts.uToken.totalBorrows();
+            const borrowIndexBefore = await contracts.uToken.borrowIndex();
             await roll(10);
             await contracts.uToken.accrueInterest();
-            const totalBorrowsAfter = await contracts.uToken.totalBorrows();
-            expect(totalBorrowsAfter).gt(totalBorrowsBefore);
+            const borrowIndexAfter = await contracts.uToken.borrowIndex();
+            expect(borrowIndexAfter).gt(borrowIndexBefore);
         });
     });
 

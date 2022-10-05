@@ -599,6 +599,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             toReserveAmount = (interest * reserveFactorMantissa) / WAD;
             toRedeemableAmount = interest - toReserveAmount;
 
+            // Update the total borrows to reduce by the amount of principal that has
+            // been paid off
+            totalBorrows -= (repayAmount - interest);
+
             // Update the account borrows to reflect the repayment
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
@@ -634,7 +638,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         totalRedeemable += toRedeemableAmount;
 
         accountBorrows[borrower].interestIndex = borrowIndex;
-        totalBorrows -= (repayAmount - interest);
 
         // Transfer underlying token that have been repaid and then deposit
         // then in the asset manager so they can be distributed between the
