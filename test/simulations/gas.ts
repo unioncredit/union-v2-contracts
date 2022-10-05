@@ -20,7 +20,7 @@ function saveReport(str: string, index: number) {
     fs.writeFileSync(file, arr.join("\n"));
 }
 
-describe("Max gas tests", () => {
+describe("Max gas", () => {
     let accounts: Signer[];
     let deployer: Signer;
     let deployerAddress: string;
