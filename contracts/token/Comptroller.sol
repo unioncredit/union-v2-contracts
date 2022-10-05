@@ -281,7 +281,7 @@ contract Comptroller is Controller, IComptroller {
      *  @param totalStaked totalStaked amount
      *  @return Whether succeeded
      */
-    function updateRewardIndex(address token, uint256 totalStaked)
+    function updateTotalStaked(address token, uint256 totalStaked)
         external
         override
         whenNotPaused

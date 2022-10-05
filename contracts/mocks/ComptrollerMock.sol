@@ -16,7 +16,7 @@ contract ComptrollerMock is IComptroller {
         return 0;
     }
 
-    function updateRewardIndex(address, uint256) external pure override returns (bool) {
+    function updateTotalStaked(address, uint256) external pure override returns (bool) {
         return false;
     }
 
