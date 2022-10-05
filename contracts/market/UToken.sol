@@ -177,7 +177,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     /**
      *  @dev Redeem token for uToken
      */
-    event LogRedeem(address redeemer, uint256 redeemTokensIn, uint256 redeemAmountIn, uint256 redeemAmount);
+    event LogRedeem(address redeemer, uint256 amountIn, uint256 amountOut, uint256 redeemAmount);
 
     /**
      *  @dev Token added to the reserves
@@ -700,69 +700,46 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     * @notice Sender redeems uTokens in exchange for the underlying asset
-     * @dev Accrues interest whether or not the operation succeeds, unless reverted
-     * @param redeemTokens The number of uTokens to redeem into underlying
-     */
-    function redeem(uint256 redeemTokens) external override whenNotPaused nonReentrant {
-        if (!accrueInterest()) revert AccrueInterestFailed();
-        _redeemFresh(payable(msg.sender), redeemTokens, 0);
-    }
-
-    /**
-     * @notice Sender redeems uTokens in exchange for a specified amount of underlying asset
-     * @dev Accrues interest whether or not the operation succeeds, unless reverted
-     * @param redeemAmount The amount of underlying to receive from redeeming uTokens
-     */
-    function redeemUnderlying(uint256 redeemAmount) external override whenNotPaused nonReentrant {
-        if (!accrueInterest()) revert AccrueInterestFailed();
-        _redeemFresh(payable(msg.sender), 0, redeemAmount);
-    }
-
-    /**
      * @notice User redeems uTokens in exchange for the underlying asset
      * @dev Assumes interest has already been accrued up to the current block
-     * @param redeemer The address of the account which is redeeming the tokens
-     * @param redeemTokensIn The number of uTokens to redeem into underlying (only one of redeemTokensIn or redeemAmountIn may be non-zero)
-     * @param redeemAmountIn The number of underlying tokens to receive from redeeming uTokens (only one of redeemTokensIn or redeemAmountIn may be non-zero)
+     * @param amountIn The number of uTokens to redeem into underlying
+     *        (only one of amountIn or amountOut may be non-zero)
+     * @param amountOut The number of underlying tokens to receive from
+     *        (only one of amountIn or amountOut may be non-zero)
      */
-    function _redeemFresh(
-        address payable redeemer,
-        uint256 redeemTokensIn,
-        uint256 redeemAmountIn
-    ) private {
-        if (redeemTokensIn != 0 && redeemAmountIn != 0) revert AmountZero();
-
-        IAssetManager assetManagerContract = IAssetManager(assetManager);
+    function redeem(uint256 amountIn, uint256 amountOut) external override whenNotPaused nonReentrant {
+        if (!accrueInterest()) revert AccrueInterestFailed();
+        if (amountIn != 0 && amountOut != 0) revert AmountZero();
 
         uint256 exchangeRate = exchangeRateStored();
 
-        uint256 redeemTokens;
-        uint256 redeemAmount;
+        // Amount of the uToken to burn
+        uint256 uTokenAmount;
 
-        if (redeemTokensIn > 0) {
-            /*
-             * We calculate the exchange rate and the amount of underlying to be redeemed:
-             *  redeemTokens = redeemTokensIn
-             *  redeemAmount = redeemTokensIn x exchangeRateCurrent
-             */
-            redeemTokens = redeemTokensIn;
-            redeemAmount = (redeemTokensIn * exchangeRate) / WAD;
+        // Amount of the underlying token to redeem
+        uint256 underlyingAmount;
+
+        if (amountIn > 0) {
+            // We calculate the exchange rate and the amount of underlying to be redeemed:
+            // uTokenAmount = amountIn
+            // underlyingAmount = amountIn x exchangeRateCurrent
+            uTokenAmount = amountIn;
+            underlyingAmount = (amountIn * exchangeRate) / WAD;
         } else {
-            /*
-             * We get the current exchange rate and calculate the amount to be redeemed:
-             *  redeemTokens = redeemAmountIn / exchangeRate
-             *  redeemAmount = redeemAmountIn
-             */
-            redeemTokens = (redeemAmountIn * WAD) / exchangeRate;
-            redeemAmount = redeemAmountIn;
+            // We get the current exchange rate and calculate the amount to be redeemed:
+            // uTokenAmount = amountOut / exchangeRate
+            // underlyingAmount = amountOut
+            uTokenAmount = (amountOut * WAD) / exchangeRate;
+            underlyingAmount = amountOut;
         }
 
-        totalRedeemable -= redeemAmount;
-        _burn(redeemer, redeemTokens);
-        if (!assetManagerContract.withdraw(underlying, redeemer, redeemAmount)) revert WithdrawFailed();
+        totalRedeemable -= underlyingAmount;
+        _burn(msg.sender, uTokenAmount);
 
-        emit LogRedeem(redeemer, redeemTokensIn, redeemAmountIn, redeemAmount);
+        IAssetManager assetManagerContract = IAssetManager(assetManager);
+        if (!assetManagerContract.withdraw(underlying, msg.sender, underlyingAmount)) revert WithdrawFailed();
+
+        emit LogRedeem(msg.sender, amountIn, amountOut, underlyingAmount);
     }
 
     /* -------------------------------------------------------------------

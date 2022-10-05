@@ -48,7 +48,7 @@ contract TestMintRedeem is TestUTokenBase {
 
         assertEq(uBalance, mintAmount);
 
-        uToken.redeem(uBalance);
+        uToken.redeem(uBalance, 0);
         uBalance = uToken.balanceOf(ALICE);
         assertEq(0, uBalance);
 
@@ -69,7 +69,7 @@ contract TestMintRedeem is TestUTokenBase {
 
         assertEq(uBalance, mintAmount);
 
-        uToken.redeemUnderlying(mintAmount);
+        uToken.redeem(0, mintAmount);
         uBalance = uToken.balanceOf(ALICE);
         assertEq(0, uBalance);
 
