@@ -165,6 +165,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     error VoucherNotFound();
     error VouchWhenOverdue();
     error MaxVouchees();
+    error InvalidParams();
 
     /* -------------------------------------------------------------------
       Events 
@@ -887,12 +888,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      */
     function batchUpdateFrozenInfo(address[] calldata stakers) external whenNotPaused {
         uint256 stakerLength = stakers.length;
-        if (stakerLength > 0) {
-            for (uint256 i = 0; i < stakerLength; i++) {
-                _updateFrozen(stakers[i], 0);
-            }
-            comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
+        if (stakerLength == 0) revert InvalidParams();
+
+        for (uint256 i = 0; i < stakerLength; i++) {
+            _updateFrozen(stakers[i], 0);
         }
+        comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
     }
 
     /* -------------------------------------------------------------------
