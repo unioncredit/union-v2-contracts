@@ -870,12 +870,21 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         return (memberTotalFrozen, memberFrozenCoinAge);
     }
 
-    // used by comptroller only
+    /**
+     * @dev Update the frozen info by the comptroller
+     * @param staker Staker address
+     * @param pastBlocks The past blocks
+     * @return  memberTotalFrozen Total frozen amount for this staker
+     *          memberFrozenCoinAge Total frozen coin age for this staker
+     */
     function updateFrozenInfo(address staker, uint256 pastBlocks) external onlyComptroller returns (uint256, uint256) {
         return _updateFrozen(staker, pastBlocks);
     }
 
-    // function publically callable and also calls updateTotalStaked
+    /**
+     * @dev Update the frozen info for external scripts
+     * @param stakers Stakers address
+     */
     function batchUpdateFrozenInfo(address[] calldata stakers) external whenNotPaused {
         uint256 stakerLength = stakers.length;
         if (stakerLength > 0) {
