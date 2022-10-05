@@ -782,7 +782,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         IAssetManager(assetManager).debtWriteOff(stakingToken, uint256(amount));
         uToken.debtWriteOff(borrower, uint256(amount));
 
-        comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
+        comptroller.updateRewardIndex(stakingToken, totalStaked - totalFrozen);
 
         emit LogDebtWriteOff(msg.sender, borrower, uint256(amount));
     }
@@ -893,7 +893,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         for (uint256 i = 0; i < stakerLength; i++) {
             _updateFrozen(stakers[i], 0);
         }
-        comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
+        comptroller.updateRewardIndex(stakingToken, totalStaked - totalFrozen);
     }
 
     /* -------------------------------------------------------------------

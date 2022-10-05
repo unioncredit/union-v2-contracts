@@ -23,7 +23,7 @@ interface IComptroller {
      */
     function withdrawRewards(address sender, address token) external returns (uint256);
 
-    function updateTotalStaked(address token, uint256 totalStaked) external returns (bool);
+    function updateRewardIndex(address token, uint256 totalStaked) external returns (bool);
 
     /**
      *  @dev Calculate unclaimed rewards based on blocks
