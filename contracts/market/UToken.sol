@@ -634,7 +634,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         totalRedeemable += toRedeemableAmount;
 
         accountBorrows[borrower].interestIndex = borrowIndex;
-        totalBorrows -= repayAmount;
+        totalBorrows -= (repayAmount - interest);
 
         // Transfer underlying token that have been repaid and then deposit
         // then in the asset manager so they can be distributed between the
@@ -655,13 +655,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 blockDelta = currentBlockNumber - accrualBlockNumber;
 
         uint256 simpleInterestFactor = borrowRate * blockDelta;
-        uint256 interestAccumulated = (simpleInterestFactor * totalBorrows) / WAD;
-        uint256 totalBorrowsNew = interestAccumulated + totalBorrows;
         uint256 borrowIndexNew = (simpleInterestFactor * borrowIndex) / WAD + borrowIndex;
 
         accrualBlockNumber = currentBlockNumber;
         borrowIndex = borrowIndexNew;
-        totalBorrows = totalBorrowsNew;
 
         return true;
     }
