@@ -776,6 +776,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         IAssetManager(assetManager).debtWriteOff(stakingToken, uint256(amount));
         uToken.debtWriteOff(borrower, uint256(amount));
 
+        comptroller.updateRewardIndex(stakingToken, totalStaked - totalFrozen);
+
         emit LogDebtWriteOff(msg.sender, borrower, uint256(amount));
     }
 
@@ -862,6 +864,31 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         totalFrozen = totalFrozen - memberFrozenBefore + memberTotalFrozen;
 
         return (memberTotalFrozen, memberFrozenCoinAge);
+    }
+
+    /**
+     * @dev Update the frozen info by the comptroller
+     * @param staker Staker address
+     * @param pastBlocks The past blocks
+     * @return  memberTotalFrozen Total frozen amount for this staker
+     *          memberFrozenCoinAge Total frozen coin age for this staker
+     */
+    function updateFrozenInfo(address staker, uint256 pastBlocks) external onlyComptroller returns (uint256, uint256) {
+        return _updateFrozen(staker, pastBlocks);
+    }
+
+    /**
+     * @dev Update the frozen info for external scripts
+     * @param stakers Stakers address
+     */
+    function batchUpdateFrozenInfo(address[] calldata stakers) external whenNotPaused {
+        uint256 stakerLength = stakers.length;
+        if (stakerLength == 0) revert InvalidParams();
+
+        for (uint256 i = 0; i < stakerLength; i++) {
+            _updateFrozen(stakers[i], 0);
+        }
+        comptroller.updateRewardIndex(stakingToken, totalStaked - totalFrozen);
     }
 
     /* -------------------------------------------------------------------
