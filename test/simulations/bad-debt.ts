@@ -7,7 +7,7 @@ import {getConfig} from "../../deploy/config";
 import {getDai, roll, warp} from "../../test/utils";
 import {expect} from "chai";
 
-const PAD = 16;
+const PAD = 22;
 
 describe("Bad debt", () => {
     let staker: Signer;
@@ -43,10 +43,16 @@ describe("Bad debt", () => {
         const principal = await contracts.uToken.getBorrowed(borrowerAddress);
         const interest = await contracts.uToken.calculatingInterest(borrowerAddress);
         const owed = await contracts.uToken.borrowBalanceView(borrowerAddress);
+        const totalBorrows = await contracts.uToken.totalBorrows();
+        const totalRedeemable = await contracts.uToken.totalRedeemable();
+        const totalReserves = await contracts.uToken.totalReserves();
 
         console.log("Principal:".padEnd(PAD), commify(formatUnits(principal)));
         console.log("Interest:".padEnd(PAD), commify(formatUnits(interest)));
         console.log("Total Owed:".padEnd(PAD), commify(formatUnits(owed)));
+        console.log("Total Borrows:".padEnd(PAD), commify(formatUnits(totalBorrows)));
+        console.log("Total Redeemable:".padEnd(PAD), commify(formatUnits(totalRedeemable)));
+        console.log("Total reserves:".padEnd(PAD), commify(formatUnits(totalReserves)));
         console.log("");
     };
 
@@ -70,7 +76,7 @@ describe("Bad debt", () => {
         await contracts.userManager.connect(staker).stake(AMOUNT);
 
         await contracts.dai.approve(contracts.uToken.address, AMOUNT);
-        await contracts.uToken.addReserves(AMOUNT);
+        await contracts.uToken.mint(AMOUNT);
 
         await contracts.userManager.connect(staker).updateTrust(borrowerAddress, AMOUNT);
 
