@@ -35,8 +35,9 @@ contract TestStake is TestComptrollerBase {
         vm.assume(amount <= 100 ether && amount > 0);
         vm.prank(MEMBER);
         comptroller.stake(address(uTokenMock), amount);
+        (, , , , uint256 totalStake) = comptroller.tokenState(address(uTokenMock));
         assertEq(comptroller.stakers(MEMBER, address(uTokenMock)), amount);
-        assertEq(comptroller.uTokenTotalStaked(address(uTokenMock)), amount);
+        assertEq(totalStake, amount);
     }
 
     function testCannotUnStakeWhenUTokenNotSupport(uint96 amount) public {
@@ -56,11 +57,14 @@ contract TestStake is TestComptrollerBase {
         vm.assume(amount <= 100 ether && amount > 0);
         vm.startPrank(MEMBER);
         comptroller.stake(address(uTokenMock), amount);
+        uint256 totalStake;
+        (, , , , totalStake) = comptroller.tokenState(address(uTokenMock));
         assertEq(comptroller.stakers(MEMBER, address(uTokenMock)), amount);
-        assertEq(comptroller.uTokenTotalStaked(address(uTokenMock)), amount);
+        assertEq(totalStake, amount);
         comptroller.unstake(address(uTokenMock), amount);
+        (, , , , totalStake) = comptroller.tokenState(address(uTokenMock));
         assertEq(comptroller.stakers(MEMBER, address(uTokenMock)), 0);
-        assertEq(comptroller.uTokenTotalStaked(address(uTokenMock)), 0);
+        assertEq(totalStake, 0);
         vm.stopPrank();
     }
 }

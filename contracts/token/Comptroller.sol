@@ -45,6 +45,17 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         bool isMember;
     }
 
+    struct TokenState {
+        // The token's last updated inflationIndex
+        uint256 index;
+        // The block number the index was last updated at
+        uint256 lastBlock;
+        bool isUToken;
+        bool isSupport;
+        //utoken needs to record totalstake, others are obtained from usermanager
+        uint256 totalStaked;
+    }
+
     /* -------------------------------------------------------------------
       Storage 
     ------------------------------------------------------------------- */
@@ -70,14 +81,11 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
     uint256 public halfDecayPoint;
 
     /**
-     * @dev block number when updating the inflation index
-     */
-    uint256 public gLastUpdatedBlock;
-
-    /**
      *  @dev Max amount that can be staked of the staking token
      */
     uint96 public maxStakeAmount;
+
+    uint256 public initBlock;
 
     /**
      * @dev $UNION token contract
@@ -90,20 +98,16 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
     IMarketRegistry public marketRegistry;
 
     /**
-     * @dev store the latest inflation index
+     * @dev The token state
      */
-    mapping(address => uint256) public gInflationIndex; //token => gInflationIndex
+    mapping(address => TokenState) public tokenState;
 
     /**
      * @dev Map account to token to Info
      */
     mapping(address => mapping(address => Info)) public users;
 
-    mapping(address => bool) public isSupportUToken;
-
     mapping(address => mapping(address => uint256)) public stakers; //user => utoken => stake amount
-
-    mapping(address => uint256) public uTokenTotalStaked; //utoken => total staked
     /* -------------------------------------------------------------------
       Events 
     ------------------------------------------------------------------- */
@@ -161,9 +165,7 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         uint256 _halfDecayPoint
     ) public initializer {
         Controller.__Controller_init(msg.sender);
-
-        gLastUpdatedBlock = block.number;
-
+        initBlock = block.number;
         unionToken = IERC20Upgradeable(unionToken_);
         marketRegistry = IMarketRegistry(marketRegistry_);
         halfDecayPoint = _halfDecayPoint;
@@ -193,7 +195,14 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
     function setSupportUToken(address token, bool isSupport) public onlyAdmin {
         if (!marketRegistry.hasUToken(token)) revert NotExit();
         address uToken = marketRegistry.uTokens(token);
-        isSupportUToken[uToken] = isSupport;
+
+        //initialization
+        if (tokenState[uToken].index == 0) {
+            tokenState[uToken].isUToken = true;
+            tokenState[uToken].index = INIT_INFLATION_INDEX;
+            tokenState[uToken].lastBlock = block.number;
+        }
+        tokenState[uToken].isSupport = isSupport;
     }
 
     /**
@@ -255,15 +264,7 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
         return
-            _calculateRewardsByBlocks(
-                false,
-                account,
-                token,
-                pastBlocks,
-                userInfo,
-                userManagerState,
-                userManagerAccountState
-            );
+            _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, userManagerState, userManagerAccountState);
     }
 
     function calculateUTokenRewardsByBlocks(
@@ -271,8 +272,7 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         address token,
         uint256 futureBlocks
     ) public view override returns (uint256) {
-        if (!isSupportUToken[token]) return 0;
-
+        if (!tokenState[token].isSupport) return 0;
         (
             UserManagerAccountState memory userManagerAccountState,
             Info memory userInfo,
@@ -280,21 +280,13 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         ) = _getUserInfoView(address(0), account, token, futureBlocks);
 
         UserManagerState memory userManagerState;
-        userManagerState.totalStaked = uTokenTotalStaked[token];
+        userManagerState.totalStaked = tokenState[token].totalStaked;
         if (userManagerState.totalStaked < 1e18) {
             userManagerState.totalStaked = 1e18;
         }
 
         return
-            _calculateRewardsByBlocks(
-                true,
-                account,
-                token,
-                pastBlocks,
-                userInfo,
-                userManagerState,
-                userManagerAccountState
-            );
+            _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, userManagerState, userManagerAccountState);
     }
 
     /**
@@ -320,36 +312,35 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
       Core Functions 
     ------------------------------------------------------------------- */
     function stake(address utoken, uint96 amount) public whenNotPaused nonReentrant {
-        if (!isSupportUToken[utoken]) revert NotSupport();
+        if (!tokenState[utoken].isSupport) revert NotSupport();
         IERC20Upgradeable erc20Token = IERC20Upgradeable(utoken);
         withdrawUTokenRewards(utoken);
 
         if (stakers[msg.sender][utoken] + amount > maxStakeAmount) revert StakeLimitReached();
 
         stakers[msg.sender][utoken] += amount;
-        uTokenTotalStaked[utoken] += amount;
+        tokenState[utoken].totalStaked += amount;
 
         erc20Token.safeTransferFrom(msg.sender, address(this), amount);
 
         emit LogStake(msg.sender, utoken, amount);
     }
 
-    function unstake(address token, uint96 amount) external whenNotPaused nonReentrant {
-        if (!isSupportUToken[token]) revert NotSupport();
-        if (stakers[msg.sender][token] < amount) revert ExceedStake();
-        IERC20Upgradeable erc20Token = IERC20Upgradeable(token);
-        withdrawUTokenRewards(token);
+    function unstake(address utoken, uint96 amount) external whenNotPaused nonReentrant {
+        if (!tokenState[utoken].isSupport) revert NotSupport();
+        if (stakers[msg.sender][utoken] < amount) revert ExceedStake();
+        IERC20Upgradeable erc20Token = IERC20Upgradeable(utoken);
+        withdrawUTokenRewards(utoken);
 
-        stakers[msg.sender][token] -= amount;
-        uTokenTotalStaked[token] -= amount;
+        stakers[msg.sender][utoken] -= amount;
+        tokenState[utoken].totalStaked -= amount;
 
         erc20Token.safeTransfer(msg.sender, amount);
-
-        emit LogUnstake(msg.sender, token, amount);
+        emit LogUnstake(msg.sender, utoken, amount);
     }
 
     function withdrawUTokenRewards(address uToken) public override whenNotPaused returns (uint256) {
-        if (!isSupportUToken[uToken]) revert NotSupport();
+        if (!tokenState[uToken].isSupport) revert NotSupport();
         (
             UserManagerAccountState memory userManagerAccountState,
             Info memory userInfo,
@@ -357,13 +348,12 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         ) = _getUserInfo(address(0), msg.sender, uToken, 0);
 
         UserManagerState memory userManagerState;
-        userManagerState.totalStaked = uTokenTotalStaked[uToken];
+        userManagerState.totalStaked = tokenState[uToken].totalStaked;
         if (userManagerState.totalStaked < 1e18) {
             userManagerState.totalStaked = 1e18;
         }
 
         uint256 amount = _calculateRewardsByBlocks(
-            true,
             msg.sender,
             uToken,
             pastBlocks,
@@ -374,10 +364,13 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
 
         // update the global states
         uint256 totalStaked_ = userManagerState.totalStaked;
-        gInflationIndex[uToken] = _getInflationIndexNew(uToken, totalStaked_, block.number - gLastUpdatedBlock);
-        gLastUpdatedBlock = block.number;
+        uint256 blockDelta = tokenState[uToken].lastBlock > 0
+            ? block.number - tokenState[uToken].lastBlock
+            : block.number - initBlock;
+        tokenState[uToken].index = _getInflationIndexNew(uToken, totalStaked_, blockDelta);
+        tokenState[uToken].lastBlock = block.number;
         users[msg.sender][uToken].updatedBlock = block.number;
-        users[msg.sender][uToken].inflationIndex = gInflationIndex[uToken];
+        users[msg.sender][uToken].inflationIndex = tokenState[uToken].index;
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
             unionToken.safeTransfer(msg.sender, amount);
             users[msg.sender][uToken].accrued = 0;
@@ -417,7 +410,6 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
         uint256 amount = _calculateRewardsByBlocks(
-            false,
             account,
             token,
             pastBlocks,
@@ -428,10 +420,13 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
 
         // update the global states
         uint256 totalStaked_ = userManagerState.totalStaked - userManagerState.totalFrozen;
-        gInflationIndex[token] = _getInflationIndexNew(token, totalStaked_, block.number - gLastUpdatedBlock);
-        gLastUpdatedBlock = block.number;
+        uint256 blockDelta = tokenState[token].lastBlock > 0
+            ? block.number - tokenState[token].lastBlock
+            : block.number - initBlock;
+        tokenState[token].index = _getInflationIndexNew(token, totalStaked_, blockDelta);
+        tokenState[token].lastBlock = block.number;
         users[account][token].updatedBlock = block.number;
-        users[account][token].inflationIndex = gInflationIndex[token];
+        users[account][token].inflationIndex = tokenState[token].index;
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
             unionToken.safeTransfer(account, amount);
             users[account][token].accrued = 0;
@@ -459,9 +454,12 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         returns (bool)
     {
         if (totalStaked > 0) {
-            gInflationIndex[token] = _getInflationIndexNew(token, totalStaked, block.number - gLastUpdatedBlock);
+            uint256 blockDelta = tokenState[token].lastBlock > 0
+                ? block.number - tokenState[token].lastBlock
+                : block.number - initBlock;
+            tokenState[token].index = _getInflationIndexNew(token, totalStaked, blockDelta);
         }
-        gLastUpdatedBlock = block.number;
+        tokenState[token].lastBlock = block.number;
 
         return true;
     }
@@ -570,7 +568,6 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
      *  @return Unclaimed rewards
      */
     function _calculateRewardsByBlocks(
-        bool isUToken,
         address account,
         address token,
         uint256 pastBlocks,
@@ -579,7 +576,7 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         UserManagerAccountState memory userManagerAccountState
     ) internal view returns (uint256) {
         uint256 multiplier;
-        if (isUToken) {
+        if (tokenState[token].isUToken) {
             userManagerAccountState.totalStaked = stakers[account][token];
             multiplier = _getUTokenRewardsMultiplier();
         } else {
@@ -622,7 +619,7 @@ contract Comptroller is Controller, IComptroller, ReentrancyGuardUpgradeable {
         uint256 totalStaked_,
         uint256 blockDelta
     ) internal view returns (uint256) {
-        uint256 inflationIndex = gInflationIndex[token] > 0 ? gInflationIndex[token] : INIT_INFLATION_INDEX;
+        uint256 inflationIndex = tokenState[token].index > 0 ? tokenState[token].index : INIT_INFLATION_INDEX;
         if (totalStaked_ == 0) return INIT_INFLATION_INDEX;
         if (blockDelta == 0) return inflationIndex;
         return _getInflationIndex(totalStaked_, inflationIndex, blockDelta);

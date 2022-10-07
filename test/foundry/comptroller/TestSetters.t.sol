@@ -27,14 +27,14 @@ contract TestSetters is TestComptrollerBase {
 
         marketRegistryMock.setUserManager(address(daiMock), address(this));
         uint256 previousBlock = block.number;
-        assertEq(comptroller.gLastUpdatedBlock(), block.number);
-
         vm.roll(100);
         comptroller.updateTotalStaked(address(daiMock), amount);
         assert(previousBlock != block.number);
-        assertEq(comptroller.gLastUpdatedBlock(), block.number);
-        assert(comptroller.gInflationIndex(address(daiMock)) != 0);
-        assert(comptroller.gInflationIndex(address(daiMock)) != comptroller.INIT_INFLATION_INDEX());
+        (, uint256 lastBlock, , , ) = comptroller.tokenState(address(daiMock));
+        assertEq(lastBlock, block.number);
+        (uint256 index, , , , ) = comptroller.tokenState(address(daiMock));
+        assert(index != 0);
+        assert(index != comptroller.INIT_INFLATION_INDEX());
     }
 
     function testCannotUpdateTotalStakedNotUserManager() public {
@@ -60,14 +60,15 @@ contract TestSetters is TestComptrollerBase {
         comptroller.setSupportUToken(address(1), true);
     }
 
-    function testSetUTokenNotEXIT(bool isSupport) public {
+    function testSetUTokenNotEXIT(bool _isSupport) public {
         vm.expectRevert(Comptroller.NotExit.selector);
-        comptroller.setSupportUToken(address(daiMock), isSupport);
+        comptroller.setSupportUToken(address(daiMock), _isSupport);
     }
 
-    function testSetSupportUToken(bool isSupport) public {
+    function testSetSupportUToken(bool _isSupport) public {
         marketRegistryMock.setUToken(address(daiMock), address(uTokenMock));
-        comptroller.setSupportUToken(address(daiMock), isSupport);
-        assertEq(comptroller.isSupportUToken(address(uTokenMock)), isSupport);
+        comptroller.setSupportUToken(address(daiMock), _isSupport);
+        (, , , bool isSupport, ) = comptroller.tokenState(address(uTokenMock));
+        assertEq(isSupport, _isSupport);
     }
 }
