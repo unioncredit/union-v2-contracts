@@ -54,9 +54,7 @@ interface IUToken {
 
     function mint(uint256 mintAmount) external;
 
-    function redeem(uint256 redeemTokens) external;
-
-    function redeemUnderlying(uint256 redeemAmount) external;
+    function redeem(uint256 amountIn, uint256 amountOut) external;
 
     function addReserves(uint256 addAmount) external;
 

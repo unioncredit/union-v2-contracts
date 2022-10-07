@@ -69,7 +69,7 @@ describe("Minting and redeeming uToken", () => {
             const balanceBefore = await contracts.dai.balanceOf(deployerAddress);
             const assetManagerBalBefore = await contracts.dai.balanceOf(assetManagerAddress);
 
-            await contracts.uToken.redeemUnderlying(mintAmount);
+            await contracts.uToken.redeem(0, mintAmount);
 
             const balanceAfter = await contracts.dai.balanceOf(deployerAddress);
             const assetManagerBalAfter = await contracts.dai.balanceOf(assetManagerAddress);
