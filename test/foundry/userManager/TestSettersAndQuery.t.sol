@@ -24,17 +24,17 @@ contract TestSettersAndQuery is TestUserManagerBase {
         assertEq(maxStakeAmount, amount);
     }
 
-    function testCannotSetUTokenNotAdmin(address uToken) public {
+    function testCannotSetUTokenNotAdmin(address _uToken) public {
         vm.expectRevert(Controller.SenderNotAdmin.selector);
-        userManager.setUToken(uToken);
+        userManager.setUToken(_uToken);
     }
 
-    function testSetUToken(address uToken) public {
-        vm.assume(uToken != address(0));
+    function testSetUToken(address _uToken) public {
+        vm.assume(_uToken != address(0));
         vm.prank(ADMIN);
-        userManager.setUToken(uToken);
-        address newUToken = address(userManager.uToken());
-        assertEq(newUToken, uToken);
+        userManager.setUToken(_uToken);
+        address uToken = address(userManager.uToken());
+        assertEq(_uToken, uToken);
     }
 
     function testCannotSetNewMemberFeeNotAdmin(uint96 amount) public {

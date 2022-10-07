@@ -105,7 +105,9 @@ contract TestWriteOffDebt is TestUserManagerBase {
         userManager.updateLocked(borrower, amount, true);
 
         vm.roll(2);
-        userManager.updateFrozenInfo(staker, block.number);
+        address[] memory stakers = new address[](1);
+        stakers[0] = staker;
+        userManager.batchUpdateFrozenInfo(stakers);
 
         uint256 totalFrozen = userManager.totalFrozen();
         uint256 memberFrozen = userManager.memberFrozen(staker);

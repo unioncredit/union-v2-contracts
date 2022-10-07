@@ -74,7 +74,7 @@ contract TestPureTokenAdapter is TestWrapper {
         assert(pureToken.supportsToken(address(daiMock)));
     }
 
-    function testDeposit() public view {
+    function testDeposit() public {
         // nothing to assert just check this passes
         pureToken.deposit(address(daiMock));
     }
