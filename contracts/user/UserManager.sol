@@ -165,6 +165,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     error VoucherNotFound();
     error VouchWhenOverdue();
     error MaxVouchees();
+    error InvalidParams();
 
     /* -------------------------------------------------------------------
       Events 
@@ -298,6 +299,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     modifier onlyMarket() {
         if (address(uToken) != msg.sender) revert AuthFailed();
+        _;
+    }
+
+    modifier onlyComptroller() {
+        if (address(comptroller) != msg.sender) revert AuthFailed();
         _;
     }
 
@@ -776,6 +782,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         IAssetManager(assetManager).debtWriteOff(stakingToken, uint256(amount));
         uToken.debtWriteOff(borrower, uint256(amount));
 
+        comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
+
         emit LogDebtWriteOff(msg.sender, borrower, uint256(amount));
     }
 
@@ -851,17 +859,41 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @return  memberTotalFrozen Total frozen amount for this staker
      *          memberFrozenCoinAge Total frozen coin age for this staker
      */
-    function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256) {
+    function _updateFrozen(address staker, uint256 pastBlocks) internal returns (uint256, uint256) {
         (uint256 memberTotalFrozen, uint256 memberFrozenCoinAge) = getFrozenInfo(staker, pastBlocks);
 
-        // Cache the current member frozen to a varaible then update it with
-        // the latest value. Then we need to update the total frozen by resetting
-        // the previous frozen amount for this staker and adding the new frozen amount
         uint256 memberFrozenBefore = memberFrozen[staker];
-        memberFrozen[staker] = memberTotalFrozen;
-        totalFrozen = totalFrozen - memberFrozenBefore + memberTotalFrozen;
+        if (memberFrozenBefore != memberTotalFrozen) {
+            memberFrozen[staker] = memberTotalFrozen;
+            totalFrozen = totalFrozen - memberFrozenBefore + memberTotalFrozen;
+        }
 
         return (memberTotalFrozen, memberFrozenCoinAge);
+    }
+
+    /**
+     * @dev Update the frozen info by the comptroller
+     * @param staker Staker address
+     * @param pastBlocks The past blocks
+     * @return  memberTotalFrozen Total frozen amount for this staker
+     *          memberFrozenCoinAge Total frozen coin age for this staker
+     */
+    function updateFrozenInfo(address staker, uint256 pastBlocks) external onlyComptroller returns (uint256, uint256) {
+        return _updateFrozen(staker, pastBlocks);
+    }
+
+    /**
+     * @dev Update the frozen info for external scripts
+     * @param stakers Stakers address
+     */
+    function batchUpdateFrozenInfo(address[] calldata stakers) external whenNotPaused {
+        uint256 stakerLength = stakers.length;
+        if (stakerLength == 0) revert InvalidParams();
+
+        for (uint256 i = 0; i < stakerLength; i++) {
+            _updateFrozen(stakers[i], 0);
+        }
+        comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
     }
 
     /* -------------------------------------------------------------------
