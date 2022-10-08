@@ -62,6 +62,27 @@ contract TestBorrowRepay is TestUTokenBase {
         assertEq(0, uToken.borrowBalanceView(ALICE));
     }
 
+    function testRepayBorrowLessThanInterest(uint256 borrowAmount) public {
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+
+        vm.startPrank(ALICE);
+
+        uToken.borrow(ALICE, borrowAmount);
+        // fast forward to overdue block
+        vm.roll(block.number + OVERDUE_BLOCKS + 1);
+        assertTrue(uToken.checkIsOverdue(ALICE));
+
+        uint256 interest = uToken.calculatingInterest(ALICE);
+        uint256 repayAmount = interest - 1;
+
+        daiMock.approve(address(uToken), repayAmount);
+        uToken.repayBorrow(ALICE, repayAmount);
+
+        vm.stopPrank();
+        //repay less than interest, overdue state does not change
+        assertTrue(uToken.checkIsOverdue(ALICE));
+    }
+
     function testRepayBorrowWhenOverdue(uint256 borrowAmount) public {
         vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
 
@@ -123,5 +144,18 @@ contract TestBorrowRepay is TestUTokenBase {
         vm.stopPrank();
 
         assertEq(0, uToken.borrowBalanceView(ALICE));
+    }
+
+    function testDebtWriteOff(uint256 amount) public {
+        vm.assume(amount > 0);
+
+        vm.prank(ALICE);
+        uToken.borrow(ALICE, MIN_BORROW);
+        uint256 borrowedBefore = uToken.getBorrowed(ALICE);
+
+        vm.prank(address(userManagerMock));
+        uToken.debtWriteOff(ALICE, borrowedBefore);
+        uint256 borrowedAfter = uToken.getBorrowed(ALICE);
+        assertEq(borrowedAfter, 0);
     }
 }

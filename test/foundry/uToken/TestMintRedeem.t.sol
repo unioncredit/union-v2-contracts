@@ -76,4 +76,27 @@ contract TestMintRedeem is TestUTokenBase {
         uint256 daiBalanceAfter = daiMock.balanceOf(ALICE);
         assertEq(daiBalanceAfter, daiBalance + mintAmount);
     }
+
+    function testExchangeRate() public {
+        uint mintAmount = 1 ether;
+        uint borrowAmount = 1 ether;
+        assertEq(INIT_EXCHANGE_RATE, uToken.exchangeRateCurrent());
+        vm.startPrank(ALICE);
+        daiMock.approve(address(uToken), mintAmount);
+        uToken.mint(mintAmount);
+
+        uint utokenBal = uToken.balanceOf(ALICE);
+        assertEq(utokenBal*INIT_EXCHANGE_RATE/1e18 ,uToken.balanceOfUnderlying(ALICE));
+
+        uToken.borrow(ALICE, borrowAmount);
+        uint256 borrowed = uToken.borrowBalanceView(ALICE);
+        vm.roll(block.number + 1);
+        // Get the interest amount
+        uint256 interest = uToken.calculatingInterest(ALICE);
+        uint256 repayAmount = borrowed + interest;
+        daiMock.approve(address(uToken), repayAmount);
+        uToken.repayBorrow(ALICE, repayAmount);
+        assert(uToken.exchangeRateCurrent() > INIT_EXCHANGE_RATE);
+        assert(utokenBal*INIT_EXCHANGE_RATE/1e18 < uToken.balanceOfUnderlying(ALICE));
+    }
 }
