@@ -5,7 +5,6 @@ import {UToken} from "union-v2-contracts/market/UToken.sol";
 import {Controller} from "union-v2-contracts/Controller.sol";
 
 contract TestSetters is TestUTokenBase {
-
     function setUp() public override {
         super.setUp();
     }
@@ -40,82 +39,74 @@ contract TestSetters is TestUTokenBase {
         assertEq(uTokenUserMgr, userManager);
     }
 
-    function testCannotSetOriginationFeeNotAdmin(uint originationFee) public {
+    function testCannotSetOriginationFeeNotAdmin(uint256 originationFee) public {
         vm.expectRevert(Controller.SenderNotAdmin.selector);
         uToken.setOriginationFee(originationFee);
     }
 
-    function testSetOriginationFee(uint originationFee) public {
+    function testSetOriginationFee(uint256 originationFee) public {
         vm.startPrank(ADMIN);
         uToken.setOriginationFee(originationFee);
         vm.stopPrank();
-        uint newOriginationFee = uToken.originationFee();
+        uint256 newOriginationFee = uToken.originationFee();
         assertEq(newOriginationFee, originationFee);
     }
 
-    function testCannotSetDebtCeilingNotAdmin(uint debtCeiling) public {
+    function testCannotSetDebtCeilingNotAdmin(uint256 debtCeiling) public {
         vm.expectRevert(Controller.SenderNotAdmin.selector);
         uToken.setDebtCeiling(debtCeiling);
     }
 
-    function testSetDebtCeiling(uint debtCeiling) public {
+    function testSetDebtCeiling(uint256 debtCeiling) public {
         vm.startPrank(ADMIN);
         uToken.setDebtCeiling(debtCeiling);
         vm.stopPrank();
-        uint newDebtCeiling = uToken.debtCeiling();
+        uint256 newDebtCeiling = uToken.debtCeiling();
         assertEq(newDebtCeiling, debtCeiling);
     }
 
-    function testCannotSetMinBorrowNotAdmin(uint minBorrow) public {
+    function testCannotSetMinBorrowNotAdmin(uint256 minBorrow) public {
         vm.expectRevert(Controller.SenderNotAdmin.selector);
         uToken.setMinBorrow(minBorrow);
     }
 
-    function testSetMinBorrow(uint minBorrow) public {
+    function testSetMinBorrow(uint256 minBorrow) public {
         vm.startPrank(ADMIN);
         uToken.setMinBorrow(minBorrow);
         vm.stopPrank();
-        uint newMinBorrow = uToken.minBorrow();
+        uint256 newMinBorrow = uToken.minBorrow();
         assertEq(newMinBorrow, minBorrow);
     }
 
-    function testCannotSetMaxBorrowNotAdmin(uint maxBorrow) public {
+    function testCannotSetMaxBorrowNotAdmin(uint256 maxBorrow) public {
         vm.expectRevert(Controller.SenderNotAdmin.selector);
         uToken.setMaxBorrow(maxBorrow);
     }
 
-    function testSetMaxBorrow(uint maxBorrow) public {
+    function testSetMaxBorrow(uint256 maxBorrow) public {
         vm.startPrank(ADMIN);
         uToken.setMaxBorrow(maxBorrow);
         vm.stopPrank();
-        uint newMaxBorrow = uToken.maxBorrow();
+        uint256 newMaxBorrow = uToken.maxBorrow();
         assertEq(newMaxBorrow, maxBorrow);
     }
 
-    function testCannotSetOverdueBlocksNotAdmin(uint overdueBlocks) public {
+    function testCannotSetOverdueBlocksNotAdmin(uint256 overdueBlocks) public {
         vm.expectRevert(Controller.SenderNotAdmin.selector);
         uToken.setOverdueBlocks(overdueBlocks);
     }
 
-    function testSetOverdueBlocks(uint overdueBlocks) public {
+    function testSetOverdueBlocks(uint256 overdueBlocks) public {
         vm.startPrank(ADMIN);
         uToken.setOverdueBlocks(overdueBlocks);
         vm.stopPrank();
-        uint newOverdueBlocks = uToken.overdueBlocks();
+        uint256 newOverdueBlocks = uToken.overdueBlocks();
         assertEq(newOverdueBlocks, overdueBlocks);
     }
 
     function testCannotSetInterestRateModelNotAdmin(address interestRateModel) public {
         vm.expectRevert(Controller.SenderNotAdmin.selector);
         uToken.setInterestRateModel(interestRateModel);
-    }
-
-    function testCannotSetInterestRateModelNotInterestModel(address interestRateModel) public {
-        vm.assume(interestRateModel != address(0) && interestRateModel != address(interestRateMock));
-        vm.startPrank(ADMIN);
-        vm.expectRevert(UToken.ContractNotInterestModel.selector);
-        uToken.setInterestRateModel(interestRateModel);
-        vm.stopPrank();
     }
 
     function testSetInterestRateModels() public {
@@ -126,12 +117,12 @@ contract TestSetters is TestUTokenBase {
         assertEq(newInterestRateModel, address(interestRateMock));
     }
 
-    function testCannotSetReserveFactorNotAdmin(uint reserveFactorMantissa) public {
+    function testCannotSetReserveFactorNotAdmin(uint256 reserveFactorMantissa) public {
         vm.expectRevert(Controller.SenderNotAdmin.selector);
         uToken.setReserveFactor(reserveFactorMantissa);
     }
 
-    function testCannotSetReserveFactorExceedLimit(uint reserveFactorMantissa) public {
+    function testCannotSetReserveFactorExceedLimit(uint256 reserveFactorMantissa) public {
         vm.assume(reserveFactorMantissa > 1e18);
         vm.startPrank(ADMIN);
         vm.expectRevert(UToken.ReserveFactoryExceedLimit.selector);
@@ -139,13 +130,12 @@ contract TestSetters is TestUTokenBase {
         vm.stopPrank();
     }
 
-    function testSetReserveFactorModels(uint reserveFactorMantissa) public {
+    function testSetReserveFactorModels(uint256 reserveFactorMantissa) public {
         vm.assume(reserveFactorMantissa <= 1e18);
         vm.startPrank(ADMIN);
         uToken.setReserveFactor(reserveFactorMantissa);
         vm.stopPrank();
-        uint newReserveFactorMantissa = uToken.reserveFactorMantissa();
+        uint256 newReserveFactorMantissa = uToken.reserveFactorMantissa();
         assertEq(newReserveFactorMantissa, reserveFactorMantissa);
     }
-
 }

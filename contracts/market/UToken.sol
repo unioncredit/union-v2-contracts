@@ -148,7 +148,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     error WithdrawFailed();
     error CallerNotMember();
     error CallerNotUserManager();
-    error ContractNotInterestModel();
     error InitExchangeRateNotZero();
     error InsufficientFundsLeft();
     error MemberIsOverdue();
@@ -335,21 +334,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     function setInterestRateModel(address newInterestRateModel_) external override onlyAdmin {
         address oldInterestRateModel = address(interestRateModel);
         address newInterestRateModel = newInterestRateModel_;
-
-        uint256 csize;
-        assembly {
-            csize := extcodesize(newInterestRateModel_)
-        }
-        if (csize == 0) {
-            revert ContractNotInterestModel();
-        }
-
-        try IInterestRateModel(newInterestRateModel).isInterestRateModel() returns (bool) {
-            interestRateModel = IInterestRateModel(newInterestRateModel);
-            emit LogNewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel);
-        } catch {
-            revert ContractNotInterestModel();
-        }
+        interestRateModel = IInterestRateModel(newInterestRateModel);
+        emit LogNewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel);
     }
 
     /**
@@ -510,7 +496,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      * @return The amount of underlying owned by `owner`
      */
     function balanceOfUnderlying(address owner) external view override returns (uint256) {
-        return exchangeRateStored() * balanceOf(owner) / WAD;
+        return (exchangeRateStored() * balanceOf(owner)) / WAD;
     }
 
     /* -------------------------------------------------------------------

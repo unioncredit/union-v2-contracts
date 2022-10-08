@@ -4,7 +4,6 @@ pragma solidity 0.8.16;
 import "../interfaces/IInterestRateModel.sol";
 
 contract FixedInterestRateModelMock is IInterestRateModel {
-    bool public constant isInterestRateModel = true;
     uint256 public interestRatePerBlock;
 
     constructor(uint256 interestRatePerBlock_) {

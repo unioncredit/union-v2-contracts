@@ -7,12 +7,6 @@ pragma solidity 0.8.16;
  */
 interface IInterestRateModel {
     /**
-     * @dev Check to see if it is a valid interest rate model
-     * @return Return true for a valid interest rate model
-     */
-    function isInterestRateModel() external pure returns (bool);
-
-    /**
      * @dev Calculates the current borrow interest rate per block
      * @return The borrow rate per block (as a percentage, and scaled by 1e18)
      */
