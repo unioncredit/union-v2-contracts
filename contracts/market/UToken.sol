@@ -140,6 +140,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     ------------------------------------------------------------------- */
 
     error AccrueInterestFailed();
+    error AccrueBlockParity();
     error AmountExceedGlobalMax();
     error AmountExceedMaxBorrow();
     error AmountLessMinBorrow();
@@ -555,11 +556,23 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
+     * @dev Helper function to repay interest amount
+     * @param borrower Borrower address
+     */
+    function repayInterest(address borrower) external override whenNotPaused nonReentrant {
+        if (!accrueInterest()) revert AccrueInterestFailed();
+        uint256 interest = calculatingInterest(borrower);
+        _repayBorrowFresh(msg.sender, borrower, interest, interest);
+    }
+
+    /**
      * @notice Repay outstanding borrow
      * @dev Repay borrow see _repayBorrowFresh
      */
-    function repayBorrow(address borrower, uint256 repayAmount) external override whenNotPaused nonReentrant {
-        _repayBorrowFresh(msg.sender, borrower, repayAmount);
+    function repayBorrow(address borrower, uint256 amount) external override whenNotPaused nonReentrant {
+        if (!accrueInterest()) revert AccrueInterestFailed();
+        uint256 interest = calculatingInterest(borrower);
+        _repayBorrowFresh(msg.sender, borrower, amount, interest);
     }
 
     /**
@@ -568,15 +581,15 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param payer Payer address
      *  @param borrower Borrower address
      *  @param amount Repay amount
+     *  @param interest Interest amount
      */
     function _repayBorrowFresh(
         address payer,
         address borrower,
-        uint256 amount
+        uint256 amount,
+        uint256 interest
     ) internal {
-        if (!accrueInterest()) revert AccrueInterestFailed();
-
-        uint256 interest = calculatingInterest(borrower);
+        if(getBlockNumber() != accrualBlockNumber) revert AccrueBlockParity();
         uint256 borrowedAmount = borrowBalanceStoredInternal(borrower);
         uint256 repayAmount = amount > borrowedAmount ? borrowedAmount : amount;
         if (repayAmount == 0) revert AmountZero();
