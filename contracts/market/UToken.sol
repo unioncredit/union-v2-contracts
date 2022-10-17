@@ -555,6 +555,15 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
+     * @dev Helper function to repay interest amount
+     * @param borrower Borrower address
+     */
+    function repayInterest(address borrower) external override whenNotPaused nonReentrant {
+        uint256 interestAmount = calculatingInterest(borrower);
+        _repayBorrowFresh(msg.sender, borrower, interestAmount);
+    }
+
+    /**
      * @notice Repay outstanding borrow
      * @dev Repay borrow see _repayBorrowFresh
      */

@@ -91,5 +91,7 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
 
     function repayBorrow(address, uint256) external override {}
 
+    function repayInterest(address) external override {}
+
     function debtWriteOff(address, uint256) external override {}
 }
