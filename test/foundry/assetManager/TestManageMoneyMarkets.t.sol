@@ -5,6 +5,8 @@ import {Controller} from "union-v2-contracts/Controller.sol";
 import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestManageMoneyMarkets is TestAssetManagerBase {
+    uint256 public daiAmount = 1_000_000 ether;
+
     function setUp() public override {
         super.setUp();
     }
@@ -83,5 +85,14 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         vm.prank(address(123));
         vm.expectRevert(Controller.SenderNotAdmin.selector);
         assetManager.removeAdapter(adapter);
+    }
+
+    function testGetMoneyMarket(uint256 _rate) public {
+        assetManager.addAdapter(address(adapterMock));
+        adapterMock.setRate(_rate);
+        daiMock.mint(address(adapterMock), daiAmount);
+        (uint256 rate, uint256 tokenSupply) = assetManager.getMoneyMarket(address(daiMock), 0);
+        assertEq(tokenSupply, daiAmount);
+        assertEq(rate, _rate);
     }
 }
