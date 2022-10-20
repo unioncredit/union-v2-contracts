@@ -8,6 +8,10 @@ import {
     UserManagerERC20__factory,
     UToken,
     UToken__factory,
+    UDai,
+    UDai__factory,
+    UErc20,
+    UErc20__factory,
     AssetManager,
     PureTokenAdapter,
     PureTokenAdapter__factory,
@@ -78,7 +82,7 @@ export interface DeployConfig {
 
 export interface Contracts {
     userManager: UserManagerERC20;
-    uToken: UToken;
+    uToken: UErc20;
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
     assetManager: AssetManager;
@@ -216,13 +220,13 @@ export default async function (
     }
 
     // deploy uToken
-    let uToken: UToken;
+    let uToken: UErc20;
     if (config.addresses.uToken) {
-        uToken = UToken__factory.connect(config.addresses.uToken, signer);
+        uToken = UErc20__factory.connect(config.addresses.uToken, signer);
     } else {
-        const {proxy} = await deployProxy<UToken>(
-            new UToken__factory(signer),
-            "UToken",
+        const {proxy} = await deployProxy<UErc20>(
+            new UErc20__factory(signer),
+            "UErc20",
             {
                 signature:
                     "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
@@ -242,7 +246,7 @@ export default async function (
             },
             debug
         );
-        uToken = UToken__factory.connect(proxy.address, signer);
+        uToken = UErc20__factory.connect(proxy.address, signer);
         await userManager.setUToken(uToken.address);
         await marketRegistry.setUToken(dai.address, uToken.address);
         await uToken.setUserManager(userManager.address);
