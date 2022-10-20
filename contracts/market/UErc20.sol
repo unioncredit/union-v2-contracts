@@ -4,7 +4,7 @@ pragma solidity 0.8.16;
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
 import {UToken} from "./UToken.sol";
 
-contract UDai is UToken {
+contract UErc20 is UToken {
     function repayBorrowWithERC20Permit(
         address borrower,
         uint256 amount,
