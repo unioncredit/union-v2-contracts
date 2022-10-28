@@ -22,7 +22,7 @@ describe("Minting and redeeming uToken", () => {
     const mintAmount = parseUnits("1000");
 
     const beforeContext = async () => {
-        if(isForked()) await fork();
+        if (isForked()) await fork();
 
         const signers = await getSigners();
         deployer = await getDeployer();
@@ -115,6 +115,51 @@ describe("Minting and redeeming uToken", () => {
             uTokenBal = await contracts.uToken.balanceOf(deployerAddress);
             const expectUDaiBal = mintAmount.add(mintAmount.mul(WAD).div(exchangeRateStored));
             expect(uTokenBal).eq(expectUDaiBal);
+        });
+        it("mint dai amount < 1", async () => {
+            await contracts.dai.transfer(assetManagerAddress, parseUnits("1000"));
+            //when exchangeRate is default
+            const amount = parseUnits("0.001");
+            await contracts.uToken.mint(amount);
+            let balanceBefore = await contracts.dai.balanceOf(deployerAddress);
+            let udaiBal = await contracts.uToken.balanceOf(deployerAddress);
+            await contracts.uToken.redeem(udaiBal, 0);
+            let balanceAfter = await contracts.dai.balanceOf(deployerAddress);
+            expect(balanceAfter.sub(balanceBefore)).eq(amount);
+
+            //when exchangeRate change
+            await contracts.uToken.setReserveFactor("50"); //50%
+            const interestRatePerBlock = await contracts.fixedInterestRateModel.interestRatePerBlock();
+            const reserveFactorMantissa = await contracts.uToken.reserveFactorMantissa();
+            const originationFee = await contracts.uToken.originationFee();
+            await contracts.uToken.mint(amount);
+
+            const borrowAmount = parseUnits("100");
+            await contracts.uToken.connect(user).borrow(userAddress, borrowAmount);
+            const blocks = 99;
+            await roll(blocks);
+            await contracts.uToken.repayBorrow(userAddress, borrowAmount);
+            balanceBefore = await contracts.dai.balanceOf(deployerAddress);
+            udaiBal = await contracts.uToken.balanceOf(deployerAddress);
+            await contracts.uToken.redeem(udaiBal, 0);
+            balanceAfter = await contracts.dai.balanceOf(deployerAddress);
+            const expeOriginationFee = borrowAmount.mul(originationFee).div(WAD);
+            const expectInterest = borrowAmount
+                .mul(interestRatePerBlock)
+                .mul(BigNumber.from(blocks + 1))
+                .div(WAD);
+            const expectIncome = expectInterest
+                .add(
+                    expeOriginationFee
+                        .mul(interestRatePerBlock)
+                        .mul(BigNumber.from(blocks + 1))
+                        .div(WAD)
+                )
+                .sub(expectInterest.mul(reserveFactorMantissa).div(WAD));
+            console.log("income:", expectIncome.toString());
+            expect(balanceAfter.sub(balanceBefore).add(100).div(10000)).eq(
+                amount.add(expectIncome).add(100).div(10000)
+            );
         });
     });
 });
