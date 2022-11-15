@@ -6,6 +6,8 @@ import {
     Comptroller__factory,
     UserManagerERC20,
     UserManagerERC20__factory,
+    UserManagerERC20Test,
+    UserManagerERC20Test__factory,
     UToken,
     UToken__factory,
     AssetManager,
@@ -77,7 +79,7 @@ export interface DeployConfig {
 }
 
 export interface Contracts {
-    userManager: UserManagerERC20;
+    userManager: UserManagerERC20Test;
     uToken: UToken;
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
@@ -172,15 +174,15 @@ export default async function (
     }
 
     // deploy user manager
-    let userManager: UserManagerERC20;
+    let userManager: UserManagerERC20Test;
     if (config.addresses.userManager) {
-        userManager = UserManagerERC20__factory.connect(config.addresses.userManager, signer);
+        userManager = UserManagerERC20Test__factory.connect(config.addresses.userManager, signer);
     } else {
         const {proxy} = await deployProxy<UserManagerERC20>(
-            new UserManagerERC20__factory(signer),
-            "UserManagerERC20",
+            new UserManagerERC20Test__factory(signer),
+            "UserManagerERC20Test",
             {
-                signature: "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256)",
+                signature: "__UserManager_test_init(address,address,address,address,address,uint256,uint256,uint256)",
                 args: [
                     assetManager.address,
                     unionToken.address,
@@ -194,7 +196,7 @@ export default async function (
             },
             debug
         );
-        userManager = UserManagerERC20__factory.connect(proxy.address, signer);
+        userManager = UserManagerERC20Test__factory.connect(proxy.address, signer);
         await marketRegistry.setUserManager(dai.address, userManager.address);
     }
 
