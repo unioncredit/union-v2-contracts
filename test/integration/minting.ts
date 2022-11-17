@@ -116,7 +116,7 @@ describe("Minting and redeeming uToken", () => {
             const expectUDaiBal = mintAmount.add(mintAmount.mul(WAD).div(exchangeRateStored));
             expect(uTokenBal).eq(expectUDaiBal);
         });
-        it("mint dai amount < 1", async () => {
+        it.only("mint dai amount < 1", async () => {
             await contracts.dai.transfer(assetManagerAddress, parseUnits("1000"));
             //when exchangeRate is default
             const amount = parseUnits("0.001");

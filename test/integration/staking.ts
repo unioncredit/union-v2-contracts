@@ -140,7 +140,7 @@ describe("Staking and unstaking", () => {
             const balanceAfter = await contracts.unionToken.balanceOf(deployerAddress);
             expect(balanceAfter.sub(balanceBefore)).eq(rewards);
         });
-        it("withdraw rewards twice on one block", async () => {
+        it.only("withdraw rewards twice on one block", async () => {
             await contracts.userManager.stake(parseUnits("1"));
             await roll(100);
             //This is the reward for 101 blocks
