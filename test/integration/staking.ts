@@ -149,7 +149,7 @@ describe("Staking and unstaking", () => {
                 contracts.dai.address,
                 1
             );
-            console.log("rewards to withdraw: ", rewards.toString());
+            console.log("rewards to withdraw(101 blocks): ", rewards.toString());
             const balanceBefore = await contracts.unionToken.balanceOf(deployerAddress);
             await contracts.userManager.withdrawRewards();
             //Because this is a reward of 1 block just after extraction
@@ -162,9 +162,12 @@ describe("Staking and unstaking", () => {
             let balanceAfter = await contracts.unionToken.balanceOf(deployerAddress);
             expect(balanceAfter.sub(balanceBefore)).eq(rewards); // withdrawing first time is OK
             //This is a test method, and withdrawRewards is called 2 times in this method
+            console.log("Call withdrawRewards 2 times in one block");
             await contracts.userManager.withdrawRewards2();
             balanceAfter = await contracts.unionToken.balanceOf(deployerAddress);
             console.log("rewards withdrawn: ", balanceAfter.sub(balanceBefore).toString());
+            console.log(`${balanceAfter} - ${rewards} = ${oneBlockRewards}`);
+            console.log(`The reward actually withdrawn is equal to the reward of one block`);
             expect(balanceAfter.sub(rewards)).eq(oneBlockRewards); // can actually withdraw additional rewards in the same block
         });
         it("withdraw rewards when staking", async () => {

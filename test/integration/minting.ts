@@ -156,7 +156,8 @@ describe("Minting and redeeming uToken", () => {
                         .div(WAD)
                 )
                 .sub(expectInterest.mul(reserveFactorMantissa).div(WAD));
-            console.log("income:", expectIncome.toString());
+            console.log("expect income:", expectIncome.toString());
+            console.log("actual income:", balanceAfter.sub(balanceBefore).sub(amount).toString());
             expect(balanceAfter.sub(balanceBefore).add(100).div(10000)).eq(
                 amount.add(expectIncome).add(100).div(10000)
             );
