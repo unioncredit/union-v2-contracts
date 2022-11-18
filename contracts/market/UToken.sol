@@ -800,8 +800,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      */
     function _depositToAssetManager(uint256 amount) internal {
         IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
-        assetToken.safeApprove(assetManager, 0); // Some ERC20 tokens (e.g. Tether) changed the behavior of approve to look like safeApprove
-        assetToken.safeApprove(assetManager, amount);
+
+        uint256 currentAllowance = assetToken.allowance(address(this), assetManager);
+        if (currentAllowance < amount) {
+            assetToken.safeIncreaseAllowance(assetManager, amount - currentAllowance);
+        }
+
         if (!IAssetManager(assetManager).deposit(underlying, amount)) revert DepositToAssetManagerFailed();
     }
 }

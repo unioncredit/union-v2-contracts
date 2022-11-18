@@ -187,8 +187,13 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
     function mapTokenToAToken(address tokenAddress) external onlyAdmin {
         LendingPool3.ReserveData memory reserveData = lendingPool.getReserveData(tokenAddress);
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
-        token.safeApprove(address(lendingPool), 0);
-        token.safeApprove(address(lendingPool), type(uint256).max);
+
+        address spender = address(lendingPool);
+        uint256 currentAllowance = token.allowance(address(this), spender);
+        if (currentAllowance < type(uint256).max) {
+            token.safeIncreaseAllowance(spender, type(uint256).max - currentAllowance);
+        }
+
         tokenToAToken[tokenAddress] = reserveData.aTokenAddress;
     }
 

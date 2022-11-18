@@ -464,8 +464,11 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         IERC20Upgradeable poolToken = IERC20Upgradeable(tokenAddress);
         uint256 moneyMarketsLength = moneyMarkets.length;
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
-            poolToken.safeApprove(address(moneyMarkets[i]), 0);
-            poolToken.safeApprove(address(moneyMarkets[i]), type(uint256).max);
+            address spender = address(moneyMarkets[i]);
+            uint256 currentAllowance = poolToken.allowance(address(this), spender);
+            if (currentAllowance < type(uint256).max) {
+                poolToken.safeIncreaseAllowance(spender, type(uint256).max - currentAllowance);
+            }
         }
     }
 
@@ -477,8 +480,11 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         uint256 supportedTokensLength = supportedTokensList.length;
         for (uint256 i = 0; i < supportedTokensLength; i++) {
             IERC20Upgradeable poolToken = IERC20Upgradeable(supportedTokensList[i]);
-            poolToken.safeApprove(adapterAddress, 0);
-            poolToken.safeApprove(adapterAddress, type(uint256).max);
+
+            uint256 currentAllowance = poolToken.allowance(address(this), adapterAddress);
+            if (currentAllowance < type(uint256).max) {
+                poolToken.safeIncreaseAllowance(adapterAddress, type(uint256).max - currentAllowance);
+            }
         }
     }
 

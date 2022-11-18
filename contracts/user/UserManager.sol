@@ -674,8 +674,10 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         totalStaked += amount;
 
         erc20Token.safeTransferFrom(msg.sender, address(this), amount);
-        erc20Token.safeApprove(assetManager, 0);
-        erc20Token.safeApprove(assetManager, amount);
+        uint256 currentAllowance = erc20Token.allowance(address(this), assetManager);
+        if (currentAllowance < amount) {
+            erc20Token.safeIncreaseAllowance(assetManager, amount - currentAllowance);
+        }
 
         if (!IAssetManager(assetManager).deposit(stakingToken, amount)) revert AssetManagerDepositFailed();
         emit LogStake(msg.sender, amount);
