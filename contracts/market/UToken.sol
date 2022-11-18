@@ -143,6 +143,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     error AmountExceedGlobalMax();
     error AmountExceedMaxBorrow();
     error AmountLessMinBorrow();
+    error AmountError();
     error AmountZero();
     error BorrowRateExceedLimit();
     error WithdrawFailed();
@@ -706,7 +707,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      */
     function redeem(uint256 amountIn, uint256 amountOut) external override whenNotPaused nonReentrant {
         if (!accrueInterest()) revert AccrueInterestFailed();
-        if (amountIn != 0 && amountOut != 0) revert AmountZero();
+        if (amountIn != 0 && amountOut != 0) revert AmountError();
+        if (amountIn == 0 && amountOut == 0) revert AmountZero();
 
         uint256 exchangeRate = exchangeRateStored();
 
