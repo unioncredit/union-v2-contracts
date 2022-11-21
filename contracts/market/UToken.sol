@@ -672,12 +672,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /* -------------------------------------------------------------------
-       Mint uToken Functions 
+       mint and redeem uToken Functions 
     ------------------------------------------------------------------- */
 
     /**
      * @dev Mint uTokens by depositing tokens
-     * @param mintAmount Amount of uTokens to mint
+     * @param mintAmount The amount of the underlying asset to supply
      */
     function mint(uint256 mintAmount) external override whenNotPaused nonReentrant {
         if (!accrueInterest()) revert AccrueInterestFailed();
