@@ -199,7 +199,7 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
     function deposit(address tokenAddress) external override checkTokenSupported(tokenAddress) {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         uint256 amount = token.balanceOf(address(this));
-        lendingPool.deposit(tokenAddress, amount, address(this), 0);
+        lendingPool.supply(tokenAddress, amount, address(this), 0);
     }
 
     /**
