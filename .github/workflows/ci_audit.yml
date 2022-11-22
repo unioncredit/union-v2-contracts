@@ -23,5 +23,12 @@ jobs:
             - name: Compile hardhat
               run: yarn hh:compile
 
+            - name: Check tests existence
+              id: check_tests
+              uses: andstor/file-existence-action@v2
+              with:
+                  files: "test/findings/*"
+
             - name: Run the tests
-              run: yarn hardhat test test/findings/*
+              if: steps.check_tests.outputs.files_exists == 'true'
+              run: CONFIG=local yarn hardhat test test/findings/*
