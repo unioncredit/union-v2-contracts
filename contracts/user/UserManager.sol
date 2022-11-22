@@ -565,7 +565,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev Remove voucher for memeber
+     *  @dev Remove voucher for member
      *  Can be called by either the borrower or the staker. It will remove the voucher from
      *  the voucher array by replacing it with the last item of the array and reseting the array
      *  size to -1 by poping off the last item
