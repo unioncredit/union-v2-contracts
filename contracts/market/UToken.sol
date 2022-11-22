@@ -664,11 +664,22 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     function debtWriteOff(address borrower, uint256 amount) external override whenNotPaused onlyUserManager {
+        if (amount == 0) revert AmountZero();
+
         uint256 oldPrincipal = getBorrowed(borrower);
         uint256 repayAmount = amount > oldPrincipal ? oldPrincipal : amount;
 
         accountBorrows[borrower].principal = oldPrincipal - repayAmount;
         totalBorrows -= repayAmount;
+
+        if (repayAmount == oldPrincipal) {
+            // If all principal is written off, we can reset the last repaid block to 0.
+            // which indicates that the borrower has no outstanding loans.
+            accountBorrows[borrower].lastRepay = 0;
+        } else {
+            // Still tracking the exisiting loan.
+            accountBorrows[borrower].lastRepay = getBlockNumber();
+        }
     }
 
     /* -------------------------------------------------------------------
