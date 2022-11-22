@@ -3,7 +3,7 @@ name: sherlock audit fix tests
 on:
     push:
         branches:
-            - "audit-fix/**"
+            - "findings/**"
 
 jobs:
     SherlockAuditFixTest:
@@ -24,4 +24,4 @@ jobs:
               run: yarn hh:compile
 
             - name: Run audit fix tests
-              run: yarn hardhat test test/sherlock-audit-fix/*
+              run: yarn hardhat test test/findings/*
