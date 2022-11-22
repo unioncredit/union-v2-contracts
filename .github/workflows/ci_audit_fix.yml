@@ -1,0 +1,27 @@
+name: sherlock audit fix tests
+
+on:
+    pull_request:
+        branches:
+            - "audit-fix/**"
+
+jobs:
+    SherlockAuditFixTest:
+        name: Sherlock audit fix tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  submodules: recursive
+            - uses: actions/setup-node@v2
+              with:
+                  node-version: 14
+
+            - name: Install dependencies
+              run: yarn install
+
+            - name: Compile hardhat
+              run: yarn hh:compile
+
+            - name: Run audit fix tests
+              run: yarn hardhat test test/sherlock-audit-fix/*
