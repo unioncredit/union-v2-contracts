@@ -1,4 +1,4 @@
-name: sherlock audit fix tests
+name: audit finding tests
 
 on:
     push:
@@ -6,8 +6,8 @@ on:
             - "findings/**"
 
 jobs:
-    SherlockAuditFixTest:
-        name: Sherlock audit fix tests
+    AuditFindingTest:
+        name: Audit finding tests
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
@@ -23,5 +23,5 @@ jobs:
             - name: Compile hardhat
               run: yarn hh:compile
 
-            - name: Run audit fix tests
+            - name: Run the tests
               run: yarn hardhat test test/findings/*
