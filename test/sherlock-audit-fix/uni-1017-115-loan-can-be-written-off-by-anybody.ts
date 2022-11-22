@@ -124,12 +124,6 @@ describe("Debt write off", () => {
         const principal = await contracts.uToken.getBorrowed(borrowerAddress);
         const resp = contracts.userManager.debtWriteOff(stakerAddress, borrowerAddress, principal);
         await expect(resp).to.be.rejectedWith(error.AuthFailed);
-        // console.log({resp});
-
-        // const stakeBalBefore = await contracts.userManager.getStakerBalance(stakerAddress);
-        // await contracts.userManager.debtWriteOff(stakerAddress, borrowerAddress, principal);
-        // const stakeBalAfter = await contracts.userManager.getStakerBalance(stakerAddress);
-        // expect(stakeBalBefore.sub(stakeBalAfter)).eq(principal);
 
         await logInfo();
     });
