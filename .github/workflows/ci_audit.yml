@@ -1,0 +1,27 @@
+name: audit finding tests
+
+on:
+    push:
+        branches:
+            - "findings/**"
+
+jobs:
+    AuditFindingTest:
+        name: Audit finding tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  submodules: recursive
+            - uses: actions/setup-node@v3
+              with:
+                  node-version: 14
+
+            - name: Install dependencies
+              run: yarn install
+
+            - name: Compile hardhat
+              run: yarn hh:compile
+
+            - name: Run the tests
+              run: yarn hardhat test test/findings/*
