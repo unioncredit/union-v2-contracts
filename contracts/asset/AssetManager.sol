@@ -415,6 +415,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
             supportedTokensList[index] = supportedTokensList[supportedTokensLength - 1];
             supportedTokensList.pop();
             supportedMarkets[tokenAddress] = false;
+            removeMarketsApprovals(tokenAddress);
         }
     }
 
@@ -460,8 +461,11 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
             }
             moneyMarkets[index] = moneyMarkets[moneyMarketsLength - 1];
             moneyMarkets.pop();
+
             withdrawSeq[index] = withdrawSeq[withdrawSeq.length - 1];
             withdrawSeq.pop();
+
+            removeTokenApprovals(adapterAddress);
         }
     }
 
@@ -580,6 +584,32 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         uint256 currentAllowance = token.allowance(address(this), spender);
         if (currentAllowance < amount) {
             token.safeIncreaseAllowance(spender, amount - currentAllowance);
+        }
+    }
+
+    /**
+     *  @dev For a give token set allowance for all integrated money markets
+     *  @param tokenAddress ERC20 token address
+     */
+    function removeMarketsApprovals(address tokenAddress) private {
+        IERC20Upgradeable poolToken = IERC20Upgradeable(tokenAddress);
+        uint256 moneyMarketsLength = moneyMarkets.length;
+        for (uint256 i = 0; i < moneyMarketsLength; i++) {
+            uint256 currentAllowance = poolToken.allowance(address(this), address(moneyMarkets[i]));
+            poolToken.safeDecreaseAllowance(address(moneyMarkets[i]), currentAllowance);
+        }
+    }
+
+    /**
+     *  @dev For a give moeny market set allowance for all underlying tokens
+     *  @param adapterAddress Address of adaptor for money market
+     */
+    function removeTokenApprovals(address adapterAddress) private {
+        uint256 supportedTokensLength = supportedTokensList.length;
+        for (uint256 i = 0; i < supportedTokensLength; i++) {
+            IERC20Upgradeable poolToken = IERC20Upgradeable(supportedTokensList[i]);
+            uint256 currentAllowance = poolToken.allowance(address(this), adapterAddress);
+            poolToken.safeDecreaseAllowance(adapterAddress, currentAllowance);
         }
     }
 }
