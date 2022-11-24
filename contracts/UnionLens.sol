@@ -59,7 +59,7 @@ contract UnionLens {
         IUserManager userManager = IUserManager(marketRegistry.userManagers(underlying));
         IUToken uToken = IUToken(marketRegistry.uTokens(underlying));
 
-        (bool isMember, uint96 locked, uint96 stakedAmount) = userManager.stakers(user);
+        (bool isMember, uint96 stakedAmount, uint96 locked) = userManager.stakers(user);
 
         userInfo.isOverdue = uToken.checkIsOverdue(user);
         userInfo.memberFrozen = userManager.memberFrozen(user);
@@ -81,8 +81,8 @@ contract UnionLens {
     ) public view returns (RelatedInfo memory related) {
         IUserManager userManager = IUserManager(marketRegistry.userManagers(underlying));
 
-        (, , uint96 stakerStakedAmount) = userManager.stakers(staker);
-        (, , uint96 borrowerStakedAmount) = userManager.stakers(borrower);
+        (, uint96 stakerStakedAmount, ) = userManager.stakers(staker);
+        (, uint96 borrowerStakedAmount, ) = userManager.stakers(borrower);
 
         bool isSet;
         uint256 idx;
