@@ -564,7 +564,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
     /**
      *  @dev Repay the loan
-     *  Accept claims only from the member
      *  Updated member lastPaymentEpoch only when the repayment amount is greater than interest
      *  @param payer Payer address
      *  @param borrower Borrower address
