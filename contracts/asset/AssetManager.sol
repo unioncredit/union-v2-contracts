@@ -275,6 +275,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         }
 
         bool remaining = true;
+        poolToken.safeTransferFrom(msg.sender, address(this), amount);
         if (isMarketSupported(token)) {
             uint256 moneyMarketsLength = moneyMarkets.length;
             // assumption: markets are arranged in order of decreasing liquidity
@@ -286,9 +287,10 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
                 if (!moneyMarket.supportsToken(token)) continue;
                 if (moneyMarket.floorMap(token) <= moneyMarket.getSupply(token)) continue;
 
-                poolToken.safeTransferFrom(msg.sender, address(moneyMarket), amount);
-                moneyMarket.deposit(token);
-                remaining = false;
+                poolToken.safeTransfer(address(moneyMarket), amount);
+                if (moneyMarket.deposit(token)) {
+                    remaining = false;
+                }
             }
 
             // assumption: less liquid markets provide more yield
@@ -303,18 +305,14 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
                 uint256 ceiling = moneyMarket.ceilingMap(token);
                 if (supply + amount > ceiling) continue;
 
-                poolToken.safeTransferFrom(msg.sender, address(moneyMarket), amount);
-                moneyMarket.deposit(token);
-                remaining = false;
+                poolToken.safeTransfer(address(moneyMarket), amount);
+                if (moneyMarket.deposit(token)) {
+                    remaining = false;
+                }
             }
         }
 
-        if (remaining) {
-            poolToken.safeTransferFrom(msg.sender, address(this), amount);
-        }
-
         emit LogDeposit(token, msg.sender, amount);
-
         return true;
     }
 
@@ -353,8 +351,9 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
                 if (supply == 0) continue;
 
                 uint256 withdrawAmount = supply < remaining ? supply : remaining;
-                remaining -= withdrawAmount;
-                moneyMarket.withdraw(token, account, withdrawAmount);
+                if (moneyMarket.withdraw(token, account, withdrawAmount)) {
+                    remaining -= withdrawAmount;
+                }
             }
         }
 
@@ -511,10 +510,9 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             IMoneyMarketAdapter moneyMarket = moneyMarkets[i];
             if (!moneyMarket.supportsToken(tokenAddress)) continue;
-            moneyMarket.withdrawAll(tokenAddress, address(this));
-
             supportedMoneyMarkets[supportedMoneyMarketsSize] = moneyMarket;
             supportedMoneyMarketsSize++;
+            moneyMarket.withdrawAll(tokenAddress, address(this));
         }
 
         if (percentagesLength + 1 != supportedMoneyMarketsSize) revert NotParity();

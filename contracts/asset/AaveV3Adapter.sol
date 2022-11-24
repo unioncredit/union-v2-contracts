@@ -196,10 +196,21 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
      * @dev Deposit tokens into the underlying Aave V3 lending pool
      * @param tokenAddress Token address
      */
-    function deposit(address tokenAddress) external override checkTokenSupported(tokenAddress) {
+    function deposit(address tokenAddress)
+        external
+        override
+        onlyAssetManager
+        checkTokenSupported(tokenAddress)
+        returns (bool)
+    {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         uint256 amount = token.balanceOf(address(this));
-        lendingPool.supply(tokenAddress, amount, address(this), 0);
+        try lendingPool.supply(tokenAddress, amount, address(this), 0) {
+            return true;
+        } catch {
+            token.safeTransfer(assetManager, amount);
+            return false;
+        }
     }
 
     /**
@@ -213,9 +224,13 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
         address tokenAddress,
         address recipient,
         uint256 tokenAmount
-    ) external override onlyAssetManager checkTokenSupported(tokenAddress) {
+    ) external override onlyAssetManager checkTokenSupported(tokenAddress) returns (bool) {
         if (_checkBal(tokenAddress)) {
-            lendingPool.withdraw(tokenAddress, tokenAmount, recipient);
+            try lendingPool.withdraw(tokenAddress, tokenAmount, recipient) {
+                return true;
+            } catch {
+                return false;
+            }
         }
     }
 
@@ -230,9 +245,14 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
         override
         onlyAssetManager
         checkTokenSupported(tokenAddress)
+        returns (bool)
     {
         if (_checkBal(tokenAddress)) {
-            lendingPool.withdraw(tokenAddress, type(uint256).max, recipient);
+            try lendingPool.withdraw(tokenAddress, type(uint256).max, recipient) {
+                return true;
+            } catch {
+                return false;
+            }
         }
     }
 
