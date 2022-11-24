@@ -10,6 +10,9 @@ import goerliConfig from "./goerli";
 // Fork Configs
 import goerliForkConfig from "./goerli-fork";
 
+// Local test configs
+import localConfig from "./local";
+
 export const baseConfig = {
     addresses: {
         aave: {
@@ -49,6 +52,8 @@ export const getConfig = () => {
             return {...baseConfig, ...goerliConfig};
         case "goerli-fork":
             return {...baseConfig, ...goerliForkConfig};
+        case "local":
+            return {...baseConfig, ...localConfig};
         default:
             return baseConfig;
     }
