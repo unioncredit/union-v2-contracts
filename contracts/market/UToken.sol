@@ -671,19 +671,19 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /* -------------------------------------------------------------------
-       Mint uToken Functions 
+       mint and redeem uToken Functions 
     ------------------------------------------------------------------- */
 
     /**
      * @dev Mint uTokens by depositing tokens
-     * @param mintAmount Amount of uTokens to mint
+     * @param amountIn The amount of the underlying asset to supply
      */
-    function mint(uint256 mintAmount) external override whenNotPaused nonReentrant {
+    function mint(uint256 amountIn) external override whenNotPaused nonReentrant {
         if (!accrueInterest()) revert AccrueInterestFailed();
         uint256 exchangeRate = exchangeRateStored();
         IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
         uint256 balanceBefore = assetToken.balanceOf(address(this));
-        assetToken.safeTransferFrom(msg.sender, address(this), mintAmount);
+        assetToken.safeTransferFrom(msg.sender, address(this), amountIn);
         uint256 balanceAfter = assetToken.balanceOf(address(this));
         uint256 actualMintAmount = balanceAfter - balanceBefore;
         totalRedeemable += actualMintAmount;
