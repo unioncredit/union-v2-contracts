@@ -93,24 +93,37 @@ describe("Write-off debt and cancel vouch", () => {
             expect(voucherIndex.isSet).eq(false);
         }
     });
-    it("last borrower has updated correctly", async () => {
-        const acc = borrowers.pop();
-        const addr = await acc.getAddress();
-        const ta = trustAmounts[addr];
+    if (IS_FIXED) {
+        it("vouchee.voucherIndex is updated correctly", async () => {
+            const acc = borrowers.pop();
+            const addr = await acc.getAddress();
+            const ta = trustAmounts[addr];
 
-        const voucheeIndex = await contracts.userManager.voucheeIndexes(addr, stakerAddress);
-        const voucherIndex = await contracts.userManager.voucherIndexes(addr, stakerAddress);
+            const voucheeIndex = await contracts.userManager.voucheeIndexes(addr, stakerAddress);
+            const voucherIndex = await contracts.userManager.voucherIndexes(addr, stakerAddress);
 
-        if (IS_FIXED) {
             const vouchee = await contracts.userManager.vouchees(stakerAddress, voucheeIndex.idx);
             expect(vouchee.voucherIndex).eq(voucherIndex.idx);
 
             const vouch = await contracts.userManager.vouchers(addr, voucherIndex.idx);
             expect(vouch.trust).eq(ta);
-        } else {
+        });
+    } else {
+        it("vouchee.voucherIndex is not updated correctly", async () => {
+            const acc = borrowers.pop();
+            const addr = await acc.getAddress();
+            const ta = trustAmounts[addr];
+
+            const voucheeIndex = await contracts.userManager.voucheeIndexes(addr, stakerAddress);
+            const voucherIndex = await contracts.userManager.voucherIndexes(addr, stakerAddress);
+
             const voucheeCount = await contracts.userManager.getVoucheeCount(stakerAddress);
             expect(voucheeIndex.idx).gt(voucheeCount.sub(1));
+
+            // The vouchee.voucherIndex has not been updated correctly and is still pointing to the
+            // old voucherIndex which was the lastIndex. This index doesn't exist anymore so when
+            // we try and retrieve it it will revert.
             await expect(contracts.userManager.vouchees(stakerAddress, voucheeIndex.idx)).to.be.reverted;
-        }
-    });
+        });
+    }
 });
