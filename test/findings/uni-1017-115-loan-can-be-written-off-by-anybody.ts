@@ -3,7 +3,6 @@ import {ethers} from "hardhat";
 import {Signer} from "ethers";
 import {commify, formatUnits, parseUnits} from "ethers/lib/utils";
 
-import error from "../utils/error";
 import deploy, {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";
 import {getDai, roll} from "../../test/utils";
@@ -123,7 +122,7 @@ describe("Debt write off", () => {
     it("Cannot write off debt by others", async () => {
         const principal = await contracts.uToken.getBorrowed(borrowerAddress);
         const resp = contracts.userManager.debtWriteOff(stakerAddress, borrowerAddress, principal);
-        await expect(resp).to.be.rejectedWith(error.AuthFailed);
+        await expect(resp).to.be.revertedWithCustomError(contracts.userManager, "AuthFailed");
 
         await logInfo();
     });

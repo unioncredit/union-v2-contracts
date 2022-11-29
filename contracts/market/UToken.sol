@@ -676,9 +676,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             // If all principal is written off, we can reset the last repaid block to 0.
             // which indicates that the borrower has no outstanding loans.
             accountBorrows[borrower].lastRepay = 0;
-        } else {
-            // Still tracking the exisiting loan.
-            accountBorrows[borrower].lastRepay = getBlockNumber();
         }
     }
 
