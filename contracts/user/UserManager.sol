@@ -164,7 +164,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     error LockedRemaining();
     error VoucherNotFound();
     error VouchWhenOverdue();
-    error MaxVouchees();
+    error MaxVouchers();
     error InvalidParams();
 
     /* -------------------------------------------------------------------
@@ -544,19 +544,19 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
             // This is a new vouch so we need to check that the
             // member has not reached the max voucher limit
-            uint256 voucheesLength = vouchees[staker].length;
-            if (voucheesLength >= maxVouchers) revert MaxVouchees();
+            uint256 voucheeIndex = vouchees[staker].length;
+            if (voucheeIndex >= maxVouchers) revert MaxVouchers();
 
             // Get the new index that this vouch is going to be inserted at
             // Then update the voucher indexes for this borrower as well as
             // Adding the Vouch the the vouchers array for this staker
             uint256 voucherIndex = vouchers[borrower].length;
+            if (voucherIndex >= maxVouchers) revert MaxVouchers();
             voucherIndexes[borrower][staker] = Index(true, uint128(voucherIndex));
             vouchers[borrower].push(Vouch(staker, trustAmount, 0, 0));
 
             // Add the voucherIndex of this new vouch to the vouchees array for this
             // staker then update the voucheeIndexes with the voucheeIndex
-            uint256 voucheeIndex = voucheesLength;
             vouchees[staker].push(Vouchee(borrower, uint96(voucherIndex)));
             voucheeIndexes[borrower][staker] = Index(true, uint128(voucheeIndex));
         }
@@ -804,7 +804,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     ) external onlyMarket {
         uint96 remaining = amount;
 
-        for (uint256 i = 0; i < vouchers[borrower].length; i++) {
+        uint256 vouchersLength = vouchers[borrower].length;
+        for (uint256 i = 0; i < vouchersLength; i++) {
             Vouch storage vouch = vouchers[borrower][i];
             uint96 innerAmount;
 
