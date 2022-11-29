@@ -44,7 +44,7 @@ contract AssetManagerMock is IAssetManager {
         address token,
         address account,
         uint256 amount
-    ) external override returns (bool) {
+    ) external override returns (uint256) {
         uint256 remaining = amount;
 
         // If there are tokens in Asset Manager then transfer them on priority
@@ -54,7 +54,7 @@ contract AssetManagerMock is IAssetManager {
             remaining -= withdrawAmount;
             IERC20(token).transfer(account, withdrawAmount);
         }
-        return true;
+        return remaining;
     }
 
     function addToken(address) external override {}
