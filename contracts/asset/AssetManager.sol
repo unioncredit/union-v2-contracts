@@ -137,7 +137,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param newSeq priority sequence of money market indices to be used while withdrawing
      */
     function setWithdrawSequence(uint256[] calldata newSeq) external override onlyAdmin {
-        if (newSeq.length != withdrawSeq.length) revert NotParity();
+        if (newSeq.length != moneyMarkets.length) revert NotParity();
         withdrawSeq = newSeq;
     }
 
@@ -453,6 +453,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         if (isExist) {
             moneyMarkets[index] = moneyMarkets[moneyMarketsLength - 1];
             moneyMarkets.pop();
+            withdrawSeq[index] = withdrawSeq[withdrawSeq.length - 1];
+            withdrawSeq.pop();
         }
     }
 
