@@ -197,7 +197,14 @@ contract Comptroller is Controller, IComptroller {
         UserManagerState memory userManagerState = _getUserManagerState(userManager);
 
         return
-            _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, userManagerState, userManagerAccountState);
+            _calculateRewardsByBlocks(
+                account,
+                token,
+                pastBlocks,
+                userInfo,
+                userManagerState.totalStaked,
+                userManagerAccountState
+            );
     }
 
     /**
@@ -252,13 +259,12 @@ contract Comptroller is Controller, IComptroller {
             token,
             pastBlocks,
             userInfo,
-            userManagerState,
+            userManagerState.totalStaked,
             userManagerAccountState
         );
 
         // update the global states
-        uint256 totalStaked_ = userManagerState.totalStaked - userManagerState.totalFrozen;
-        gInflationIndex = _getInflationIndexNew(totalStaked_, block.number - gLastUpdatedBlock);
+        gInflationIndex = _getInflationIndexNew(userManagerState.totalStaked, block.number - gLastUpdatedBlock);
         gLastUpdatedBlock = block.number;
         users[account][token].updatedBlock = block.number;
         users[account][token].inflationIndex = gInflationIndex;
@@ -390,7 +396,10 @@ contract Comptroller is Controller, IComptroller {
      *  @dev Calculate currently unclaimed rewards
      *  @param account Account address
      *  @param token Staking token address
-     *  @param userManagerState User manager global state
+     *  @param pastBlocks # of blocks past
+     *  @param userInfo User info
+     *  @param totalStaked Effective total staked
+     *  @param userManagerAccountState User account global state
      *  @return Unclaimed rewards
      */
     function _calculateRewardsByBlocks(
@@ -398,7 +407,7 @@ contract Comptroller is Controller, IComptroller {
         address token,
         uint256 pastBlocks,
         Info memory userInfo,
-        UserManagerState memory userManagerState,
+        uint256 totalStaked,
         UserManagerAccountState memory userManagerAccountState
     ) internal view returns (uint256) {
         IUserManager userManagerContract = _getUserManager(token);
@@ -420,7 +429,7 @@ contract Comptroller is Controller, IComptroller {
             _calculateRewards(
                 account,
                 token,
-                userManagerState.totalStaked,
+                totalStaked,
                 userManagerAccountState.totalStaked,
                 userManagerAccountState.pastBlocksFrozenCoinAge,
                 pastBlocks,

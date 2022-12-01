@@ -74,9 +74,12 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     function testRemoveAdapter(address adapter) public {
         assetManager.addAdapter(adapter);
         assertEq(address(assetManager.moneyMarkets(0)), adapter);
+        assertEq(assetManager.withdrawSeq(0), 0);
         assetManager.removeAdapter(adapter);
         vm.expectRevert();
         assetManager.moneyMarkets(0);
+        vm.expectRevert();
+        assetManager.withdrawSeq(0);
     }
 
     function testCannotRemoveAdapterNonAdmin(address adapter) public {
