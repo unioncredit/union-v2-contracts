@@ -214,7 +214,7 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
         address recipient,
         uint256 tokenAmount
     ) external override onlyAssetManager checkTokenSupported(tokenAddress) {
-        if (_checkBal(tokenAddress)) {
+        if (_getSupply(tokenAddress) > 0) {
             lendingPool.withdraw(tokenAddress, tokenAmount, recipient);
         }
     }
@@ -231,7 +231,7 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
         onlyAssetManager
         checkTokenSupported(tokenAddress)
     {
-        if (_checkBal(tokenAddress)) {
+        if (_getSupply(tokenAddress) > 0) {
             lendingPool.withdraw(tokenAddress, type(uint256).max, recipient);
         }
     }
@@ -264,11 +264,5 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
 
     function _supportsToken(address tokenAddress) internal view returns (bool) {
         return tokenToAToken[tokenAddress] != address(0);
-    }
-
-    function _checkBal(address tokenAddress) internal view returns (bool) {
-        address aTokenAddress = tokenToAToken[tokenAddress];
-        IERC20Upgradeable aToken = IERC20Upgradeable(aTokenAddress);
-        return aToken.balanceOf(address(this)) > 0;
     }
 }
