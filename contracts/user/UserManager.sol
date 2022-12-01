@@ -701,11 +701,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         if (uint96(remaining) > amount) {
             revert AssetManagerWithdrawFailed();
         }
-        uint96 realAmount = amount - uint96(remaining);
-        staker.stakedAmount -= realAmount;
-        totalStaked -= realAmount;
+        uint96 actualAmount = amount - uint96(remaining);
+        staker.stakedAmount -= actualAmount;
+        totalStaked -= actualAmount;
 
-        emit LogUnstake(msg.sender, realAmount);
+        emit LogUnstake(msg.sender, actualAmount);
     }
 
     /**
