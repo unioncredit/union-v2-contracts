@@ -99,6 +99,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     error AmountZero();
     error InsufficientBalance();
     error TokenExists();
+    error RemainingFunds();
 
     /* -------------------------------------------------------------------
       Constructor/Initializer 
@@ -407,6 +408,10 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         }
 
         if (isExist) {
+            for (uint256 i = 0; i < moneyMarkets.length; i++) {
+                if (moneyMarkets[i].getSupply(tokenAddress) >= 10000) revert RemainingFunds(); //ignore the dust
+            }
+
             supportedTokensList[index] = supportedTokensList[supportedTokensLength - 1];
             supportedTokensList.pop();
             supportedMarkets[tokenAddress] = false;
@@ -441,7 +446,6 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         bool isExist = false;
         uint256 index;
         uint256 moneyMarketsLength = moneyMarkets.length;
-
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             if (adapterAddress == address(moneyMarkets[i])) {
                 isExist = true;
@@ -451,6 +455,9 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         }
 
         if (isExist) {
+            for (uint256 i = 0; i < supportedTokensList.length; i++) {
+                if (moneyMarkets[index].getSupply(supportedTokensList[i]) >= 10000) revert RemainingFunds(); //ignore the dust
+            }
             moneyMarkets[index] = moneyMarkets[moneyMarketsLength - 1];
             moneyMarkets.pop();
             withdrawSeq[index] = withdrawSeq[withdrawSeq.length - 1];
