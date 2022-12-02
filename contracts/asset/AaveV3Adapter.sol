@@ -219,7 +219,9 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
         address recipient,
         uint256 tokenAmount
     ) external override onlyAssetManager checkTokenSupported(tokenAddress) {
-        lendingPool.withdraw(tokenAddress, tokenAmount, recipient);
+        if (_getSupply(tokenAddress) > 0) {
+            lendingPool.withdraw(tokenAddress, tokenAmount, recipient);
+        }
     }
 
     /**
@@ -234,7 +236,9 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
         onlyAssetManager
         checkTokenSupported(tokenAddress)
     {
-        lendingPool.withdraw(tokenAddress, type(uint256).max, recipient);
+        if (_getSupply(tokenAddress) > 0) {
+            lendingPool.withdraw(tokenAddress, type(uint256).max, recipient);
+        }
     }
 
     /**
