@@ -531,11 +531,17 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             accountBorrows[msg.sender].lastRepay = getBlockNumber();
         }
 
-        uint256 accountBorrowsNew = borrowedAmount + amount + fee;
-        uint256 totalBorrowsNew = totalBorrows + amount + fee;
+        // Withdraw the borrowed amount of tokens from the assetManager and send them to the borrower
+        uint256 remaining = assetManagerContract.withdraw(underlying, to, amount);
+        if (remaining > amount) revert WithdrawFailed();
+        uint256 actualAmount = amount - remaining;
+
+        fee = calculatingFee(actualAmount);
+        uint256 accountBorrowsNew = borrowedAmount + actualAmount + fee;
+        uint256 totalBorrowsNew = totalBorrows + actualAmount + fee;
 
         // Update internal balances
-        accountBorrows[msg.sender].principal += amount + fee;
+        accountBorrows[msg.sender].principal += actualAmount + fee;
         uint256 newPrincipal = getBorrowed(msg.sender);
         accountBorrows[msg.sender].interest = accountBorrowsNew - newPrincipal;
         accountBorrows[msg.sender].interestIndex = borrowIndex;
@@ -545,15 +551,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // uDAI minters redeemable amount.
         totalReserves += fee;
 
-        // Withdraw the borrowed amount of tokens from the assetManager and send them to the borrower
-        if (!assetManagerContract.withdraw(underlying, to, amount)) revert WithdrawFailed();
-
         // Call update locked on the userManager to lock this borrowers stakers. This function
         // will revert if the account does not have enough vouchers to cover the borrow amount. ie
         // the borrower is trying to borrow more than is able to be underwritten
-        IUserManager(userManager).updateLocked(msg.sender, uint96(amount + fee), true);
+        IUserManager(userManager).updateLocked(msg.sender, uint96(actualAmount + fee), true);
 
-        emit LogBorrow(msg.sender, to, amount, fee);
+        emit LogBorrow(msg.sender, to, actualAmount, fee);
     }
 
     /**
@@ -752,13 +755,13 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             underlyingAmount = amountOut;
         }
 
-        totalRedeemable -= underlyingAmount;
-        _burn(msg.sender, uTokenAmount);
-
-        IAssetManager assetManagerContract = IAssetManager(assetManager);
-        if (!assetManagerContract.withdraw(underlying, msg.sender, underlyingAmount)) revert WithdrawFailed();
-
-        emit LogRedeem(msg.sender, amountIn, amountOut, underlyingAmount);
+        uint256 remaining = IAssetManager(assetManager).withdraw(underlying, msg.sender, underlyingAmount);
+        if (remaining > underlyingAmount) revert WithdrawFailed();
+        uint256 actualAmount = underlyingAmount - remaining;
+        totalRedeemable -= actualAmount;
+        uint256 realUtokenAmount = (actualAmount * WAD) / exchangeRate;
+        _burn(msg.sender, realUtokenAmount);
+        emit LogRedeem(msg.sender, amountIn, amountOut, actualAmount);
     }
 
     /* -------------------------------------------------------------------
@@ -798,11 +801,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     {
         if (!accrueInterest()) revert AccrueInterestFailed();
 
-        totalReserves -= reduceAmount;
+        uint256 remaining = IAssetManager(assetManager).withdraw(underlying, receiver, reduceAmount);
+        if (remaining > reduceAmount) revert WithdrawFailed();
+        uint256 actualAmount = reduceAmount - remaining;
+        totalReserves -= actualAmount;
 
-        if (!IAssetManager(assetManager).withdraw(underlying, receiver, reduceAmount)) revert WithdrawFailed();
-
-        emit LogReservesReduced(receiver, reduceAmount, totalReserves);
+        emit LogReservesReduced(receiver, actualAmount, totalReserves);
     }
 
     /* -------------------------------------------------------------------

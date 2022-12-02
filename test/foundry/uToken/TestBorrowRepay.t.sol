@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import {TestUTokenBase} from "./TestUTokenBase.sol";
 import {UToken} from "union-v2-contracts/market/UToken.sol";
+import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestBorrowRepay is TestUTokenBase {
     function setUp() public override {
@@ -34,6 +35,29 @@ contract TestBorrowRepay is TestUTokenBase {
         uint256 interest = ((borrowAmount + fees) * BORROW_INTEREST_PER_BLOCK) / 1 ether;
 
         assertEq(uToken.borrowBalanceView(ALICE), borrowed + interest);
+    }
+
+    function testBorrowWhenNotEnough(uint256 borrowAmount) public {
+        vm.assume(
+            borrowAmount >= MIN_BORROW &&
+                borrowAmount > 1 ether &&
+                borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether
+        );
+
+        vm.startPrank(ALICE);
+        vm.mockCall(
+            address(assetManagerMock),
+            abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, ALICE, borrowAmount),
+            abi.encode(1 ether)
+        );
+        uToken.borrow(ALICE, borrowAmount);
+        vm.stopPrank();
+
+        uint256 borrowed = uToken.getBorrowed(ALICE);
+        uint256 realBorrowAmount = borrowAmount - 1 ether;
+        // borrowed amount should only include origination fee
+        uint256 fees = (ORIGINATION_FEE * realBorrowAmount) / 1 ether;
+        assertEq(borrowed, realBorrowAmount + fees);
     }
 
     function testRepayBorrow(uint256 borrowAmount) public {

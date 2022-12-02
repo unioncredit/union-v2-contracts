@@ -330,7 +330,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         address token,
         address account,
         uint256 amount
-    ) external override whenNotPaused nonReentrant onlyAuth(token) returns (bool) {
+    ) external override whenNotPaused nonReentrant onlyAuth(token) returns (uint256) {
         if (!_checkSenderBalance(msg.sender, token, amount)) revert InsufficientBalance();
 
         uint256 remaining = amount;
@@ -366,7 +366,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
 
         emit LogWithdraw(token, account, amount, remaining);
 
-        return true;
+        return remaining;
     }
 
     /**
