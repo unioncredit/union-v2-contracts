@@ -158,4 +158,23 @@ contract TestBorrowRepay is TestUTokenBase {
         uint256 borrowedAfter = uToken.getBorrowed(ALICE);
         assertEq(borrowedAfter, 0);
     }
+
+    function testRepayInterest(uint256 borrowAmount) public {
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+
+        vm.startPrank(ALICE);
+        uToken.borrow(ALICE, borrowAmount);
+        // fast forward a few blocks to acrue some interest
+        vm.roll(block.number + 10);
+        uint256 interest = uToken.calculatingInterest(ALICE);
+        assert(interest > 0);
+
+        uint256 borrowedBefore = uToken.borrowBalanceView(ALICE);
+        daiMock.approve(address(uToken), interest);
+        uToken.repayInterest(ALICE);
+        uint256 borrowedAfter = uToken.borrowBalanceView(ALICE);
+        assertEq(borrowedBefore - borrowedAfter, interest);
+
+        vm.stopPrank();
+    }
 }
