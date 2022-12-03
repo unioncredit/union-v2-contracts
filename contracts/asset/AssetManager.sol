@@ -415,7 +415,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
             supportedTokensList[index] = supportedTokensList[supportedTokensLength - 1];
             supportedTokensList.pop();
             supportedMarkets[tokenAddress] = false;
-            removeMarketsApprovals(tokenAddress);
+            _removeMarketsApprovals(IERC20Upgradeable(tokenAddress));
         }
     }
 
@@ -465,7 +465,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
             withdrawSeq[index] = withdrawSeq[withdrawSeq.length - 1];
             withdrawSeq.pop();
 
-            removeTokenApprovals(adapterAddress);
+            _removeTokenApprovals(adapterAddress);
         }
     }
 
@@ -589,10 +589,9 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
 
     /**
      *  @dev For a give token set allowance for all integrated money markets
-     *  @param tokenAddress ERC20 token address
+     *  @param poolToken ERC20 token address
      */
-    function removeMarketsApprovals(address tokenAddress) private {
-        IERC20Upgradeable poolToken = IERC20Upgradeable(tokenAddress);
+    function _removeMarketsApprovals(IERC20Upgradeable poolToken) private {
         uint256 moneyMarketsLength = moneyMarkets.length;
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             uint256 currentAllowance = poolToken.allowance(address(this), address(moneyMarkets[i]));
@@ -604,7 +603,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @dev For a give moeny market set allowance for all underlying tokens
      *  @param adapterAddress Address of adaptor for money market
      */
-    function removeTokenApprovals(address adapterAddress) private {
+    function _removeTokenApprovals(address adapterAddress) private {
         uint256 supportedTokensLength = supportedTokensList.length;
         for (uint256 i = 0; i < supportedTokensLength; i++) {
             IERC20Upgradeable poolToken = IERC20Upgradeable(supportedTokensList[i]);
