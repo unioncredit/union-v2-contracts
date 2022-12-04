@@ -13,6 +13,8 @@ contract AdapterMock is IMoneyMarketAdapter {
 
     uint256 public rate;
 
+    bool public toRevert;
+
     /**
      * @dev Mapping of token address to floor balance
      */
@@ -22,6 +24,10 @@ contract AdapterMock is IMoneyMarketAdapter {
      * @dev Mapping of token address to ceiling balance
      */
     mapping(address => uint256) public override ceilingMap;
+
+    function setRevert() external {
+        toRevert = !toRevert;
+    }
 
     function setAssetManager(address _assetManager) external {
         assetManager = _assetManager;
@@ -55,20 +61,32 @@ contract AdapterMock is IMoneyMarketAdapter {
         return true;
     }
 
-    function deposit(address) external override {}
+    function deposit(address tokenAddress) external override returns (bool) {
+        if (toRevert) {
+            IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
+            uint256 tokenAmount = token.balanceOf(address(this));
+            token.safeTransfer(msg.sender, tokenAmount);
+            return false;
+        }
+        return true;
+    }
 
     function withdraw(
         address tokenAddress,
         address recipient,
         uint256 tokenAmount
-    ) external override {
+    ) external override returns (bool) {
+        if (toRevert) return false;
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.safeTransfer(recipient, tokenAmount);
+        return true;
     }
 
-    function withdrawAll(address tokenAddress, address recipient) external override {
+    function withdrawAll(address tokenAddress, address recipient) external override returns (bool) {
+        if (toRevert) return false;
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.safeTransfer(recipient, token.balanceOf(address(this)));
+        return true;
     }
 
     function claimRewards(address, address) external override {}

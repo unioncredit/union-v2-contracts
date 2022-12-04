@@ -10,12 +10,14 @@ contract FakeAdapter {
         return true;
     }
 
-    function withdrawAll(address token, address to) public {
+    function withdrawAll(address token, address to) public returns (bool) {
         uint256 balance = IERC20(token).balanceOf(address(this));
         IERC20(token).transfer(to, balance);
     }
 
-    function deposit(address) public {}
+    function deposit(address) public returns (bool) {
+        return true;
+    }
 }
 
 contract TestRebalance is TestAssetManagerBase {
