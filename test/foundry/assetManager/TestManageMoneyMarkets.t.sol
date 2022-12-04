@@ -120,4 +120,20 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         assertEq(tokenSupply, daiAmount);
         assertEq(rate, _rate);
     }
+
+    function testRemoveTokenApprovals() public {
+        assetManager.addAdapter(address(adapterMock));
+        assetManager.addToken(address(daiMock));
+        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), type(uint256).max);
+        assetManager.removeAdapter(address(adapterMock));
+        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), 0);
+    }
+
+    function testRemoveMarketsApprovals() public {
+        assetManager.addAdapter(address(adapterMock));
+        assetManager.addToken(address(daiMock));
+        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), type(uint256).max);
+        assetManager.removeToken(address(daiMock));
+        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), 0);
+    }
 }
