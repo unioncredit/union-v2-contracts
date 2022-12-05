@@ -569,9 +569,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *  @param staker Staker address
      *  @param borrower borrower address
      */
-    function cancelVouch(address staker, address borrower) public onlyMember(msg.sender) whenNotPaused {
-        if (staker != msg.sender && borrower != msg.sender) revert AuthFailed();
-
+    function _cancelVouchInternal(address staker, address borrower) internal {
         Index memory removeVoucherIndex = voucherIndexes[borrower][staker];
         if (!removeVoucherIndex.isSet) revert VoucherNotFound();
 
@@ -611,6 +609,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         }
 
         emit LogCancelVouch(staker, borrower);
+    }
+
+    function cancelVouch(address staker, address borrower) public onlyMember(msg.sender) whenNotPaused {
+        if (staker != msg.sender && borrower != msg.sender) revert AuthFailed();
+        _cancelVouchInternal(staker, borrower);
     }
 
     /**
@@ -790,7 +793,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         }
 
         if (vouch.trust == 0) {
-            cancelVouch(staker, borrower);
+            _cancelVouchInternal(staker, borrower);
         }
 
         // Notify the AssetManager and the UToken market of the debt write off
