@@ -575,8 +575,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *  @param borrower borrower address
      */
     function _cancelVouchInternal(address staker, address borrower) internal {
-        Index memory voucherIndex = voucherIndexes[borrower][staker];
-        if (!voucherIndex.isSet) revert VoucherNotFound();
+        Index memory removeVoucherIndex = voucherIndexes[borrower][staker];
+        if (!removeVoucherIndex.isSet) revert VoucherNotFound();
 
         // Check that the locked amount for this vouch is 0
         Vouch memory vouch = vouchers[borrower][removeVoucherIndex.idx];
