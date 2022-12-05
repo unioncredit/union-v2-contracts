@@ -120,7 +120,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     mapping(address => Staker) public stakers;
 
     /**
-     *  @dev Staker (borrower) mapped to recieved vouches (staker)
+     *  @dev Borrower (borrower) mapped to recieved vouches (staker)
      */
     mapping(address => Vouch[]) public vouchers;
 
@@ -164,7 +164,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     error LockedRemaining();
     error VoucherNotFound();
     error VouchWhenOverdue();
-    error MaxVouchees();
+    error MaxVouchers();
     error InvalidParams();
 
     /* -------------------------------------------------------------------
@@ -544,19 +544,19 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
             // This is a new vouch so we need to check that the
             // member has not reached the max voucher limit
-            uint256 voucheesLength = vouchees[staker].length;
-            if (voucheesLength >= maxVouchers) revert MaxVouchees();
+            uint256 voucheeIndex = vouchees[staker].length;
+            if (voucheeIndex >= maxVouchers) revert MaxVouchers();
 
             // Get the new index that this vouch is going to be inserted at
             // Then update the voucher indexes for this borrower as well as
             // Adding the Vouch the the vouchers array for this staker
             uint256 voucherIndex = vouchers[borrower].length;
+            if (voucherIndex >= maxVouchers) revert MaxVouchers();
             voucherIndexes[borrower][staker] = Index(true, uint128(voucherIndex));
             vouchers[borrower].push(Vouch(staker, trustAmount, 0, 0));
 
             // Add the voucherIndex of this new vouch to the vouchees array for this
             // staker then update the voucheeIndexes with the voucheeIndex
-            uint256 voucheeIndex = voucheesLength;
             vouchees[staker].push(Vouchee(borrower, uint96(voucherIndex)));
             voucheeIndexes[borrower][staker] = Index(true, uint128(voucheeIndex));
         }
@@ -579,21 +579,39 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         if (!voucherIndex.isSet) revert VoucherNotFound();
 
         // Check that the locked amount for this vouch is 0
-        Vouch memory vouch = vouchers[borrower][voucherIndex.idx];
+        Vouch memory vouch = vouchers[borrower][removeVoucherIndex.idx];
         if (vouch.locked > 0) revert LockedStakeNonZero();
 
         // Remove borrower from vouchers array by moving the last item into the position
         // of the index being removed and then poping the last item off the array
-        vouchers[borrower][voucherIndex.idx] = vouchers[borrower][vouchers[borrower].length - 1];
-        vouchers[borrower].pop();
-        delete voucherIndexes[borrower][staker];
+        {
+            // Cache the last voucher
+            Vouch memory lastVoucher = vouchers[borrower][vouchers[borrower].length - 1];
+            // Move the lastVoucher to the index of the voucher we are removing
+            vouchers[borrower][removeVoucherIndex.idx] = lastVoucher;
+            // Pop the last vouch off the end of the vouchers array
+            vouchers[borrower].pop();
+            // Delete the voucher index for this borrower => staker pair
+            delete voucherIndexes[borrower][staker];
+            // Update the last vouchers coresponsing Vouchee item
+            uint128 voucheeIdx = voucherIndexes[borrower][lastVoucher.staker].idx;
+            vouchees[staker][voucheeIdx].voucherIndex = uint96(removeVoucherIndex.idx);
+        }
 
-        // Remove borrower from vouchee array by moving the last item into the position
-        // of the index being removed and then poping the last item off the array
-        Index memory voucheeIndex = voucheeIndexes[borrower][staker];
-        vouchees[staker][voucheeIndex.idx] = vouchees[staker][vouchees[staker].length - 1];
-        vouchees[staker].pop();
-        delete voucheeIndexes[borrower][staker];
+        // Update the vouchee entry for this borrower => staker pair
+        {
+            Index memory removeVoucheeIndex = voucheeIndexes[borrower][staker];
+            // Cache the last vouchee
+            Vouchee memory lastVouchee = vouchees[staker][vouchees[staker].length - 1];
+            // Move the last vouchee to the index of the removed vouchee
+            vouchees[staker][removeVoucheeIndex.idx] = lastVouchee;
+            // Pop the last vouchee off the end of the vouchees array
+            vouchees[staker].pop();
+            // Delete the vouchee index for this borrower => staker pair
+            delete voucheeIndexes[borrower][staker];
+            // Update the vouchee indexes to the new vouchee index
+            voucheeIndexes[lastVouchee.borrower][staker].idx = removeVoucheeIndex.idx;
+        }
 
         emit LogCancelVouch(staker, borrower);
     }
@@ -677,8 +695,10 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         totalStaked += amount;
 
         erc20Token.safeTransferFrom(msg.sender, address(this), amount);
-        erc20Token.safeApprove(assetManager, 0);
-        erc20Token.safeApprove(assetManager, amount);
+        uint256 currentAllowance = erc20Token.allowance(address(this), assetManager);
+        if (currentAllowance < amount) {
+            erc20Token.safeIncreaseAllowance(assetManager, amount - currentAllowance);
+        }
 
         if (!IAssetManager(assetManager).deposit(stakingToken, amount)) revert AssetManagerDepositFailed();
         emit LogStake(msg.sender, amount);
@@ -700,14 +720,15 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
         comptroller.withdrawRewards(msg.sender, stakingToken);
 
-        staker.stakedAmount -= amount;
-        totalStaked -= amount;
-
-        if (!IAssetManager(assetManager).withdraw(stakingToken, msg.sender, amount)) {
+        uint256 remaining = IAssetManager(assetManager).withdraw(stakingToken, msg.sender, amount);
+        if (uint96(remaining) > amount) {
             revert AssetManagerWithdrawFailed();
         }
+        uint96 actualAmount = amount - uint96(remaining);
+        staker.stakedAmount -= actualAmount;
+        totalStaked -= actualAmount;
 
-        emit LogUnstake(msg.sender, amount);
+        emit LogUnstake(msg.sender, actualAmount);
     }
 
     /**
@@ -807,7 +828,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     ) external onlyMarket {
         uint96 remaining = amount;
 
-        for (uint256 i = 0; i < vouchers[borrower].length; i++) {
+        uint256 vouchersLength = vouchers[borrower].length;
+        for (uint256 i = 0; i < vouchersLength; i++) {
             Vouch storage vouch = vouchers[borrower][i];
             uint96 innerAmount;
 

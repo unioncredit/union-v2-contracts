@@ -140,9 +140,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     ------------------------------------------------------------------- */
 
     error AccrueInterestFailed();
+    error AccrueBlockParity();
     error AmountExceedGlobalMax();
     error AmountExceedMaxBorrow();
     error AmountLessMinBorrow();
+    error AmountError();
     error AmountZero();
     error BorrowRateExceedLimit();
     error WithdrawFailed();
@@ -529,11 +531,17 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             accountBorrows[msg.sender].lastRepay = getBlockNumber();
         }
 
-        uint256 accountBorrowsNew = borrowedAmount + amount + fee;
-        uint256 totalBorrowsNew = totalBorrows + amount + fee;
+        // Withdraw the borrowed amount of tokens from the assetManager and send them to the borrower
+        uint256 remaining = assetManagerContract.withdraw(underlying, to, amount);
+        if (remaining > amount) revert WithdrawFailed();
+        uint256 actualAmount = amount - remaining;
+
+        fee = calculatingFee(actualAmount);
+        uint256 accountBorrowsNew = borrowedAmount + actualAmount + fee;
+        uint256 totalBorrowsNew = totalBorrows + actualAmount + fee;
 
         // Update internal balances
-        accountBorrows[msg.sender].principal += amount + fee;
+        accountBorrows[msg.sender].principal += actualAmount + fee;
         uint256 newPrincipal = getBorrowed(msg.sender);
         accountBorrows[msg.sender].interest = accountBorrowsNew - newPrincipal;
         accountBorrows[msg.sender].interestIndex = borrowIndex;
@@ -543,23 +551,32 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // uDAI minters redeemable amount.
         totalReserves += fee;
 
-        // Withdraw the borrowed amount of tokens from the assetManager and send them to the borrower
-        if (!assetManagerContract.withdraw(underlying, to, amount)) revert WithdrawFailed();
-
         // Call update locked on the userManager to lock this borrowers stakers. This function
         // will revert if the account does not have enough vouchers to cover the borrow amount. ie
         // the borrower is trying to borrow more than is able to be underwritten
-        IUserManager(userManager).updateLocked(msg.sender, uint96(amount + fee), true);
+        IUserManager(userManager).updateLocked(msg.sender, uint96(actualAmount + fee), true);
 
-        emit LogBorrow(msg.sender, to, amount, fee);
+        emit LogBorrow(msg.sender, to, actualAmount, fee);
+    }
+
+    /**
+     * @dev Helper function to repay interest amount
+     * @param borrower Borrower address
+     */
+    function repayInterest(address borrower) external override whenNotPaused nonReentrant {
+        if (!accrueInterest()) revert AccrueInterestFailed();
+        uint256 interest = calculatingInterest(borrower);
+        _repayBorrowFresh(msg.sender, borrower, interest, interest);
     }
 
     /**
      * @notice Repay outstanding borrow
      * @dev Repay borrow see _repayBorrowFresh
      */
-    function repayBorrow(address borrower, uint256 repayAmount) external override whenNotPaused nonReentrant {
-        _repayBorrowFresh(msg.sender, borrower, repayAmount);
+    function repayBorrow(address borrower, uint256 amount) external override whenNotPaused nonReentrant {
+        if (!accrueInterest()) revert AccrueInterestFailed();
+        uint256 interest = calculatingInterest(borrower);
+        _repayBorrowFresh(msg.sender, borrower, amount, interest);
     }
 
     /**
@@ -568,15 +585,15 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param payer Payer address
      *  @param borrower Borrower address
      *  @param amount Repay amount
+     *  @param interest Interest amount
      */
     function _repayBorrowFresh(
         address payer,
         address borrower,
-        uint256 amount
+        uint256 amount,
+        uint256 interest
     ) internal {
-        if (!accrueInterest()) revert AccrueInterestFailed();
-
-        uint256 interest = calculatingInterest(borrower);
+        if(getBlockNumber() != accrualBlockNumber) revert AccrueBlockParity();
         uint256 borrowedAmount = borrowBalanceStoredInternal(borrower);
         uint256 repayAmount = amount > borrowedAmount ? borrowedAmount : amount;
         if (repayAmount == 0) revert AmountZero();
@@ -663,11 +680,19 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     function debtWriteOff(address borrower, uint256 amount) external override whenNotPaused onlyUserManager {
+        if (amount == 0) revert AmountZero();
+
         uint256 oldPrincipal = getBorrowed(borrower);
         uint256 repayAmount = amount > oldPrincipal ? oldPrincipal : amount;
 
         accountBorrows[borrower].principal = oldPrincipal - repayAmount;
         totalBorrows -= repayAmount;
+
+        if (repayAmount == oldPrincipal) {
+            // If all principal is written off, we can reset the last repaid block to 0.
+            // which indicates that the borrower has no outstanding loans.
+            accountBorrows[borrower].lastRepay = 0;
+        }
     }
 
     /* -------------------------------------------------------------------
@@ -705,7 +730,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      */
     function redeem(uint256 amountIn, uint256 amountOut) external override whenNotPaused nonReentrant {
         if (!accrueInterest()) revert AccrueInterestFailed();
-        if (amountIn != 0 && amountOut != 0) revert AmountZero();
+        if (amountIn != 0 && amountOut != 0) revert AmountError();
+        if (amountIn == 0 && amountOut == 0) revert AmountZero();
 
         uint256 exchangeRate = exchangeRateStored();
 
@@ -729,13 +755,13 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             underlyingAmount = amountOut;
         }
 
-        totalRedeemable -= underlyingAmount;
-        _burn(msg.sender, uTokenAmount);
-
-        IAssetManager assetManagerContract = IAssetManager(assetManager);
-        if (!assetManagerContract.withdraw(underlying, msg.sender, underlyingAmount)) revert WithdrawFailed();
-
-        emit LogRedeem(msg.sender, amountIn, amountOut, underlyingAmount);
+        uint256 remaining = IAssetManager(assetManager).withdraw(underlying, msg.sender, underlyingAmount);
+        if (remaining > underlyingAmount) revert WithdrawFailed();
+        uint256 actualAmount = underlyingAmount - remaining;
+        totalRedeemable -= actualAmount;
+        uint256 realUtokenAmount = (actualAmount * WAD) / exchangeRate;
+        _burn(msg.sender, realUtokenAmount);
+        emit LogRedeem(msg.sender, amountIn, amountOut, actualAmount);
     }
 
     /* -------------------------------------------------------------------
@@ -775,11 +801,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     {
         if (!accrueInterest()) revert AccrueInterestFailed();
 
-        totalReserves -= reduceAmount;
+        uint256 remaining = IAssetManager(assetManager).withdraw(underlying, receiver, reduceAmount);
+        if (remaining > reduceAmount) revert WithdrawFailed();
+        uint256 actualAmount = reduceAmount - remaining;
+        totalReserves -= actualAmount;
 
-        if (!IAssetManager(assetManager).withdraw(underlying, receiver, reduceAmount)) revert WithdrawFailed();
-
-        emit LogReservesReduced(receiver, reduceAmount, totalReserves);
+        emit LogReservesReduced(receiver, actualAmount, totalReserves);
     }
 
     /* -------------------------------------------------------------------
@@ -799,8 +826,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      */
     function _depositToAssetManager(uint256 amount) internal {
         IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
-        assetToken.safeApprove(assetManager, 0); // Some ERC20 tokens (e.g. Tether) changed the behavior of approve to look like safeApprove
-        assetToken.safeApprove(assetManager, amount);
+
+        uint256 currentAllowance = assetToken.allowance(address(this), assetManager);
+        if (currentAllowance < amount) {
+            assetToken.safeIncreaseAllowance(assetManager, amount - currentAllowance);
+        }
+
         if (!IAssetManager(assetManager).deposit(underlying, amount)) revert DepositToAssetManagerFailed();
     }
 }

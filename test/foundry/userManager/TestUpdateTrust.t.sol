@@ -126,8 +126,28 @@ contract TestUpdateTrust is TestUserManagerBase {
         vm.startPrank(MEMBER);
         userManager.updateTrust(address(123), 10 ether);
         userManager.updateTrust(address(1234), 10 ether);
-        vm.expectRevert(UserManager.MaxVouchees.selector);
+        vm.expectRevert(UserManager.MaxVouchers.selector);
         userManager.updateTrust(address(12345), 10 ether);
         vm.stopPrank();
+    }
+
+    function testCannotRecieveVouchesForMoreThanMaxLimit() public {
+        address member0 = address(123);
+        address member1 = address(456);
+
+        vm.startPrank(ADMIN);
+        userManager.addMember(member0);
+        userManager.addMember(member1);
+        userManager.setMaxVouchers(1);
+        vm.stopPrank();
+
+        address vouchTo = address(789);
+
+        vm.prank(member0);
+        userManager.updateTrust(vouchTo, 10 ether);
+
+        vm.prank(member1);
+        vm.expectRevert(UserManager.MaxVouchers.selector);
+        userManager.updateTrust(vouchTo, 10 ether);
     }
 }

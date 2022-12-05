@@ -62,6 +62,8 @@ interface IUToken {
 
     function borrow(address to, uint256 amount) external;
 
+    function repayInterest(address borrower) external;
+
     function repayBorrow(address borrower, uint256 amount) external;
 
     function debtWriteOff(address borrower, uint256 amount) external;

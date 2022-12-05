@@ -29,7 +29,7 @@ interface IMoneyMarketAdapter {
     /**
      * @dev Deposits the given amount of tokens in the underlying money market.
      */
-    function deposit(address tokenAddress) external;
+    function deposit(address tokenAddress) external returns (bool);
 
     /**
      * @dev Withdraws the given amount of tokens from the underlying money market and transfers them to `recipient`.
@@ -38,12 +38,12 @@ interface IMoneyMarketAdapter {
         address tokenAddress,
         address recipient,
         uint256 amount
-    ) external;
+    ) external returns (bool);
 
     /**
      * @dev Withdraws all the tokens from the underlying money market and transfers them to `recipient`.
      */
-    function withdrawAll(address tokenAddress, address recipient) external;
+    function withdrawAll(address tokenAddress, address recipient) external returns (bool);
 
     /**
      * @dev Returns the supply for the given token, including accrued interest. This function can have side effects.
