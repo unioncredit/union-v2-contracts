@@ -10,7 +10,7 @@ import goerliConfig from "./goerli";
 // Fork Configs
 import goerliForkConfig from "./goerli-fork";
 
-// local test configs
+// Local test configs
 import localConfig from "./local";
 
 export const baseConfig = {
