@@ -66,7 +66,7 @@ interface IAssetManager {
         address token,
         address account,
         uint256 amount
-    ) external returns (bool);
+    ) external returns (uint256);
 
     /**
      *  @dev Add a new ERC20 token to support in AssetManager

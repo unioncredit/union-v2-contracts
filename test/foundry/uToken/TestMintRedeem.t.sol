@@ -2,9 +2,9 @@ pragma solidity ^0.8.0;
 
 import {TestUTokenBase} from "./TestUTokenBase.sol";
 import {UToken} from "union-v2-contracts/market/UToken.sol";
+import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestMintRedeem is TestUTokenBase {
-
     function setUp() public override {
         super.setUp();
     }
@@ -56,6 +56,24 @@ contract TestMintRedeem is TestUTokenBase {
         assertEq(daiBalanceAfter, daiBalance + mintAmount);
     }
 
+    function testRedeemUTokenWhenRemaining(uint256 mintAmount) public {
+        vm.assume(mintAmount > 1 ether && mintAmount <= 100 ether);
+
+        vm.startPrank(ALICE);
+        daiMock.approve(address(uToken), mintAmount);
+        uToken.mint(mintAmount);
+
+        uint256 totalRedeemable = uToken.totalRedeemable();
+        vm.mockCall(
+            address(assetManagerMock),
+            abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, ALICE, mintAmount),
+            abi.encode(1 ether)
+        );
+        uToken.redeem(mintAmount, 0);
+        uint256 totalRedeemableAfter = uToken.totalRedeemable();
+        assertEq(totalRedeemableAfter, totalRedeemable - mintAmount + 1 ether);
+    }
+
     function testRedeemUnderlying(uint256 mintAmount) public {
         vm.assume(mintAmount > 0 && mintAmount <= 100 ether);
 
@@ -78,15 +96,15 @@ contract TestMintRedeem is TestUTokenBase {
     }
 
     function testExchangeRate() public {
-        uint mintAmount = 1 ether;
-        uint borrowAmount = 1 ether;
+        uint256 mintAmount = 1 ether;
+        uint256 borrowAmount = 1 ether;
         assertEq(INIT_EXCHANGE_RATE, uToken.exchangeRateCurrent());
         vm.startPrank(ALICE);
         daiMock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
 
-        uint utokenBal = uToken.balanceOf(ALICE);
-        assertEq(utokenBal*INIT_EXCHANGE_RATE/1e18 ,uToken.balanceOfUnderlying(ALICE));
+        uint256 utokenBal = uToken.balanceOf(ALICE);
+        assertEq((utokenBal * INIT_EXCHANGE_RATE) / 1e18, uToken.balanceOfUnderlying(ALICE));
 
         uToken.borrow(ALICE, borrowAmount);
         uint256 borrowed = uToken.borrowBalanceView(ALICE);
@@ -97,6 +115,6 @@ contract TestMintRedeem is TestUTokenBase {
         daiMock.approve(address(uToken), repayAmount);
         uToken.repayBorrow(ALICE, repayAmount);
         assert(uToken.exchangeRateCurrent() > INIT_EXCHANGE_RATE);
-        assert(utokenBal*INIT_EXCHANGE_RATE/1e18 < uToken.balanceOfUnderlying(ALICE));
+        assert((utokenBal * INIT_EXCHANGE_RATE) / 1e18 < uToken.balanceOfUnderlying(ALICE));
     }
 }

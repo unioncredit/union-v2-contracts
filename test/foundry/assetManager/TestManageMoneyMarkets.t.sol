@@ -1,14 +1,20 @@
 pragma solidity ^0.8.0;
 
 import {TestAssetManagerBase} from "./TestAssetManagerBase.sol";
+import {PureTokenAdapter} from "union-v2-contracts/asset/PureTokenAdapter.sol";
 import {Controller} from "union-v2-contracts/Controller.sol";
 import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestManageMoneyMarkets is TestAssetManagerBase {
     uint256 public daiAmount = 1_000_000 ether;
+    PureTokenAdapter public pureToken;
 
     function setUp() public override {
         super.setUp();
+        address logic = address(new PureTokenAdapter());
+        pureToken = PureTokenAdapter(
+            deployProxy(logic, abi.encodeWithSignature("__PureTokenAdapter_init(address)", [address(assetManagerMock)]))
+        );
     }
 
     function testSetMarketRegistry() public {
@@ -45,6 +51,14 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         assetManager.supportedTokensList(0);
     }
 
+    function testCannotRemoveTokenWhenRemainingFunds() public {
+        assetManager.addToken(address(daiMock));
+        assetManager.addAdapter(address(pureToken));
+        daiMock.mint(address(pureToken), 10000);
+        vm.expectRevert(AssetManager.RemainingFunds.selector);
+        assetManager.removeToken(address(daiMock));
+    }
+
     function testCannotRemoveTokenNonAdmin(address token) public {
         assetManager.addToken(token);
         assert(assetManager.isMarketSupported(token));
@@ -74,9 +88,12 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     function testRemoveAdapter(address adapter) public {
         assetManager.addAdapter(adapter);
         assertEq(address(assetManager.moneyMarkets(0)), adapter);
+        assertEq(assetManager.withdrawSeq(0), 0);
         assetManager.removeAdapter(adapter);
         vm.expectRevert();
         assetManager.moneyMarkets(0);
+        vm.expectRevert();
+        assetManager.withdrawSeq(0);
     }
 
     function testCannotRemoveAdapterNonAdmin(address adapter) public {
@@ -87,6 +104,14 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         assetManager.removeAdapter(adapter);
     }
 
+    function testCannotRemoveAdapterWhenRemainingFunds() public {
+        assetManager.addToken(address(daiMock));
+        assetManager.addAdapter(address(pureToken));
+        daiMock.mint(address(pureToken), 10000);
+        vm.expectRevert(AssetManager.RemainingFunds.selector);
+        assetManager.removeAdapter(address(pureToken));
+    }
+
     function testGetMoneyMarket(uint256 _rate) public {
         assetManager.addAdapter(address(adapterMock));
         adapterMock.setRate(_rate);
@@ -94,5 +119,21 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         (uint256 rate, uint256 tokenSupply) = assetManager.getMoneyMarket(address(daiMock), 0);
         assertEq(tokenSupply, daiAmount);
         assertEq(rate, _rate);
+    }
+
+    function testRemoveTokenApprovals() public {
+        assetManager.addAdapter(address(adapterMock));
+        assetManager.addToken(address(daiMock));
+        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), type(uint256).max);
+        assetManager.removeAdapter(address(adapterMock));
+        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), 0);
+    }
+
+    function testRemoveMarketsApprovals() public {
+        assetManager.addAdapter(address(adapterMock));
+        assetManager.addToken(address(daiMock));
+        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), type(uint256).max);
+        assetManager.removeToken(address(daiMock));
+        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), 0);
     }
 }
