@@ -1,10 +1,13 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {UserManager} from "./UserManager.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
 
 contract UserManagerERC20 is UserManager {
+    using SafeCastUpgradeable for uint256;
+
     /**
      *  @dev Stake using ERC20 permit
      *  @param amount Amount
@@ -23,6 +26,6 @@ contract UserManagerERC20 is UserManager {
         IERC20Permit erc20Token = IERC20Permit(stakingToken);
         erc20Token.permit(msg.sender, address(this), amount, deadline, v, r, s);
 
-        stake(uint96(amount));
+        stake(amount.toUint96());
     }
 }

@@ -6,6 +6,7 @@ import {ERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import {Controller} from "../Controller.sol";
 import {IUserManager} from "../interfaces/IUserManager.sol";
@@ -19,6 +20,7 @@ import {IInterestRateModel} from "../interfaces/IInterestRateModel.sol";
  */
 contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCastUpgradeable for uint256;
 
     /* -------------------------------------------------------------------
       Types 
@@ -550,7 +552,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // Call update locked on the userManager to lock this borrowers stakers. This function
         // will revert if the account does not have enough vouchers to cover the borrow amount. ie
         // the borrower is trying to borrow more than is able to be underwritten
-        IUserManager(userManager).updateLocked(msg.sender, uint96(amount + fee), true);
+        IUserManager(userManager).updateLocked(msg.sender, (amount + fee).toUint96(), true);
 
         emit LogBorrow(msg.sender, to, amount, fee);
     }
@@ -616,7 +618,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             // Call update locked on the userManager to lock this borrowers stakers. This function
             // will revert if the account does not have enough vouchers to cover the repay amount. ie
             // the borrower is trying to repay more than is locked (owed)
-            IUserManager(userManager).updateLocked(borrower, uint96(repayAmount - interest), false);
+            IUserManager(userManager).updateLocked(borrower, (repayAmount - interest).toUint96(), false);
 
             if (isOverdue) {
                 // For borrowers that are paying back overdue balances we need to update their
