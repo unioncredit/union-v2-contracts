@@ -37,10 +37,8 @@ contract Comptroller is Controller, IComptroller {
     }
 
     struct UserManagerAccountState {
-        uint256 totalStaked;
-        uint256 totalFrozen;
-        uint256 totalLocked;
-        uint256 pastBlocksFrozenCoinAge;
+        uint256 totalStaked; // effect staked
+        uint256 totalLocked; // effect locked
         bool isMember;
     }
 
@@ -156,6 +154,9 @@ contract Comptroller is Controller, IComptroller {
     /* -------------------------------------------------------------------
       View Functions 
     ------------------------------------------------------------------- */
+    function getLastWithdrawRewards(address account, address token) external view override returns (uint256) {
+        return users[account][token].updatedBlock;
+    }
 
     /**
      *  @dev Get the reward multipier based on the account status
@@ -167,9 +168,8 @@ contract Comptroller is Controller, IComptroller {
         IUserManager userManagerContract = _getUserManager(token);
         uint256 stakingAmount = userManagerContract.getStakerBalance(account);
         uint256 lockedStake = userManagerContract.getTotalLockedStake(account);
-        (uint256 totalFrozen, ) = userManagerContract.getFrozenInfo(account, block.number);
         bool isMember = userManagerContract.checkIsMember(account);
-        return _getRewardsMultiplier(stakingAmount, lockedStake, totalFrozen, isMember);
+        return _getRewardsMultiplier(stakingAmount, lockedStake, isMember);
     }
 
     /**
@@ -351,8 +351,10 @@ contract Comptroller is Controller, IComptroller {
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
         UserManagerAccountState memory userManagerAccountState;
-        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
-            .getFrozenInfo(account, pastBlocks);
+        (userManagerAccountState.totalStaked, userManagerAccountState.totalLocked) = userManager.getStakeInfo(
+            account,
+            pastBlocks
+        );
 
         return (userManagerAccountState, userInfo, pastBlocks);
     }
@@ -386,8 +388,11 @@ contract Comptroller is Controller, IComptroller {
         uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
         UserManagerAccountState memory userManagerAccountState;
-        (userManagerAccountState.totalFrozen, userManagerAccountState.pastBlocksFrozenCoinAge) = userManager
-            .updateFrozenInfo(account, pastBlocks);
+
+        (userManagerAccountState.totalStaked, userManagerAccountState.totalLocked) = userManager.updateFrozenInfo(
+            account,
+            pastBlocks
+        );
 
         return (userManagerAccountState, userInfo, pastBlocks);
     }
@@ -413,14 +418,11 @@ contract Comptroller is Controller, IComptroller {
         IUserManager userManagerContract = _getUserManager(token);
 
         // Lookup account state from UserManager
-        userManagerAccountState.totalStaked = userManagerContract.getStakerBalance(account);
-        userManagerAccountState.totalLocked = userManagerContract.getTotalLockedStake(account);
         userManagerAccountState.isMember = userManagerContract.checkIsMember(account);
 
         uint256 inflationIndex = _getRewardsMultiplier(
             userManagerAccountState.totalStaked,
             userManagerAccountState.totalLocked,
-            userManagerAccountState.totalFrozen,
             userManagerAccountState.isMember
         );
 
@@ -431,7 +433,6 @@ contract Comptroller is Controller, IComptroller {
                 token,
                 totalStaked,
                 userManagerAccountState.totalStaked,
-                userManagerAccountState.pastBlocksFrozenCoinAge,
                 pastBlocks,
                 inflationIndex
             );
@@ -454,24 +455,20 @@ contract Comptroller is Controller, IComptroller {
         address token,
         uint256 totalStaked,
         uint256 userStaked,
-        uint256 frozenCoinAge,
         uint256 pastBlocks,
         uint256 inflationIndex
     ) internal view returns (uint256) {
         uint256 startInflationIndex = users[account][token].inflationIndex;
-        if (userStaked * pastBlocks < frozenCoinAge) revert FrozenCoinAge();
 
         if (userStaked == 0 || totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
             return 0;
         }
 
-        uint256 effectiveStakeAmount = (userStaked * pastBlocks - frozenCoinAge) / pastBlocks;
-
         uint256 curInflationIndex = _getInflationIndexNew(totalStaked, pastBlocks);
 
         if (curInflationIndex < startInflationIndex) revert InflationIndexTooSmall();
 
-        return (curInflationIndex - startInflationIndex).wadMul(effectiveStakeAmount).wadMul(inflationIndex);
+        return (curInflationIndex - startInflationIndex).wadMul(userStaked).wadMul(inflationIndex);
     }
 
     /**
@@ -532,18 +529,14 @@ contract Comptroller is Controller, IComptroller {
     function _getRewardsMultiplier(
         uint256 userStaked,
         uint256 lockedStake,
-        uint256 totalFrozen_,
         bool isMember_
     ) internal pure returns (uint256) {
         if (isMember_) {
-            if (userStaked == 0 || totalFrozen_ >= lockedStake) {
+            if (userStaked == 0) {
                 return memberRatio;
             }
 
-            uint256 effectiveLockedAmount = lockedStake - totalFrozen_;
-            uint256 effectiveStakeAmount = userStaked - totalFrozen_;
-
-            uint256 lendingRatio = effectiveLockedAmount.wadDiv(effectiveStakeAmount);
+            uint256 lendingRatio = lockedStake.wadDiv(userStaked);
 
             return lendingRatio + memberRatio;
         } else {

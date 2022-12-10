@@ -38,6 +38,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         bool isMember;
         uint96 stakedAmount;
         uint96 locked;
+        // block number of last stakedAmount update
+        uint64 lastUpdated;
+        uint256 stakedCoinAge;
+        uint256 lockedCoinAge;
+        uint256 defaultCoinAge;
     }
 
     struct Index {
@@ -428,7 +433,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *  @dev Get frozen coin age
      *  @param  staker Address of staker
      *  @param  pastBlocks Number of blocks past to calculate coin age from
-     *          coin age = min(block.number - lastUpdated, pastBlocks) * amount
+     *          coin age = min(block.number - lastRepay, pastBlocks) * amount
      */
     function getFrozenInfo(address staker, uint256 pastBlocks)
         public
@@ -445,8 +450,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             Vouchee memory vouchee = vouchees[staker][i];
             Vouch memory vouch = vouchers[vouchee.borrower][vouchee.voucherIndex];
 
-            uint256 lastUpdated = vouch.lastUpdated;
-            uint256 diff = block.number - lastUpdated;
+            uint256 lastRepay = uToken.getLastRepay(vouchee.borrower);
+            uint256 diff = block.number - lastRepay;
 
             if (overdueBlocks < diff) {
                 uint96 locked = vouch.locked;
@@ -686,7 +691,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
         if (staker.stakedAmount + amount > maxStakeAmount) revert StakeLimitReached();
 
+        uint64 currentBlock = uint64(block.number);
+        uint256 lastWithdrawRewards = comptroller.getLastWithdrawRewards(msg.sender, stakingToken);
+        staker.stakedCoinAge +=
+            (uint256(currentBlock) - _max(lastWithdrawRewards, uint256(staker.lastUpdated))) *
+            uint256(staker.stakedAmount);
         staker.stakedAmount += amount;
+        staker.lastUpdated = currentBlock;
         totalStaked += amount;
 
         erc20Token.safeTransferFrom(msg.sender, address(this), amount);
@@ -720,7 +731,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             revert AssetManagerWithdrawFailed();
         }
         uint96 actualAmount = amount - uint96(remaining);
+        uint64 currentBlock = uint64(block.number);
+        uint256 lastWithdrawRewards = comptroller.getLastWithdrawRewards(msg.sender, stakingToken);
+        staker.stakedCoinAge +=
+            (uint256(currentBlock) - _max(lastWithdrawRewards, uint256(staker.lastUpdated))) *
+            uint256(staker.stakedAmount);
         staker.stakedAmount -= actualAmount;
+        staker.lastUpdated = currentBlock;
         totalStaked -= actualAmount;
 
         emit LogUnstake(msg.sender, actualAmount);
@@ -739,34 +756,42 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *          Stake to the AssetManager and adjusting balances in the AssetManager
      *          and the UToken to repay the principal
      *  @dev    Emits {LogDebtWriteOff} event
-     *  @param borrower address of borrower
+     *  @param stakerAddress address of staker
+     *  @param borrowerAddress address of borrower
      *  @param amount amount to writeoff
      */
     function debtWriteOff(
-        address staker,
-        address borrower,
+        address stakerAddress,
+        address borrowerAddress,
         uint96 amount
     ) external {
         if (amount == 0) revert AmountZero();
         uint256 overdueBlocks = uToken.overdueBlocks();
-        uint256 lastRepay = uToken.getLastRepay(borrower);
+        uint256 lastRepay = uToken.getLastRepay(borrowerAddress);
 
         // This function is only callable by the public if the loan is overdue by
         // overdue blocks + maxOverdueBlocks. This stops the system being left with
         // debt that is overdue indefinitely and no ability to do anything about it.
         if (block.number <= lastRepay + overdueBlocks + maxOverdueBlocks) {
-            if (staker != msg.sender) revert AuthFailed();
+            if (stakerAddress != msg.sender) revert AuthFailed();
         }
 
-        Index memory index = voucherIndexes[borrower][staker];
+        Index memory index = voucherIndexes[borrowerAddress][stakerAddress];
         if (!index.isSet) revert VoucherNotFound();
-        Vouch storage vouch = vouchers[borrower][index.idx];
+        Vouch storage vouch = vouchers[borrowerAddress][index.idx];
 
         if (amount > vouch.locked) revert ExceedsLocked();
 
         // update staker staked amount
-        stakers[staker].stakedAmount -= amount;
-        stakers[staker].locked -= amount;
+        Staker storage staker = stakers[stakerAddress];
+        uint64 currentBlock = uint64(block.number);
+        uint256 lastWithdrawRewards = comptroller.getLastWithdrawRewards(stakerAddress, stakingToken);
+        staker.stakedCoinAge +=
+            (uint256(currentBlock) - _max(lastWithdrawRewards, uint256(staker.lastUpdated))) *
+            uint256(staker.stakedAmount);
+        staker.lastUpdated = currentBlock;
+        staker.stakedAmount -= amount;
+        staker.locked -= amount;
         totalStaked -= amount;
 
         // update vouch trust amount
@@ -780,30 +805,30 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         // member frozen has not been updated prior to calling debtWriteOff and
         // the amount being written off could be greater than the amount frozen.
         // To avoid an underflow here we need to check this condition
-        uint256 stakerFrozen = memberFrozen[staker];
+        uint256 stakerFrozen = memberFrozen[stakerAddress];
         if (amount > stakerFrozen) {
             // The amount being written off is more than the amount that has
             // been previously frozen for this staker. Reset their frozen stake
             // to zero and adjust totalFrozen
-            memberFrozen[staker] = 0;
+            memberFrozen[stakerAddress] = 0;
             totalFrozen -= stakerFrozen;
         } else {
             totalFrozen -= amount;
-            memberFrozen[staker] -= amount;
+            memberFrozen[stakerAddress] -= amount;
         }
 
         if (vouch.trust == 0) {
-            _cancelVouchInternal(staker, borrower);
+            _cancelVouchInternal(stakerAddress, borrowerAddress);
         }
 
         // Notify the AssetManager and the UToken market of the debt write off
         // so they can adjust their balances accordingly
         IAssetManager(assetManager).debtWriteOff(stakingToken, uint256(amount));
-        uToken.debtWriteOff(borrower, uint256(amount));
+        uToken.debtWriteOff(borrowerAddress, uint256(amount));
 
         comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
 
-        emit LogDebtWriteOff(msg.sender, borrower, uint256(amount));
+        emit LogDebtWriteOff(msg.sender, borrowerAddress, uint256(amount));
     }
 
     /**
@@ -828,6 +853,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             Vouch storage vouch = vouchers[borrower][i];
             uint96 innerAmount;
 
+            uint256 lastWithdrawRewards = comptroller.getLastWithdrawRewards(vouch.staker, stakingToken);
             if (lock) {
                 // Look up the staker and determine how much unlock stake they
                 // have available for the borrower to borrow. If there is 0
@@ -837,11 +863,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                 uint96 availableStake = stakerStakedAmount - stakerLocked;
                 uint96 lockAmount = _min(availableStake, vouch.trust - vouch.locked);
                 if (lockAmount == 0) continue;
-
                 // Calculate the amount to add to the lock then
                 // add the extra amount to lock to the stakers locked amount
                 // and also update the vouches locked amount and lastUpdated block
                 innerAmount = _min(remaining, lockAmount);
+                stakers[vouch.staker].lockedCoinAge +=
+                    (block.number - _max(lastWithdrawRewards, uint256(vouch.lastUpdated))) *
+                    uint256(vouch.locked);
                 stakers[vouch.staker].locked = stakerLocked + innerAmount;
                 vouch.locked += innerAmount;
                 vouch.lastUpdated = uint64(block.number);
@@ -853,7 +881,9 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                 uint96 locked = vouch.locked;
                 if (locked == 0) continue;
                 innerAmount = _min(locked, remaining);
-
+                stakers[vouch.staker].lockedCoinAge +=
+                    (block.number - _max(lastWithdrawRewards, uint256(vouch.lastUpdated))) *
+                    uint256(vouch.locked);
                 // Update the stored locked values and last updated block
                 stakers[vouch.staker].locked -= innerAmount;
                 vouch.locked -= innerAmount;
@@ -899,8 +929,82 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *          memberFrozenCoinAge Total frozen coin age for this staker
      */
     function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256) {
-        if (address(comptroller) != msg.sender && address(uToken) != msg.sender) revert AuthFailed();
-        return _updateFrozen(staker, pastBlocks);
+        if (address(comptroller) != msg.sender) revert AuthFailed();
+        uint256 lastWithdrawRewards = comptroller.getLastWithdrawRewards(staker, stakingToken);
+        uint256 diff = block.number - lastWithdrawRewards;
+
+        uint256 stakedCoinAge = stakers[staker].stakedCoinAge +
+            (block.number - _max(lastWithdrawRewards, uint256(stakers[staker].lastUpdated))) *
+            uint256(stakers[staker].stakedAmount);
+
+        uint256 voucheesLength = vouchees[staker].length;
+        uint256 lockedCoinAge;
+
+        for (uint256 i = 0; i < voucheesLength; i++) {
+            Vouchee storage vouchee = vouchees[staker][i];
+            Vouch memory vouch = vouchers[vouchee.borrower][vouchee.voucherIndex];
+
+            lockedCoinAge +=
+                (block.number - _max(lastWithdrawRewards, uint256(vouch.lastUpdated))) *
+                uint256(vouch.locked);
+        }
+        lockedCoinAge += stakers[staker].lockedCoinAge;
+        uint256 defaultCoinAge = stakers[staker].defaultCoinAge;
+        stakers[staker].stakedCoinAge = 0;
+        stakers[staker].lastUpdated = uint64(block.number);
+        stakers[staker].lockedCoinAge = 0;
+        stakers[staker].defaultCoinAge = 0;
+
+        (, uint256 memberFrozenCoinAge) = _updateFrozen(staker, pastBlocks);
+        uint256 frozenCoinAge = memberFrozenCoinAge + defaultCoinAge;
+
+        return ((stakedCoinAge - frozenCoinAge) / diff, (lockedCoinAge - frozenCoinAge) / diff);
+    }
+
+    function getStakeInfo(address staker, uint256 pastBlocks) external view returns (uint256, uint256) {
+        uint256 lastWithdrawRewards = comptroller.getLastWithdrawRewards(staker, stakingToken);
+        uint256 diff = block.number - lastWithdrawRewards;
+
+        uint256 stakedCoinAge = stakers[staker].stakedCoinAge +
+            (block.number - _max(lastWithdrawRewards, uint256(stakers[staker].lastUpdated))) *
+            uint256(stakers[staker].stakedAmount);
+
+        uint256 voucheesLength = vouchees[staker].length;
+        uint256 lockedCoinAge;
+        for (uint256 i = 0; i < voucheesLength; i++) {
+            Vouchee storage vouchee = vouchees[staker][i];
+            Vouch memory vouch = vouchers[vouchee.borrower][vouchee.voucherIndex];
+            lockedCoinAge +=
+                (block.number - _max(lastWithdrawRewards, uint256(vouch.lastUpdated))) *
+                uint256(vouch.locked);
+        }
+        lockedCoinAge += stakers[staker].lockedCoinAge;
+        uint256 defaultCoinAge = stakers[staker].defaultCoinAge;
+
+        (, uint256 memberFrozenCoinAge) = getFrozenInfo(staker, pastBlocks);
+        uint256 frozenCoinAge = memberFrozenCoinAge + defaultCoinAge;
+
+        return ((stakedCoinAge - frozenCoinAge) / diff, (lockedCoinAge - frozenCoinAge) / diff);
+    }
+
+    /**
+     * @dev Update the frozen info by the utoken repay
+     * @param borrower Borrower address
+     */
+    function updateFrozenInfo(address borrower) external {
+        if (address(uToken) != msg.sender) revert AuthFailed();
+
+        uint256 vouchersLength = vouchers[borrower].length;
+        for (uint256 i = 0; i < vouchersLength; i++) {
+            Vouch memory vouch = vouchers[borrower][i];
+            uint256 overdueBlocks = uToken.overdueBlocks();
+            uint256 lastRepay = uToken.getLastRepay(borrower);
+            uint256 diff = block.number - lastRepay;
+
+            if (overdueBlocks < diff) {
+                stakers[vouch.staker].defaultCoinAge += uint256(vouch.locked) * diff;
+            }
+        }
     }
 
     /**
@@ -923,6 +1027,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     function _min(uint96 a, uint96 b) private pure returns (uint96) {
         if (a < b) return a;
+        return b;
+    }
+
+    function _max(uint256 a, uint256 b) private pure returns (uint256) {
+        if (a > b) return a;
         return b;
     }
 }

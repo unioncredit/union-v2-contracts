@@ -8,6 +8,10 @@ contract ComptrollerMock is IComptroller {
 
     function inflationPerBlock(uint256 effectiveTotalStake) external view returns (uint256) {}
 
+    function getLastWithdrawRewards(address account, address token) external view override returns (uint256) {
+        return 0;
+    }
+
     function getRewardsMultiplier(address, address) external pure override returns (uint256) {
         return 0;
     }

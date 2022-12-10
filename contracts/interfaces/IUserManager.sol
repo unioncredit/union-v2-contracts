@@ -14,7 +14,11 @@ interface IUserManager {
         returns (
             bool,
             uint96,
-            uint96
+            uint96,
+            uint64,
+            uint256,
+            uint256,
+            uint256
         );
 
     function vouchers(address borrower, uint256 index)
@@ -127,7 +131,11 @@ interface IUserManager {
      */
     function getFrozenInfo(address staker, uint256 blocks) external view returns (uint256, uint256);
 
+    function getStakeInfo(address staker, uint256 blocks) external view returns (uint256, uint256);
+
     function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256);
+
+    function updateFrozenInfo(address borrower) external;
 
     /**
      *  @dev Update userManager locked info
