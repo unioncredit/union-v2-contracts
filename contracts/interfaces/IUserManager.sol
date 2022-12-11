@@ -124,13 +124,6 @@ interface IUserManager {
      */
     function getTotalLockedStake(address staker) external view returns (uint256);
 
-    /**
-     *  @dev Get staker's defaulted / frozen staked token amount
-     *  @param staker Staker address
-     *  @return Frozen token amount
-     */
-    function getFrozenInfo(address staker, uint256 blocks) external view returns (uint256, uint256);
-
     function getStakeInfo(address staker, uint256 blocks) external view returns (uint256, uint256);
 
     function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256);

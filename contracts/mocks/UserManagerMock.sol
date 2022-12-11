@@ -102,8 +102,6 @@ contract UserManagerMock {
 
     function updateFrozenInfo(address staker, uint256 pastBlocks) public returns (uint256, uint256) {}
 
-    function getFrozenInfo(address staker, uint256 blocks) external view returns (uint256, uint256) {}
-
     function getVoucherCount(address borrower) external view returns (uint256) {}
 
     function setEffectiveCount(uint256 effectiveCount) external {}
