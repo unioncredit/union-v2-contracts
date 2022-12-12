@@ -235,13 +235,7 @@ contract Comptroller is Controller, IComptroller {
      *  @param token Staking token address
      *  @return Amount of rewards
      */
-    function withdrawRewards(address account, address token)
-        external
-        override
-        whenNotPaused
-        onlyUserManager(token)
-        returns (uint256)
-    {
+    function withdrawRewards(address account, address token) external override whenNotPaused returns (uint256) {
         IUserManager userManager = _getUserManager(token);
 
         // Lookup account state from UserManager
