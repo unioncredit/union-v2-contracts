@@ -37,8 +37,8 @@ contract Comptroller is Controller, IComptroller {
     }
 
     struct UserManagerAccountState {
-        uint256 totalStaked; // effect staked
-        uint256 totalLocked; // effect locked
+        uint256 totalStaked; // effective staked
+        uint256 totalLocked; // effective locked
         bool isMember;
     }
 
@@ -415,7 +415,7 @@ contract Comptroller is Controller, IComptroller {
         // Lookup account state from UserManager
         userManagerAccountState.isMember = userManagerContract.checkIsMember(account);
 
-        uint256 inflationIndex = _getRewardsMultiplier(
+        uint256 rewardMultiplier = _getRewardsMultiplier(
             userManagerAccountState.totalStaked,
             userManagerAccountState.totalLocked,
             userManagerAccountState.isMember
@@ -429,7 +429,7 @@ contract Comptroller is Controller, IComptroller {
                 totalStaked,
                 userManagerAccountState.totalStaked,
                 pastBlocks,
-                inflationIndex
+                rewardMultiplier
             );
     }
 
@@ -451,9 +451,9 @@ contract Comptroller is Controller, IComptroller {
         uint256 totalStaked,
         uint256 userStaked,
         uint256 pastBlocks,
-        uint256 inflationIndex
+        uint256 rewardMultiplier
     ) internal view returns (uint256) {
-        uint256 startInflationIndex = users[account][token].inflationIndex;
+        uint256 startInflationIndex = users[account][token].rewardMultiplier;
 
         if (userStaked == 0 || totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
             return 0;
@@ -463,7 +463,7 @@ contract Comptroller is Controller, IComptroller {
 
         if (curInflationIndex < startInflationIndex) revert InflationIndexTooSmall();
 
-        return (curInflationIndex - startInflationIndex).wadMul(userStaked).wadMul(inflationIndex);
+        return (curInflationIndex - startInflationIndex).wadMul(userStaked).wadMul(rewardMultiplier);
     }
 
     /**
