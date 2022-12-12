@@ -152,7 +152,7 @@ describe("Max gas", () => {
             console.log(reportStr);
         });
     });
-    context("get frozen info", () => {
+    context("get stake info", () => {
         before(async () => await beforeContext(ACCOUNT_COUNT));
         it("getStakeInfo", async () => {
             const trustAmount = parseUnits("100");
