@@ -878,14 +878,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @return  memberTotalFrozen Total frozen amount for this staker
      *          currDefaultFrozenCoinAge Total frozen coin age for this staker
      */
-    function _updateFrozen(address staker, uint256 memberTotalFrozen) internal returns (uint256) {
+    function _updateFrozen(address staker, uint256 memberTotalFrozen) internal {
         uint256 memberFrozenBefore = memberFrozen[staker];
         if (memberFrozenBefore != memberTotalFrozen) {
             memberFrozen[staker] = memberTotalFrozen;
             totalFrozen = totalFrozen - memberFrozenBefore + memberTotalFrozen;
         }
-
-        return (memberTotalFrozen);
     }
 
     function _calculateCoinAge(address stakerAddress, uint256 pastBlocks)
