@@ -453,7 +453,7 @@ contract Comptroller is Controller, IComptroller {
         uint256 pastBlocks,
         uint256 rewardMultiplier
     ) internal view returns (uint256) {
-        uint256 startInflationIndex = users[account][token].rewardMultiplier;
+        uint256 startInflationIndex = users[account][token].inflationIndex;
 
         if (userStaked == 0 || totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
             return 0;

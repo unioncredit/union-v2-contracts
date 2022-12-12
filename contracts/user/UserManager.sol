@@ -875,8 +875,6 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @dev Update the frozen info for a single staker
      * @param staker Staker address
      * @param memberTotalFrozen The past blocks
-     * @return  memberTotalFrozen Total frozen amount for this staker
-     *          currDefaultFrozenCoinAge Total frozen coin age for this staker
      */
     function _updateFrozen(address staker, uint256 memberTotalFrozen) internal {
         uint256 memberFrozenBefore = memberFrozen[staker];
