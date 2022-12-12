@@ -167,7 +167,8 @@ contract Comptroller is Controller, IComptroller {
     function getRewardsMultiplier(address account, address token) external view override returns (uint256) {
         IUserManager userManager = _getUserManager(token);
         bool isMember = userManager.checkIsMember(account);
-        (uint256 totalStaked, uint256 totalLocked) = userManager.getStakeInfo(account, 0);
+        uint256 pastBlocks = block.number - users[account][token].updatedBlock;
+        (uint256 totalStaked, uint256 totalLocked) = userManager.getStakeInfo(account, pastBlocks);
 
         return _getRewardsMultiplier(totalStaked, totalLocked, isMember);
     }
