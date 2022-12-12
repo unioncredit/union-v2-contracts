@@ -1,6 +1,6 @@
 import {expect} from "chai";
 
-import {Signer} from "ethers";
+import {BigNumber, Signer} from "ethers";
 import {ethers} from "hardhat";
 import {commify, formatUnits, parseUnits} from "ethers/lib/utils";
 
@@ -10,7 +10,7 @@ import {getDai, roll} from "../../test/utils";
 
 const PAD = 22;
 
-describe("Reward issuance exploit fix", () => {
+describe("2x reward multiplier only when ppl borrowing", () => {
     let staker: Signer;
     let stakerAddress: string;
 
@@ -24,7 +24,7 @@ describe("Reward issuance exploit fix", () => {
 
     const borrowAmount = parseUnits("1000");
 
-    let stakingStartBlock: number;
+    let stakingBlock: number, borrowBlock: number;
     const STAKING_REWARDS_PER_BLOCK = parseUnits("0.6");
     const BORROW_REWARDS_PER_BLOCK = parseUnits("0.6603");
 
@@ -58,7 +58,8 @@ describe("Reward issuance exploit fix", () => {
         await contracts.dai.connect(staker).approve(contracts.userManager.address, AMOUNT);
         await contracts.userManager.connect(staker).stake(AMOUNT);
 
-        stakingStartBlock = await getBlockNumber();
+        stakingBlock = await getBlockNumber();
+        console.log("\nStake block #:".padEnd(PAD), stakingBlock);
 
         await contracts.dai.approve(contracts.uToken.address, AMOUNT);
         await contracts.uToken.mint(AMOUNT);
@@ -66,17 +67,16 @@ describe("Reward issuance exploit fix", () => {
         await contracts.userManager.connect(staker).updateTrust(borrowerAddress, AMOUNT);
 
         const creditLine = await contracts.userManager.getCreditLimit(borrowerAddress);
-        console.log("\nCredit line:".padEnd(PAD), commify(formatUnits(creditLine)));
 
         expect(creditLine).gt(0);
     });
 
-    it("current rewards", async () => {
-        const pastBlock = (await getBlockNumber()) - stakingStartBlock;
-        console.log("\nPast blocks:".padEnd(PAD), pastBlock);
+    it("rewards bofore borrow", async () => {
+        const blocksSinceStaking = (await getBlockNumber()) - stakingBlock;
+        console.log("\n#blocks since staking:".padEnd(PAD), blocksSinceStaking);
         const rewards = await contracts.comptroller.calculateRewards(stakerAddress, contracts.dai.address);
         console.log("\nUnclaimed rewards:".padEnd(PAD), commify(formatUnits(rewards)));
-        expect(rewards).to.be.eq(STAKING_REWARDS_PER_BLOCK.mul(pastBlock));
+        expect(rewards).to.be.eq(STAKING_REWARDS_PER_BLOCK.mul(blocksSinceStaking));
     });
 
     it("borrow", async () => {
@@ -85,17 +85,48 @@ describe("Reward issuance exploit fix", () => {
         expect(principal).gt(borrowAmount);
     });
 
-    it("current rewards", async () => {
-        const pastBlock = (await getBlockNumber()) - stakingStartBlock;
-        console.log("\nPast blocks:".padEnd(PAD), pastBlock);
+    it("rewards after borrow", async () => {
+        borrowBlock = await getBlockNumber();
+        console.log("\nBorrow block #:".padEnd(PAD), borrowBlock);
 
         // increase 1 block to accrue rewards
-        await roll(1);
+        const blocksAfterBorrow = 1;
+        await roll(blocksAfterBorrow);
 
         const rewards = await contracts.comptroller.calculateRewards(stakerAddress, contracts.dai.address);
         console.log("\nUnclaimed rewards:".padEnd(PAD), commify(formatUnits(rewards)));
 
-        const stakingRewards = STAKING_REWARDS_PER_BLOCK.mul(pastBlock);
-        expect(rewards).to.be.eq(BORROW_REWARDS_PER_BLOCK.add(stakingRewards));
+        const rewardsBeforeBorrow = STAKING_REWARDS_PER_BLOCK.mul(borrowBlock - stakingBlock);
+        const rewardsAfterBorrow = BORROW_REWARDS_PER_BLOCK.mul(blocksAfterBorrow);
+        expect(rewards).to.be.eq(rewardsAfterBorrow.add(rewardsBeforeBorrow));
+    });
+
+    it("repay all", async () => {
+        // get some extra dai to the borrower for the repayment
+        const repayAmount = parseUnits("2000");
+        await getDai(contracts.dai, borrower, repayAmount);
+        await contracts.dai.connect(borrower).approve(contracts.uToken.address, repayAmount);
+
+        await contracts.uToken.connect(borrower).repayBorrow(borrowerAddress, repayAmount);
+
+        const borrowedAmount = await contracts.uToken.getBorrowed(borrowerAddress);
+        expect(borrowedAmount).eq(parseUnits("0"));
+    });
+
+    it("rewards after repay all", async () => {
+        const repayBlock = await getBlockNumber();
+        console.log("\nRepay block #:".padEnd(PAD), repayBlock);
+
+        // increase x block to accrue rewards
+        const blocksAfterRepay = 2;
+        await roll(blocksAfterRepay);
+
+        const rewards = await contracts.comptroller.calculateRewards(stakerAddress, contracts.dai.address);
+        console.log("\nUnclaimed rewards:".padEnd(PAD), commify(formatUnits(rewards)));
+
+        const rewardsBeforeBorrow = STAKING_REWARDS_PER_BLOCK.mul(borrowBlock - stakingBlock);
+        const rewardsAfterBorrow = BORROW_REWARDS_PER_BLOCK.mul(repayBlock - borrowBlock);
+        const rewardsAfterRepay = STAKING_REWARDS_PER_BLOCK.mul(blocksAfterRepay);
+        expect(rewards).to.be.eq(rewardsBeforeBorrow.add(rewardsAfterBorrow).add(rewardsAfterRepay));
     });
 });
