@@ -124,13 +124,11 @@ contract TestBorrowRepay is TestUTokenBase {
         uint256 repayAmount = borrowed + interest;
 
         daiMock.approve(address(uToken), repayAmount);
-
         uToken.repayBorrow(ALICE, repayAmount);
 
         vm.stopPrank();
 
         assertTrue(!uToken.checkIsOverdue(ALICE));
-
         assertEq(0, uToken.borrowBalanceView(ALICE));
     }
 

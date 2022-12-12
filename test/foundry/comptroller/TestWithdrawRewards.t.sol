@@ -35,12 +35,12 @@ contract FakeUserManager {
         return totalLockedStake;
     }
 
-    function getFrozenInfo(address, uint256) public view returns (uint256, uint256) {
-        return (frozenCoinAge, totalFrozen);
+    function getStakeInfo(address, uint256) public view returns (uint256, uint256) {
+        return (totalStaked, totalLockedStake);
     }
 
     function updateFrozenInfo(address, uint256) public view returns (uint256, uint256) {
-        return (frozenCoinAge, totalFrozen);
+        return (totalStaked, totalLockedStake);
     }
 
     function checkIsMember(address) public view returns (bool) {

@@ -165,11 +165,11 @@ contract Comptroller is Controller, IComptroller {
      *  @return Multiplier number (in wei)
      */
     function getRewardsMultiplier(address account, address token) external view override returns (uint256) {
-        IUserManager userManagerContract = _getUserManager(token);
-        uint256 stakingAmount = userManagerContract.getStakerBalance(account);
-        uint256 lockedStake = userManagerContract.getTotalLockedStake(account);
-        bool isMember = userManagerContract.checkIsMember(account);
-        return _getRewardsMultiplier(stakingAmount, lockedStake, isMember);
+        IUserManager userManager = _getUserManager(token);
+        bool isMember = userManager.checkIsMember(account);
+        (uint256 totalStaked, uint256 totalLocked) = userManager.getStakeInfo(account, 0);
+
+        return _getRewardsMultiplier(totalStaked, totalLocked, isMember);
     }
 
     /**

@@ -154,7 +154,7 @@ describe("Max gas", () => {
     });
     context("get frozen info", () => {
         before(async () => await beforeContext(ACCOUNT_COUNT));
-        it("getFrozenInfo", async () => {
+        it("getStakeInfo", async () => {
             const trustAmount = parseUnits("100");
             const staker = accounts[0];
             const stakerAddress = await staker.getAddress();
@@ -190,8 +190,8 @@ describe("Max gas", () => {
 
             spinner.stop();
 
-            const gasUsed = await contracts.userManager.estimateGas.getFrozenInfo(stakerAddress, 0);
-            const reportStr = `[*] getFrozenInfo:: count: ${ACCOUNT_COUNT} Gas used: ${commify(gasUsed.toString())}`;
+            const gasUsed = await contracts.userManager.estimateGas.getStakeInfo(stakerAddress, 0);
+            const reportStr = `[*] getStakeInfo:: count: ${ACCOUNT_COUNT} Gas used: ${commify(gasUsed.toString())}`;
             saveReport(reportStr, 2);
             console.log(reportStr);
         });
