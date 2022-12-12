@@ -88,9 +88,10 @@ describe("Reward issuance exploit fix", () => {
     it("current rewards", async () => {
         const pastBlock = (await getBlockNumber()) - stakingStartBlock;
         console.log({pastBlock});
+        await roll(1);
         const rewards = await contracts.comptroller.calculateRewards(stakerAddress, contracts.dai.address);
         console.log({rewards: commify(formatUnits(rewards))});
-        const stakingRewards = STAKING_REWARDS_PER_BLOCK.mul(pastBlock - 1);
+        const stakingRewards = STAKING_REWARDS_PER_BLOCK.mul(pastBlock);
         expect(rewards).to.be.eq(BORROW_REWARDS_PER_BLOCK.add(stakingRewards));
     });
 });
