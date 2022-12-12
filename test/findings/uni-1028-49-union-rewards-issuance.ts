@@ -73,9 +73,9 @@ describe("Reward issuance exploit fix", () => {
 
     it("current rewards", async () => {
         const pastBlock = (await getBlockNumber()) - stakingStartBlock;
-        console.log({pastBlock});
+        console.log("\nPast blocks:".padEnd(PAD), pastBlock);
         const rewards = await contracts.comptroller.calculateRewards(stakerAddress, contracts.dai.address);
-        console.log({rewards: rewards.toString()});
+        console.log("\nUnclaimed rewards:".padEnd(PAD), commify(formatUnits(rewards)));
         expect(rewards).to.be.eq(STAKING_REWARDS_PER_BLOCK.mul(pastBlock));
     });
 
@@ -87,10 +87,14 @@ describe("Reward issuance exploit fix", () => {
 
     it("current rewards", async () => {
         const pastBlock = (await getBlockNumber()) - stakingStartBlock;
-        console.log({pastBlock});
+        console.log("\nPast blocks:".padEnd(PAD), pastBlock);
+
+        // increase 1 block to accrue rewards
         await roll(1);
+
         const rewards = await contracts.comptroller.calculateRewards(stakerAddress, contracts.dai.address);
-        console.log({rewards: commify(formatUnits(rewards))});
+        console.log("\nUnclaimed rewards:".padEnd(PAD), commify(formatUnits(rewards)));
+
         const stakingRewards = STAKING_REWARDS_PER_BLOCK.mul(pastBlock);
         expect(rewards).to.be.eq(BORROW_REWARDS_PER_BLOCK.add(stakingRewards));
     });
