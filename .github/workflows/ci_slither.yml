@@ -1,0 +1,14 @@
+name: slither analyzer
+
+on: [pull_request]
+
+jobs:
+    slither:
+        name: Run slither
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - uses: crytic/slither-action@v0.2.0
+              with:
+                  node-version: 14
+                  target: "."
