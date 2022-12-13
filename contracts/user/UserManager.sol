@@ -874,7 +874,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     /**
      * @dev Update the frozen info for a single staker
      * @param staker Staker address
-     * @param memberTotalFrozen The past blocks
+     * @param memberTotalFrozen member's frozen stake
      */
     function _updateFrozen(address staker, uint256 memberTotalFrozen) internal {
         uint256 memberFrozenBefore = memberFrozen[staker];
@@ -884,6 +884,14 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         }
     }
 
+    /**
+     * @dev Update the frozen info for a single staker
+     * @param stakerAddress Staker address
+     * @param pastBlocks The past blocks
+     * @return  user's effective staked amount
+     *          user's effective locked amount
+     *          user's frozen amount
+     */
     function _calculateCoinAge(address stakerAddress, uint256 pastBlocks)
         private
         view
@@ -895,13 +903,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     {
         uint256 overdueBlocks = uToken.overdueBlocks();
         Staker memory staker = stakers[stakerAddress];
-        CoinAge memory coinAge;
+        CoinAge memory coinAge = CoinAge(0, 0, 0, 0, 0);
         coinAge.lastWithdrawRewards = comptroller.getLastWithdrawRewards(stakerAddress, stakingToken);
         coinAge.diff = block.number - _max(coinAge.lastWithdrawRewards, uint256(staker.lastUpdated));
         coinAge.stakedCoinAge = staker.stakedCoinAge + coinAge.diff * uint256(staker.stakedAmount);
         coinAge.lockedCoinAge = staker.lockedCoinAge;
         coinAge.frozenCoinAge = staker.accruedFrozenCoinAge;
-        uint256 memberTotalFrozen;
+        uint256 memberTotalFrozen = 0;
         uint256 voucheesLength = vouchees[stakerAddress].length;
         // Loop through all of the stakers vouchees sum their total
         // locked balance and sum their total currDefaultFrozenCoinAge
@@ -934,29 +942,33 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         );
     }
 
-    function getStakeInfo(address staker, uint256 pastBlocks) external view returns (uint256, uint256) {
-        (uint256 effectStaked, uint256 effectLocked, ) = _calculateCoinAge(staker, pastBlocks);
-        return (effectStaked, effectLocked);
+    function getStakeInfo(address staker, uint256 pastBlocks)
+        external
+        view
+        returns (uint256 effectStaked, uint256 effectLocked)
+    {
+        (effectStaked, effectLocked, ) = _calculateCoinAge(staker, pastBlocks);
     }
 
     /**
      * @dev Update the frozen info by the comptroller
      * @param staker Staker address
      * @param pastBlocks The past blocks
-     * @return  memberTotalFrozen Total frozen amount for this staker
-     *          currDefaultFrozenCoinAge Total frozen coin age for this staker
+     * @return  effectStaked user's total stake - frozen
+     *          effectLocked user's locked amount - frozen
      */
-    function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256) {
+    function updateFrozenInfo(address staker, uint256 pastBlocks)
+        external
+        returns (uint256 effectStaked, uint256 effectLocked)
+    {
         if (address(comptroller) != msg.sender) revert AuthFailed();
-
-        (uint256 effectStaked, uint256 effectLocked, uint256 memberTotalFrozen) = _calculateCoinAge(staker, pastBlocks);
+        uint256 memberTotalFrozen = 0;
+        (effectStaked, effectLocked, memberTotalFrozen) = _calculateCoinAge(staker, pastBlocks);
         stakers[staker].stakedCoinAge = 0;
         stakers[staker].lastUpdated = uint64(block.number);
         stakers[staker].lockedCoinAge = 0;
         stakers[staker].accruedFrozenCoinAge = 0;
         _updateFrozen(staker, memberTotalFrozen);
-
-        return (effectStaked, effectLocked);
     }
 
     /**

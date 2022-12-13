@@ -304,16 +304,16 @@ contract Comptroller is Controller, IComptroller {
     /**
      * @dev Get UserManager global state values
      */
-    function _getUserManagerState(IUserManager userManager) internal view returns (UserManagerState memory) {
-        UserManagerState memory userManagerState;
-
+    function _getUserManagerState(IUserManager userManager)
+        internal
+        view
+        returns (UserManagerState memory userManagerState)
+    {
         userManagerState.totalFrozen = userManager.totalFrozen();
         userManagerState.totalStaked = userManager.totalStaked() - userManagerState.totalFrozen;
         if (userManagerState.totalStaked < 1e18) {
             userManagerState.totalStaked = 1e18;
         }
-
-        return userManagerState;
     }
 
     /**
@@ -332,26 +332,23 @@ contract Comptroller is Controller, IComptroller {
         internal
         view
         returns (
-            UserManagerAccountState memory,
-            Info memory,
-            uint256
+            UserManagerAccountState memory userManagerAccountState,
+            Info memory userInfo,
+            uint256 pastBlocks
         )
     {
-        Info memory userInfo = users[account][token];
+        userInfo = users[account][token];
         uint256 lastUpdatedBlock = userInfo.updatedBlock;
         if (block.number < lastUpdatedBlock) {
             lastUpdatedBlock = block.number;
         }
 
-        uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
+        pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        UserManagerAccountState memory userManagerAccountState;
         (userManagerAccountState.totalStaked, userManagerAccountState.totalLocked) = userManager.getStakeInfo(
             account,
             pastBlocks
         );
-
-        return (userManagerAccountState, userInfo, pastBlocks);
     }
 
     /**
@@ -369,27 +366,23 @@ contract Comptroller is Controller, IComptroller {
     )
         internal
         returns (
-            UserManagerAccountState memory,
-            Info memory,
-            uint256
+            UserManagerAccountState memory userManagerAccountState,
+            Info memory userInfo,
+            uint256 pastBlocks
         )
     {
-        Info memory userInfo = users[account][token];
+        userInfo = users[account][token];
         uint256 lastUpdatedBlock = userInfo.updatedBlock;
         if (block.number < lastUpdatedBlock) {
             lastUpdatedBlock = block.number;
         }
 
-        uint256 pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
-
-        UserManagerAccountState memory userManagerAccountState;
+        pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
         (userManagerAccountState.totalStaked, userManagerAccountState.totalLocked) = userManager.updateFrozenInfo(
             account,
             pastBlocks
         );
-
-        return (userManagerAccountState, userInfo, pastBlocks);
     }
 
     /**
