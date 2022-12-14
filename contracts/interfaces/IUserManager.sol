@@ -124,10 +124,28 @@ interface IUserManager {
      */
     function getTotalLockedStake(address staker) external view returns (uint256);
 
-    function getStakeInfo(address staker, uint256 blocks) external view returns (uint256, uint256);
+    /**
+     *  @dev Get the staker's effective staked and locked amount
+     *  @param staker Staker address
+     *  @param pastBlocks Number of blocks since last rewards withdrawal
+     *  @return  user's effective staked amount
+     *           user's effective locked amount
+     */
+    function getStakeInfo(address staker, uint256 pastBlocks) external view returns (uint256, uint256);
 
+    /**
+     * @dev Update the frozen info by the comptroller
+     * @param staker Staker address
+     * @param pastBlocks The past blocks
+     * @return  effectStaked user's total stake - frozen
+     *          effectLocked user's locked amount - frozen
+     */
     function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256);
 
+    /**
+     * @dev Update the frozen info by the utoken repay
+     * @param borrower Borrower address
+     */
     function updateFrozenInfo(address borrower) external;
 
     /**

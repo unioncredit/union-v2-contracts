@@ -885,7 +885,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev Update the frozen info for a single staker
+     * @dev Get the staker's latest info based on stored coinage
      * @param stakerAddress Staker address
      * @param pastBlocks The past blocks
      * @return  user's effective staked amount
@@ -942,6 +942,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         );
     }
 
+    /**
+     *  @dev Get the staker's effective staked and locked amount
+     *  @param staker Staker address
+     *  @param pastBlocks Number of blocks since last rewards withdrawal
+     *  @return effectStaked user's effective staked amount
+     *          effectLocked user's effective locked amount
+     */
     function getStakeInfo(address staker, uint256 pastBlocks)
         external
         view
