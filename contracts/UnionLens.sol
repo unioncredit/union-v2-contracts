@@ -114,13 +114,4 @@ contract UnionLens {
             );
         }
     }
-
-    /* -------------------------------------------------------------------
-      Internal Functions 
-    ------------------------------------------------------------------- */
-
-    function _vouchee(bytes32 b) private pure returns (address addr, uint96 n) {
-        addr = address(bytes20(b));
-        n = uint96(bytes12(bytes20(uint160(2**160 - 1)) & (b << 160)));
-    }
 }
