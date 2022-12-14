@@ -1000,17 +1000,17 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     /**
      * @dev Update the frozen info for external scripts
-     * @param stakers Stakers address
+     * @param stakerList Stakers address
      */
-    function batchUpdateFrozenInfo(address[] calldata stakers) external whenNotPaused {
-        uint256 stakerLength = stakers.length;
+    function batchUpdateFrozenInfo(address[] calldata stakerList) external whenNotPaused {
+        uint256 stakerLength = stakerList.length;
         if (stakerLength == 0) revert InvalidParams();
 
         // update member's frozen amount and global frozen amount
         uint256 tmpTotalFrozen = totalFrozen;
         address staker = address(0);
         for (uint256 i = 0; i < stakerLength; i++) {
-            staker = stakers[i];
+            staker = stakerList[i];
             (, , uint256 memberTotalFrozen) = _calculateCoinAge(staker, 0);
 
             uint256 memberFrozenBefore = memberFrozen[staker];

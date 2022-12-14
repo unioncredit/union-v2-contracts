@@ -236,6 +236,8 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
             } catch {
                 return false;
             }
+        } else {
+            return false;
         }
     }
 
@@ -258,6 +260,8 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
             } catch {
                 return false;
             }
+        } else {
+            return false;
         }
     }
 
