@@ -1006,10 +1006,21 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 stakerLength = stakers.length;
         if (stakerLength == 0) revert InvalidParams();
 
+        // update member's frozen amount and global frozen amount
+        uint256 tmpTotalFrozen = totalFrozen;
+        address staker = address(0);
         for (uint256 i = 0; i < stakerLength; i++) {
-            (, , uint256 memberTotalFrozen) = _calculateCoinAge(stakers[i], 0);
-            _updateFrozen(stakers[i], memberTotalFrozen);
+            staker = stakers[i];
+            (, , uint256 memberTotalFrozen) = _calculateCoinAge(staker, 0);
+
+            uint256 memberFrozenBefore = memberFrozen[staker];
+            if (memberFrozenBefore != memberTotalFrozen) {
+                memberFrozen[staker] = memberTotalFrozen;
+                tmpTotalFrozen = tmpTotalFrozen - memberFrozenBefore + memberTotalFrozen;
+            }
         }
+        totalFrozen = tmpTotalFrozen;
+
         comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
     }
 
