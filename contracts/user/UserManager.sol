@@ -819,7 +819,6 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     ) external onlyMarket {
         uint96 remaining = amount;
 
-        address stakingTokenCached = stakingToken;
         uint256 vouchersLength = vouchers[borrower].length;
         for (uint256 i = 0; i < vouchersLength; i++) {
             Vouch storage vouch = vouchers[borrower][i];
