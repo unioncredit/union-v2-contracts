@@ -17,7 +17,6 @@ interface IUserManager {
             uint96,
             uint64,
             uint256,
-            uint256,
             uint256
         );
 
@@ -140,7 +139,7 @@ interface IUserManager {
      * @return  effectStaked user's total stake - frozen
      *          effectLocked user's locked amount - frozen
      */
-    function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256);
+    function onWithdrawRewards(address staker, uint256 pastBlocks) external returns (uint256, uint256);
 
     /**
      * @dev Update the frozen info by the utoken repay

@@ -379,7 +379,7 @@ contract Comptroller is Controller, IComptroller {
 
         pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        (userManagerAccountState.totalStaked, userManagerAccountState.totalLocked) = userManager.updateFrozenInfo(
+        (userManagerAccountState.totalStaked, userManagerAccountState.totalLocked) = userManager.onWithdrawRewards(
             account,
             pastBlocks
         );

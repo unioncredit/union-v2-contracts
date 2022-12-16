@@ -100,7 +100,7 @@ contract UserManagerMock {
         uint96 amount
     ) public {}
 
-    function updateFrozenInfo(address staker, uint256 pastBlocks) public returns (uint256, uint256) {}
+    function onWithdrawRewards(address staker, uint256 pastBlocks) public returns (uint256, uint256) {}
 
     function updateFrozenInfo(address borrower) public {}
 

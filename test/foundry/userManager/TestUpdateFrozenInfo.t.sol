@@ -24,7 +24,7 @@ contract TestUpdateFrozenInfo is TestUserManagerBase {
         vm.roll(block.number + 1);
 
         vm.prank(address(userManager.comptroller()));
-        userManager.updateFrozenInfo(address(this), block.number + 1);
+        userManager.onWithdrawRewards(address(this), block.number + 1);
 
         vm.roll(block.number + 1);
         (uint256 effectStaked, uint256 effectLocked) = userManager.getStakeInfo(address(this), block.number + 1);
