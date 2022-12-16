@@ -520,7 +520,6 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     function updateTrust(address borrower, uint96 trustAmount) external onlyMember(msg.sender) whenNotPaused {
         address staker = msg.sender;
         if (borrower == staker) revert ErrorSelfVouching();
-        if (!checkIsMember(staker)) revert AuthFailed();
 
         // Check if this staker is already vouching for this borrower
         // If they are already vouching then update the existing vouch record
