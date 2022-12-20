@@ -154,9 +154,6 @@ contract Comptroller is Controller, IComptroller {
     /* -------------------------------------------------------------------
       View Functions 
     ------------------------------------------------------------------- */
-    function getLastWithdrawRewards(address account, address token) external view override returns (uint256) {
-        return users[account][token].updatedBlock;
-    }
 
     /**
      *  @dev Get the reward multipier based on the account status

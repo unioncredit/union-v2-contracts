@@ -10,8 +10,6 @@ interface IComptroller {
 
     function inflationPerBlock(uint256 effectiveTotalStake) external view returns (uint256);
 
-    function getLastWithdrawRewards(address account, address token) external view returns (uint256);
-
     /**
      *  @dev Get the reward multipier based on the account status
      *  @param account Account address
