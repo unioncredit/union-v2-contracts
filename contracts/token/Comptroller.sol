@@ -154,9 +154,6 @@ contract Comptroller is Controller, IComptroller {
     /* -------------------------------------------------------------------
       View Functions 
     ------------------------------------------------------------------- */
-    function getLastWithdrawRewards(address account, address token) external view override returns (uint256) {
-        return users[account][token].updatedBlock;
-    }
 
     /**
      *  @dev Get the reward multipier based on the account status
@@ -379,7 +376,7 @@ contract Comptroller is Controller, IComptroller {
 
         pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        (userManagerAccountState.totalStaked, userManagerAccountState.totalLocked) = userManager.updateFrozenInfo(
+        (userManagerAccountState.totalStaked, userManagerAccountState.totalLocked) = userManager.onWithdrawRewards(
             account,
             pastBlocks
         );

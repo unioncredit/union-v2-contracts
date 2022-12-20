@@ -51,7 +51,7 @@ contract FakeUserManager {
         return (totalStaked, totalLockedStake);
     }
 
-    function updateFrozenInfo(address, uint256) public view returns (uint256, uint256) {
+    function onWithdrawRewards(address, uint256) public view returns (uint256, uint256) {
         return (frozenCoinAge, totalFrozen);
     }
 
