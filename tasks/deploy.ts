@@ -8,6 +8,7 @@ import deploy, {Contracts} from "../deploy/index";
 import {getConfig} from "../deploy/config";
 import {deployContract} from "../deploy/helpers";
 import {UnionLens, UnionLens__factory} from "../typechain-types";
+import {OpUNION, OpUNION__factory} from "../typechain-types";
 
 const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {[key: string]: string}} => {
     return {
@@ -26,6 +27,73 @@ const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {
     };
 };
 
+const getDeployer = (privateKey: string, provider: ethers.providers.BaseProvider) => {
+    if (!privateKey.match(/^[A-Fa-f0-9]{1,64}$/)) {
+        console.log("[!] Invalid format of private key");
+        process.exit();
+    }
+
+    return new ethers.Wallet(privateKey, provider);
+};
+
+task("deploy:op", "Deploy Union V2 on Optimism")
+    .addParam("pk", "Private key to use for deployment")
+    .addParam("confirmations", "How many confirmations to wait for")
+    // .addParam("members", "Initial union members")
+    .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
+        // ------------------------------------------------------
+        // Setup
+        // ------------------------------------------------------
+
+        const config = getConfig();
+        const privateKey = taskArguments.pk;
+        const waitForBlocks = taskArguments.confirmations;
+
+        console.log("[*] Deployment config");
+        console.log(config);
+
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
+
+        console.log(
+            [
+                "[*] Deploying contracts",
+                `    - waitForBlocks: ${waitForBlocks}`,
+                `    - deployer: ${await deployer.getAddress()}`
+            ].join("\n")
+        );
+
+        // ------------------------------------------------------
+        // Deployment
+        // ------------------------------------------------------
+
+        const opUnion = await deployContract<OpUNION>(
+            new OpUNION__factory(deployer),
+            "opUnion",
+            [config.addresses.opL2Bridge, config.addresses.unionToken],
+            true,
+            waitForBlocks
+        );
+
+        console.log("\n[*] Deployment complete\n");
+
+        // ------------------------------------------------------
+        // Save deployment and config
+        // ------------------------------------------------------
+
+        console.log("[*] Saving deployment addresses");
+
+        // create save directory
+        const dir = path.resolve(__dirname, "../deployments", hre.network.name);
+        !fs.existsSync(dir) && fs.mkdirSync(dir);
+
+        // save deployment
+        const saveDeploymentPath = path.resolve(dir, "optimism.json");
+        fs.writeFileSync(saveDeploymentPath, JSON.stringify({opUnion: opUnion.address}, null, 2));
+        console.log(`    - deployment: ${saveDeploymentPath}`);
+
+        console.log("[*] Complete");
+    });
+
 task("deploy", "Deploy Union V2 contracts")
     .addParam("pk", "Private key to use for deployment")
     .addParam("confirmations", "How many confirmations to wait for")
@@ -39,15 +107,10 @@ task("deploy", "Deploy Union V2 contracts")
         const privateKey = taskArguments.pk;
         const waitForBlocks = taskArguments.confirmations;
 
-        if (!privateKey.match(/^[A-Fa-f0-9]{1,64}$/)) {
-            console.log("[!] Invalid format of private key");
-            process.exit();
-        }
-
         console.log("[*] Deployment config");
         console.log(config);
 
-        const deployer = new ethers.Wallet(privateKey, hre.ethers.provider);
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
 
         console.log(
             [
@@ -113,12 +176,7 @@ task("deploy:lens", "Deploy Union lens contract")
         const marketRegistry = taskArguments.marketregistry;
         const waitForBlocks = taskArguments.confirmations;
 
-        if (!privateKey.match(/^[A-Fa-f0-9]{1,64}$/)) {
-            console.log("[!] Invalid format of private key");
-            process.exit();
-        }
-
-        const deployer = new ethers.Wallet(privateKey, hre.ethers.provider);
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
 
         console.log(
             [
