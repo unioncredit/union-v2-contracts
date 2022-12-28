@@ -46,6 +46,8 @@ describe("Max gas", () => {
 
         spinner.stop();
 
+        await contracts.uToken.setMaxBorrow(ethers.constants.MaxUint256);
+
         spinner = ora("Setting up accounts").start();
 
         for (const account of accounts) {
@@ -136,20 +138,37 @@ describe("Max gas", () => {
 
             spinner.stop();
 
+            // ---------------------------------------------------
+            // BORROW
+            // ---------------------------------------------------
             const creditLimit = await contracts.userManager.getCreditLimit(borrowerAddress);
             const borrowAmount = creditLimit.mul(900).div(1000);
             spinner = ora(`Borrowing: ${formatUnits(creditLimit)}`).start();
 
-            const tx = await contracts.uToken.connect(borrower).borrow(borrowerAddress, borrowAmount);
-            const resp = await tx.wait();
+            let tx = await contracts.uToken.connect(borrower).borrow(borrowerAddress, borrowAmount);
+            let resp = await tx.wait();
 
             spinner.stop();
 
-            const reportStr = `[*] updateTrust:: count: ${stakers.length} borrow: ${commify(
+            const reportStr = `[*] borrow:: count: ${stakers.length} borrow: ${commify(
                 formatUnits(borrowAmount)
             )} creditLimit: ${commify(formatUnits(creditLimit))} Gas used: ${commify(resp.gasUsed.toString())}`;
             saveReport(reportStr, 1);
             console.log(reportStr);
+
+            // ---------------------------------------------------
+            // REPAY
+            // ---------------------------------------------------
+
+            await contracts.dai.connect(borrower).approve(contracts.uToken.address, borrowAmount);
+            tx = await contracts.uToken.connect(borrower).repayBorrow(borrowerAddress, borrowAmount);
+            resp = await tx.wait();
+
+            const reportStr0 = `[*] repay:: count: ${stakers.length} borrow: ${commify(
+                formatUnits(borrowAmount)
+            )} creditLimit: ${commify(formatUnits(creditLimit))} Gas used: ${commify(resp.gasUsed.toString())}`;
+            saveReport(reportStr0, 2);
+            console.log(reportStr0);
         });
     });
     context("get stake info", () => {
@@ -192,7 +211,7 @@ describe("Max gas", () => {
 
             const gasUsed = await contracts.userManager.estimateGas.getStakeInfo(stakerAddress, 0);
             const reportStr = `[*] getStakeInfo:: count: ${ACCOUNT_COUNT} Gas used: ${commify(gasUsed.toString())}`;
-            saveReport(reportStr, 2);
+            saveReport(reportStr, 3);
             console.log(reportStr);
         });
     });

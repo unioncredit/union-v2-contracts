@@ -1,3 +1,4 @@
 [*] updateTrust:: Min gas: 153,662, Max gas: 187,862, Delta: 34,200
-[*] updateTrust:: count: 100 borrow: 9,000.0 creditLimit: 10,000.0 Gas used: 3,674,869
+[*] borrow:: count: 400 borrow: 36,000.0 creditLimit: 40,000.0 Gas used: 13,715,718
+[*] repay:: count: 400 borrow: 36,000.0 creditLimit: 40,000.0 Gas used: 14,359,283
 [*] getStakeInfo:: count: 100 Gas used: 1,461,609
