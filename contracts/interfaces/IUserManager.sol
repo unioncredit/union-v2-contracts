@@ -145,7 +145,7 @@ interface IUserManager {
      * @dev Update the frozen info by the utoken repay
      * @param borrower Borrower address
      */
-    function updateFrozenInfo(address borrower) external;
+    function onRepayBorrow(address borrower) external;
 
     /**
      *  @dev Update userManager locked info

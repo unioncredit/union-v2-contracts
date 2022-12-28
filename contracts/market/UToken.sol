@@ -628,7 +628,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             if (isOverdue) {
                 // For borrowers that are paying back overdue balances we need to update their
                 // frozen balance and the global total frozen balance on the UserManager
-                IUserManager(userManager).updateFrozenInfo(borrower);
+                IUserManager(userManager).onRepayBorrow(borrower);
             }
 
             if (getBorrowed(borrower) == 0) {

@@ -970,7 +970,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @dev Update the frozen info by the utoken repay
      * @param borrower Borrower address
      */
-    function updateFrozenInfo(address borrower) external {
+    function onRepayBorrow(address borrower) external {
         if (address(uToken) != msg.sender) revert AuthFailed();
 
         uint256 overdueBlocks = uToken.overdueBlocks();
