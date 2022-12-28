@@ -601,6 +601,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         emit LogCancelVouch(staker, borrower);
     }
 
+    /**
+     *  Cancels a vouch between a staker and a borrower.
+     *  @dev The function can only be called by a member of the stakers list.
+     *  @param staker The address of the staker who made the vouch.
+     *  @param borrower The address of the borrower who received the vouch.
+     */
     function cancelVouch(address staker, address borrower) public onlyMember(msg.sender) whenNotPaused {
         if (staker != msg.sender && borrower != msg.sender) revert AuthFailed();
         _cancelVouchInternal(staker, borrower);
@@ -918,7 +924,9 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         }
 
         return (
+            // staker's total effective staked = (staked coinage - frozen coinage) / (# of blocks since last reward claiming)
             coinAge.diff == 0 ? 0 : (coinAge.stakedCoinAge - coinAge.frozenCoinAge) / coinAge.diff,
+            // effective locked amount = (locked coinage - frozen coinage) / (# of blocks since last reward claiming)
             coinAge.diff == 0 ? 0 : (coinAge.lockedCoinAge - coinAge.frozenCoinAge) / coinAge.diff,
             memberTotalFrozen
         );
