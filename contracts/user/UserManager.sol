@@ -131,6 +131,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     uint256 public maxVouchers;
 
     /**
+     * @dev Max vouchees limit
+     */
+    uint256 public maxVouchees;
+
+    /**
      *  @dev Union Stakers
      */
     mapping(address => Staker) public stakers;
@@ -191,6 +196,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     error VoucherNotFound();
     error VouchWhenOverdue();
     error MaxVouchers();
+    error MaxVouchees();
     error InvalidParams();
 
     /* -------------------------------------------------------------------
@@ -287,6 +293,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      */
     event LogSetMaxVouchers(uint256 maxVouchers);
 
+    /**
+     * @dev Set max vouchees
+     * @param maxVouchees new max voucher limit
+     */
+    event LogSetMaxVouchees(uint256 maxVouchees);
+
     /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
@@ -299,7 +311,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         address admin_,
         uint256 maxOverdueBlocks_,
         uint256 effectiveCount_,
-        uint256 maxVouchers_
+        uint256 maxVouchers_,
+        uint256 maxVouchees_
     ) public initializer {
         Controller.__Controller_init(admin_);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
@@ -312,6 +325,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         maxOverdueBlocks = maxOverdueBlocks_;
         effectiveCount = effectiveCount_;
         maxVouchers = maxVouchers_;
+        maxVouchees = maxVouchees_;
     }
 
     /* -------------------------------------------------------------------
@@ -392,6 +406,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     function setMaxVouchers(uint256 _maxVouchers) external onlyAdmin {
         maxVouchers = _maxVouchers;
         emit LogSetMaxVouchers(_maxVouchers);
+    }
+
+    function setMaxVouchees(uint256 _maxVouchees) external onlyAdmin {
+        maxVouchees = _maxVouchees;
+        emit LogSetMaxVouchees(_maxVouchees);
     }
 
     /* -------------------------------------------------------------------
@@ -530,7 +549,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             // This is a new vouch so we need to check that the
             // member has not reached the max voucher limit
             uint256 voucheeIndex = vouchees[staker].length;
-            if (voucheeIndex >= maxVouchers) revert MaxVouchers();
+            if (voucheeIndex >= maxVouchees) revert MaxVouchees();
 
             // Get the new index that this vouch is going to be inserted at
             // Then update the voucher indexes for this borrower as well as
