@@ -973,10 +973,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     function updateFrozenInfo(address borrower) external {
         if (address(uToken) != msg.sender) revert AuthFailed();
 
+        uint256 overdueBlocks = uToken.overdueBlocks();
+
         uint256 vouchersLength = vouchers[borrower].length;
         for (uint256 i = 0; i < vouchersLength; i++) {
             Vouch memory vouch = vouchers[borrower][i];
-            uint256 overdueBlocks = uToken.overdueBlocks();
             uint256 lastRepay = uToken.getLastRepay(borrower);
             uint256 diff = block.number - lastRepay;
 
