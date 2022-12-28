@@ -102,7 +102,7 @@ contract UserManagerMock {
 
     function onWithdrawRewards(address staker, uint256 pastBlocks) public returns (uint256, uint256) {}
 
-    function updateFrozenInfo(address borrower) public {}
+    function onRepayBorrow(address borrower) public {}
 
     function getVoucherCount(address borrower) external view returns (uint256) {}
 
