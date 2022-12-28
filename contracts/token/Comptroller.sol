@@ -37,8 +37,8 @@ contract Comptroller is Controller, IComptroller {
     }
 
     struct UserManagerAccountState {
-        uint256 totalStaked; // effective staked
-        uint256 totalLocked; // effective locked
+        uint256 effectiveStaked;
+        uint256 effectiveLocked;
         bool isMember;
     }
 
@@ -165,9 +165,9 @@ contract Comptroller is Controller, IComptroller {
         IUserManager userManager = _getUserManager(token);
         bool isMember = userManager.checkIsMember(account);
         uint256 pastBlocks = block.number - users[account][token].updatedBlock;
-        (uint256 totalStaked, uint256 totalLocked) = userManager.getStakeInfo(account, pastBlocks);
+        (uint256 effectiveStaked, uint256 effectiveLocked) = userManager.getStakeInfo(account, pastBlocks);
 
-        return _getRewardsMultiplier(totalStaked, totalLocked, isMember);
+        return _getRewardsMultiplier(effectiveStaked, effectiveLocked, isMember);
     }
 
     /**
@@ -342,7 +342,7 @@ contract Comptroller is Controller, IComptroller {
 
         pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        (userManagerAccountState.totalStaked, userManagerAccountState.totalLocked) = userManager.getStakeInfo(
+        (userManagerAccountState.effectiveStaked, userManagerAccountState.effectiveLocked) = userManager.getStakeInfo(
             account,
             pastBlocks
         );
@@ -376,10 +376,8 @@ contract Comptroller is Controller, IComptroller {
 
         pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        (userManagerAccountState.totalStaked, userManagerAccountState.totalLocked) = userManager.onWithdrawRewards(
-            account,
-            pastBlocks
-        );
+        (userManagerAccountState.effectiveStaked, userManagerAccountState.effectiveLocked) = userManager
+            .onWithdrawRewards(account, pastBlocks);
     }
 
     /**
@@ -400,25 +398,35 @@ contract Comptroller is Controller, IComptroller {
         uint256 totalStaked,
         UserManagerAccountState memory userManagerAccountState
     ) internal view returns (uint256) {
+        uint256 startInflationIndex = users[account][token].inflationIndex;
+
+        if (
+            userManagerAccountState.effectiveStaked == 0 ||
+            totalStaked == 0 ||
+            startInflationIndex == 0 ||
+            pastBlocks == 0
+        ) {
+            return 0;
+        }
+
         IUserManager userManagerContract = _getUserManager(token);
 
         // Lookup account state from UserManager
         userManagerAccountState.isMember = userManagerContract.checkIsMember(account);
 
         uint256 rewardMultiplier = _getRewardsMultiplier(
-            userManagerAccountState.totalStaked,
-            userManagerAccountState.totalLocked,
+            userManagerAccountState.effectiveStaked,
+            userManagerAccountState.effectiveLocked,
             userManagerAccountState.isMember
         );
 
+        uint256 curInflationIndex = _getInflationIndexNew(totalStaked, pastBlocks);
+
+        if (curInflationIndex < startInflationIndex) revert InflationIndexTooSmall();
+
         return
             userInfo.accrued +
-            _calculateRewards(
-                account,
-                token,
-                totalStaked,
-                userManagerAccountState.totalStaked,
-                pastBlocks,
+            (curInflationIndex - startInflationIndex).wadMul(userManagerAccountState.effectiveStaked).wadMul(
                 rewardMultiplier
             );
     }
@@ -433,27 +441,6 @@ contract Comptroller is Controller, IComptroller {
         if (totalStaked_ == 0) return INIT_INFLATION_INDEX;
         if (blockDelta == 0) return gInflationIndex;
         return _getInflationIndex(totalStaked_, gInflationIndex, blockDelta);
-    }
-
-    function _calculateRewards(
-        address account,
-        address token,
-        uint256 totalStaked,
-        uint256 userStaked,
-        uint256 pastBlocks,
-        uint256 rewardMultiplier
-    ) internal view returns (uint256) {
-        uint256 startInflationIndex = users[account][token].inflationIndex;
-
-        if (userStaked == 0 || totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
-            return 0;
-        }
-
-        uint256 curInflationIndex = _getInflationIndexNew(totalStaked, pastBlocks);
-
-        if (curInflationIndex < startInflationIndex) revert InflationIndexTooSmall();
-
-        return (curInflationIndex - startInflationIndex).wadMul(userStaked).wadMul(rewardMultiplier);
     }
 
     /**

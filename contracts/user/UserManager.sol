@@ -936,31 +936,31 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *  @dev Get the staker's effective staked and locked amount
      *  @param staker Staker address
      *  @param pastBlocks Number of blocks since last rewards withdrawal
-     *  @return effectStaked user's effective staked amount
-     *          effectLocked user's effective locked amount
+     *  @return effectiveStaked user's effective staked amount
+     *          effectiveLocked user's effective locked amount
      */
     function getStakeInfo(address staker, uint256 pastBlocks)
         external
         view
-        returns (uint256 effectStaked, uint256 effectLocked)
+        returns (uint256 effectiveStaked, uint256 effectiveLocked)
     {
-        (effectStaked, effectLocked, ) = _getEffectiveAmounts(staker, pastBlocks);
+        (effectiveStaked, effectiveLocked, ) = _getEffectiveAmounts(staker, pastBlocks);
     }
 
     /**
      * @dev Update the frozen info by the comptroller when withdraw rewards is called
      * @param staker Staker address
      * @param pastBlocks The past blocks
-     * @return  effectStaked user's total stake - frozen
-     *          effectLocked user's locked amount - frozen
+     * @return  effectiveStaked user's total stake - frozen
+     *          effectiveLocked user's locked amount - frozen
      */
     function onWithdrawRewards(address staker, uint256 pastBlocks)
         external
-        returns (uint256 effectStaked, uint256 effectLocked)
+        returns (uint256 effectiveStaked, uint256 effectiveLocked)
     {
         if (address(comptroller) != msg.sender) revert AuthFailed();
         uint256 memberTotalFrozen = 0;
-        (effectStaked, effectLocked, memberTotalFrozen) = _getEffectiveAmounts(staker, pastBlocks);
+        (effectiveStaked, effectiveLocked, memberTotalFrozen) = _getEffectiveAmounts(staker, pastBlocks);
         stakers[staker].stakedCoinAge = 0;
         stakers[staker].lastUpdated = uint64(block.number);
         stakers[staker].lockedCoinAge = 0;
