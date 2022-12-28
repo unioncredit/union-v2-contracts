@@ -984,11 +984,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 overdueBlocks = uToken.overdueBlocks();
 
         uint256 vouchersLength = vouchers[borrower].length;
+        uint256 lastRepay = 0;
+        uint256 diff = 0;
         for (uint256 i = 0; i < vouchersLength; i++) {
             Vouch memory vouch = vouchers[borrower][i];
-            uint256 lastRepay = uToken.getLastRepay(borrower);
-            uint256 diff = block.number - lastRepay;
-
+            lastRepay = uToken.getLastRepay(borrower);
+            diff = block.number - lastRepay;
             if (overdueBlocks < diff) {
                 frozenCoinAge[vouch.staker] += uint256(vouch.locked) * diff;
             }
