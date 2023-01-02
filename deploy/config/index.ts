@@ -23,7 +23,8 @@ export const baseConfig = {
     userManager: {
         maxOverdue: "2592000", // 12 x overdueBlocks
         effectiveCount: "1",
-        maxVouchers: "1000"
+        maxVouchers: "400",
+        maxVouchees: "1000"
     },
     uToken: {
         name: "uDAI",

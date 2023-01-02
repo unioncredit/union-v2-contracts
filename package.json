@@ -37,6 +37,7 @@
         "@types/chai": "^4.3.3",
         "@types/mocha": "^9.1.1",
         "@types/node": "^18.0.1",
+        "axios": "^1.2.1",
         "chai": "^4.3.6",
         "eth-permit": "^0.2.3",
         "ethers": "^5.6.7",

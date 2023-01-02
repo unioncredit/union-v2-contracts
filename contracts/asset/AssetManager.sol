@@ -395,7 +395,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      */
     function removeToken(address tokenAddress) external override onlyAdmin {
         bool isExist = false;
-        uint256 index;
+        uint256 index = 0;
         uint256 supportedTokensLength = supportedTokensList.length;
 
         for (uint256 i = 0; i < supportedTokensLength; i++) {
@@ -444,7 +444,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      */
     function removeAdapter(address adapterAddress) external override onlyAdmin {
         bool isExist = false;
-        uint256 index;
+        uint256 index = 0;
         uint256 moneyMarketsLength = moneyMarkets.length;
         for (uint256 i = 0; i < moneyMarketsLength; i++) {
             if (adapterAddress == address(moneyMarkets[i])) {

@@ -103,6 +103,8 @@ contract TestWriteOffDebt is TestUserManagerBase {
 
         vm.prank(address(uTokenMock));
         userManager.updateLocked(borrower, amount, true);
+        uTokenMock.setOverdueBlocks(0);
+        uTokenMock.setLastRepay(block.number);
 
         vm.roll(2);
         address[] memory stakers = new address[](1);

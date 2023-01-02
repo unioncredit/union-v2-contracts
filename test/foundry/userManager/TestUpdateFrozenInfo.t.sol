@@ -8,7 +8,6 @@ contract TestUpdateFrozenInfo is TestUserManagerBase {
 
     function setUp() public override {
         super.setUp();
-
         vm.startPrank(ADMIN);
         userManager.addMember(address(this));
         vm.stopPrank();
@@ -20,14 +19,18 @@ contract TestUpdateFrozenInfo is TestUserManagerBase {
     function testUpdateFrozenInfo() public {
         vm.prank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        vm.roll(block.number + 10);
+        uTokenMock.setOverdueBlocks(0);
+        uTokenMock.setLastRepay(block.number);
+        vm.roll(block.number + 1);
 
         vm.prank(address(userManager.comptroller()));
-        userManager.updateFrozenInfo(address(this), block.number + 1);
-        (uint256 totalFrozen, ) = userManager.getFrozenInfo(address(this), block.number + 1);
+        userManager.onWithdrawRewards(address(this), block.number + 1);
 
-        assertEq(totalFrozen, lockAmount);
-        assertEq(userManager.memberFrozen(address(this)), totalFrozen);
-        assertEq(userManager.totalFrozen(), totalFrozen);
+        vm.roll(block.number + 1);
+        (uint256 effectStaked, uint256 effectLocked) = userManager.getStakeInfo(address(this), block.number + 1);
+
+        assertEq(effectLocked, 0);
+        assertEq(userManager.memberFrozen(address(this)), lockAmount);
+        assertEq(userManager.totalFrozen(), lockAmount);
     }
 }

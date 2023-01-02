@@ -5,9 +5,20 @@ import {IUToken} from "../interfaces/IUToken.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
+    uint256 lastRepay;
+    uint256 overdueBlock;
+
     function setAssetManager(address) external {}
 
     function setUserManager(address) external {}
+
+    function setLastRepay(uint256 _lastRepay) external {
+        lastRepay = _lastRepay;
+    }
+
+    function setOverdueBlocks(uint256 _overdueBlock) external {
+        overdueBlock = _overdueBlock;
+    }
 
     function exchangeRateStored() external pure returns (uint256) {
         return 0;
@@ -17,8 +28,8 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         return 0;
     }
 
-    function overdueBlocks() external pure override returns (uint256) {
-        return 0;
+    function overdueBlocks() external view override returns (uint256) {
+        return overdueBlock;
     }
 
     function getRemainingDebtCeiling() external pure override returns (uint256) {
@@ -29,8 +40,8 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         return 0;
     }
 
-    function getLastRepay(address) external pure override returns (uint256) {
-        return 0;
+    function getLastRepay(address) external view override returns (uint256) {
+        return lastRepay;
     }
 
     function checkIsOverdue(address) external pure override returns (bool) {
@@ -60,8 +71,6 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
     function setMaxBorrow(uint256) external override {}
 
     function setMinBorrow(uint256) external override {}
-
-    function setOverdueBlocks(uint256) external override {}
 
     function setInterestRateModel(address) external override {}
 

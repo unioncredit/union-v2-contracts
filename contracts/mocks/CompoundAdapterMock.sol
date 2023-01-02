@@ -45,7 +45,7 @@ contract CompoundAdapterMock is Initializable, IMoneyMarketAdapter {
         return token.balanceOf(address(this));
     }
 
-    function deposit(address) external returns (bool) {
+    function deposit(address) external pure returns (bool) {
         return true;
     }
 

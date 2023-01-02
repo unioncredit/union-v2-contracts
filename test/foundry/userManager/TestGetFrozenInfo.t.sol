@@ -16,37 +16,33 @@ contract TestGetFrozenInfo is TestUserManagerBase {
         userManager.updateTrust(ACCOUNT, stakeAmount);
     }
 
-    function testGetFrozenInfo() public {
-        uint96 lockAmount = 10;
+    function testGetStakeInfo() public {
+        uint96 lockAmount = 10 ether;
         uint256 creditLimit = userManager.getCreditLimit(ACCOUNT);
         vm.assume(lockAmount <= creditLimit);
-        uint256 blockNumberBefore = block.number;
-
+        vm.roll(block.number + 10);
         vm.startPrank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
         vm.stopPrank();
-
         vm.roll(block.number + 10);
-        uint256 blockNumberAfter = block.number;
-        (uint256 totalFrozen, uint256 frozenCoinAge) = userManager.getFrozenInfo(address(this), block.number + 1);
-        uint256 diff = blockNumberAfter - blockNumberBefore;
-
-        assertEq(totalFrozen, lockAmount);
-        assertEq(frozenCoinAge, lockAmount * diff);
+        (uint256 effectStaked, uint256 effectLocked) = userManager.getStakeInfo(address(this), 0);
+        assertEq(effectStaked, stakeAmount);
+        assertEq(effectLocked, lockAmount / 2);
     }
 
-    function testGetFrozenInfoPastBlocks(uint96 lockAmount) public {
+    function testGetStakeInfoPastBlocks(uint96 lockAmount) public {
         uint256 creditLimit = userManager.getCreditLimit(ACCOUNT);
         vm.assume(lockAmount <= creditLimit);
 
         vm.startPrank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
+        uTokenMock.setOverdueBlocks(0);
+        uTokenMock.setLastRepay(block.number);
         vm.stopPrank();
 
         vm.roll(block.number + 10);
-        (uint256 totalFrozen, uint256 frozenCoinAge) = userManager.getFrozenInfo(address(this), 1);
+        (uint256 effectStaked, uint256 effectLocked) = userManager.getStakeInfo(address(this), block.number + 1);
 
-        assertEq(totalFrozen, lockAmount);
-        assertEq(frozenCoinAge, lockAmount);
+        assertEq(effectLocked, 0);
     }
 }

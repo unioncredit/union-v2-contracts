@@ -4,9 +4,9 @@ pragma solidity 0.8.16;
 import {IComptroller} from "../interfaces/IComptroller.sol";
 
 contract ComptrollerMock is IComptroller {
-    function setHalfDecayPoint(uint256 point) external {}
+    function setHalfDecayPoint(uint256) external {}
 
-    function inflationPerBlock(uint256 effectiveTotalStake) external view returns (uint256) {}
+    function inflationPerBlock(uint256) external pure returns (uint256) {}
 
     function getRewardsMultiplier(address, address) external pure override returns (uint256) {
         return 0;
