@@ -21,7 +21,7 @@ export default {
             gasPrice: 3000000000
         },
         optimismGoerli: {
-            url: process.env.NODE_URL
+            url: process.env.NODE_URL || ""
         }
     },
     solidity: {

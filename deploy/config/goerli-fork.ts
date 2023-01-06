@@ -3,17 +3,17 @@ import {DeployConfig} from "../index";
 export default {
     admin: "0x23BBC53E1904b589d685e811c5D3410146f0Ab02", // deployer EOA
     addresses: {
-        userManager: "0xB2499C1D140cBFD499a4d29Da7d61d9a70462842",
-        uToken: "0x68d089D45035a2da0d1F60a47B21Dd2e9C26F8fe",
+        userManager: "0x250dbBf86B61A967Be8cF12f180252bD79af52F3",
+        uToken: "0x95bBE7c4Bb22d324DBf333627Caf2F93983295a8",
         unionToken: "0x23B0483E07196c425d771240E81A9c2f1E113D3A",
-        marketRegistry: "0x1317467564ce1eEaFD1760eF2d80DC7E71fb9c55",
-        fixedRateInterestModel: "0xAe930fb9EcE01458C49e35b30091f1456b1A2ee4",
-        comptroller: "0x5A571c18AB1B21797be988D38d3e08402c03a984",
-        assetManager: "0x0Fb3B58Dc75647A4c5224B0e1eC3f710110fDC45",
-        dai: "0xdc31ee1784292379fbb2964b3b9c4124d8f89c60",
+        marketRegistry: "0x9d514609bf3eb19E04F05e7429fc8084498bE6Fb",
+        fixedRateInterestModel: "0xbebdbe467Bb5b1dD8486771edC35040771a5939f",
+        comptroller: "0xE29229a88f6Bb6CfD3aec5C4722aEa8A799Be32d",
+        assetManager: "0xd55021755710A79fAaC76Ca0c72b0dEF95C53b03",
+        dai: "0xDF1742fE5b0bFc12331D8EAec6b478DfDbD31464",
         adapters: {
-            pureTokenAdapter: "0xd0bd1e60Bc3b64fE07e76A12424b22b8b51dBB2D",
-            aaveV3Adapter: "0x0000000000000000000000000000000000000000"
+            pureTokenAdapter: "0xA07025e29e461f8d4FB4c93eEF3CB9A6BCD00B17",
+            aaveV3Adapter: "0xcde0CCfd9242e592F6ce92E8499D3a4F283Cb885"
         },
         whales: {
             dai: "0x00ba938cc0df182c25108d7bf2ee3d37bce07513",

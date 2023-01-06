@@ -103,14 +103,12 @@ task("deploy", "Deploy Union V2 contracts")
 task("deploy:lens", "Deploy Union lens contract")
     .addParam("pk", "Private key to use for deployment")
     .addParam("confirmations", "How many confirmations to wait for")
-    .addParam("marketregistry", "Market registry contract address")
     .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
         // ------------------------------------------------------
         // Setup
         // ------------------------------------------------------
 
         const privateKey = taskArguments.pk;
-        const marketRegistry = taskArguments.marketregistry;
         const waitForBlocks = taskArguments.confirmations;
 
         if (!privateKey.match(/^[A-Fa-f0-9]{1,64}$/)) {
@@ -119,6 +117,10 @@ task("deploy:lens", "Deploy Union lens contract")
         }
 
         const deployer = new ethers.Wallet(privateKey, hre.ethers.provider);
+
+        const deploymentPath = path.resolve(__dirname, "../deployments", hre.network.name, "deployment.json");
+        const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
+        const marketRegistry = deployment.marketRegistry;
 
         console.log(
             [
