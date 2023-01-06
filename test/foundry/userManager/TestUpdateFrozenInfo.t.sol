@@ -27,9 +27,9 @@ contract TestUpdateFrozenInfo is TestUserManagerBase {
         userManager.onWithdrawRewards(address(this), block.number + 1);
 
         vm.roll(block.number + 1);
-        (uint256 effectStaked, uint256 effectLocked) = userManager.getStakeInfo(address(this), block.number + 1);
+        (, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this), block.number + 1);
 
-        assertEq(effectLocked, 0);
+        assertEq(effectiveLocked, 0);
         assertEq(userManager.memberFrozen(address(this)), lockAmount);
         assertEq(userManager.totalFrozen(), lockAmount);
     }

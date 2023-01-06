@@ -956,13 +956,19 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *  @param pastBlocks Number of blocks since last rewards withdrawal
      *  @return effectiveStaked user's effective staked amount
      *          effectiveLocked user's effective locked amount
+     *          isMember
      */
     function getStakeInfo(address staker, uint256 pastBlocks)
         external
         view
-        returns (uint256 effectiveStaked, uint256 effectiveLocked)
+        returns (
+            uint256 effectiveStaked,
+            uint256 effectiveLocked,
+            bool isMember
+        )
     {
         (effectiveStaked, effectiveLocked, ) = _getEffectiveAmounts(staker, pastBlocks);
+        isMember = stakers[staker].isMember;
     }
 
     /**
@@ -971,10 +977,15 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @param pastBlocks The past blocks
      * @return  effectiveStaked user's total stake - frozen
      *          effectiveLocked user's locked amount - frozen
+     *          isMember
      */
     function onWithdrawRewards(address staker, uint256 pastBlocks)
         external
-        returns (uint256 effectiveStaked, uint256 effectiveLocked)
+        returns (
+            uint256 effectiveStaked,
+            uint256 effectiveLocked,
+            bool isMember
+        )
     {
         if (address(comptroller) != msg.sender) revert AuthFailed();
         uint256 memberTotalFrozen = 0;
@@ -990,6 +1001,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             memberFrozen[staker] = memberTotalFrozen;
             totalFrozen = totalFrozen - memberFrozenBefore + memberTotalFrozen;
         }
+
+        isMember = stakers[staker].isMember;
     }
 
     /**
@@ -1038,6 +1051,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         totalFrozen = tmpTotalFrozen;
 
         comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
+    }
+
+    function globalTotalStaked() external view returns (uint256 globalTotal) {
+        globalTotal = totalStaked - totalFrozen;
+        if (globalTotal < 1e18) {
+            globalTotal = 1e18;
+        }
     }
 
     /* -------------------------------------------------------------------
