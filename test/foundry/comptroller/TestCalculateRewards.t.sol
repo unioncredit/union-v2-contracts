@@ -47,8 +47,8 @@ contract FakeUserManager {
         return (totalStaked, totalLockedStake, totalFrozen);
     }
 
-    function getStakeInfo(address, uint256) public view returns (uint256, uint256) {
-        return (totalStaked, totalLockedStake);
+    function getStakeInfo(address, uint256) public view returns (uint256, uint256, uint256) {
+        return (totalStaked, totalLockedStake, 0);
     }
 
     function onWithdrawRewards(address, uint256) public view returns (uint256, uint256) {

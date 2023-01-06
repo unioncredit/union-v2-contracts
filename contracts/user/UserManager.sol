@@ -960,9 +960,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     function getStakeInfo(address staker, uint256 pastBlocks)
         external
         view
-        returns (uint256 effectiveStaked, uint256 effectiveLocked)
+        returns (
+            uint256 effectiveStaked,
+            uint256 effectiveLocked,
+            uint256 totalFrozen
+        )
     {
-        (effectiveStaked, effectiveLocked, ) = _getEffectiveAmounts(staker, pastBlocks);
+        (effectiveStaked, effectiveLocked, totalFrozen) = _getEffectiveAmounts(staker, pastBlocks);
     }
 
     /**

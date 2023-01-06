@@ -165,7 +165,7 @@ contract Comptroller is Controller, IComptroller {
         IUserManager userManager = _getUserManager(token);
         bool isMember = userManager.checkIsMember(account);
         uint256 pastBlocks = block.number - users[account][token].updatedBlock;
-        (uint256 effectiveStaked, uint256 effectiveLocked) = userManager.getStakeInfo(account, pastBlocks);
+        (uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(account, pastBlocks);
 
         return _getRewardsMultiplier(effectiveStaked, effectiveLocked, isMember);
     }
@@ -342,7 +342,7 @@ contract Comptroller is Controller, IComptroller {
 
         pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        (userManagerAccountState.effectiveStaked, userManagerAccountState.effectiveLocked) = userManager.getStakeInfo(
+        (userManagerAccountState.effectiveStaked, userManagerAccountState.effectiveLocked, ) = userManager.getStakeInfo(
             account,
             pastBlocks
         );

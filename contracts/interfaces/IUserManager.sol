@@ -130,7 +130,14 @@ interface IUserManager {
      *  @return  user's effective staked amount
      *           user's effective locked amount
      */
-    function getStakeInfo(address staker, uint256 pastBlocks) external view returns (uint256, uint256);
+    function getStakeInfo(address staker, uint256 pastBlocks)
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        );
 
     /**
      * @dev Update the frozen info by the comptroller
