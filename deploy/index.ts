@@ -68,6 +68,7 @@ export interface DeployConfig {
         initialExchangeRateMantissa: BigNumberish;
         reserveFactorMantissa: BigNumberish;
         originationFee: BigNumberish;
+        originationFeeMax: BigNumberish;
         debtCeiling: BigNumberish;
         maxBorrow: BigNumberish;
         minBorrow: BigNumberish;
@@ -185,7 +186,8 @@ export default async function (
             new UserManagerERC20__factory(signer),
             "UserManagerERC20",
             {
-                signature: "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
+                signature:
+                    "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
                 args: [
                     assetManager.address,
                     unionToken.address,
@@ -231,7 +233,7 @@ export default async function (
             "UErc20",
             {
                 signature:
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
+                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
                 args: [
                     config.uToken.name,
                     config.uToken.symbol,
@@ -239,6 +241,7 @@ export default async function (
                     config.uToken.initialExchangeRateMantissa,
                     config.uToken.reserveFactorMantissa,
                     config.uToken.originationFee,
+                    config.uToken.originationFeeMax,
                     config.uToken.debtCeiling,
                     config.uToken.maxBorrow,
                     config.uToken.minBorrow,
