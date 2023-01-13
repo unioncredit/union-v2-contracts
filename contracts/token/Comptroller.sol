@@ -31,11 +31,6 @@ contract Comptroller is Controller, IComptroller {
         uint256 accrued; //the unionToken accrued but not yet transferred to each user
     }
 
-    struct UserManagerState {
-        uint256 totalFrozen;
-        uint256 totalStaked;
-    }
-
     struct UserManagerAccountState {
         uint256 effectiveStaked;
         uint256 effectiveLocked;
@@ -163,11 +158,13 @@ contract Comptroller is Controller, IComptroller {
      */
     function getRewardsMultiplier(address account, address token) external view override returns (uint256) {
         IUserManager userManager = _getUserManager(token);
-        bool isMember = userManager.checkIsMember(account);
         uint256 pastBlocks = block.number - users[account][token].updatedBlock;
-        (uint256 effectiveStaked, uint256 effectiveLocked) = userManager.getStakeInfo(account, pastBlocks);
 
-        return _getRewardsMultiplier(effectiveStaked, effectiveLocked, isMember);
+        (uint256 effectiveStaked, uint256 effectiveLocked, bool isMember) = userManager.getStakeInfo(
+            account,
+            pastBlocks
+        );
+        return _getRewardsMultiplier(UserManagerAccountState(effectiveStaked, effectiveLocked, isMember));
     }
 
     /**
@@ -185,24 +182,14 @@ contract Comptroller is Controller, IComptroller {
         IUserManager userManager = _getUserManager(token);
 
         // Lookup account stataddress accounte from UserManager
-        (
-            UserManagerAccountState memory userManagerAccountState,
-            Info memory userInfo,
-            uint256 pastBlocks
-        ) = _getUserInfoView(userManager, account, token, futureBlocks);
+        (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) = _getUserInfoView(
+            userManager,
+            account,
+            token,
+            futureBlocks
+        );
 
-        // Lookup global state from UserManager
-        UserManagerState memory userManagerState = _getUserManagerState(userManager);
-
-        return
-            _calculateRewardsByBlocks(
-                account,
-                token,
-                pastBlocks,
-                userInfo,
-                userManagerState.totalStaked,
-                userManagerAccountState
-            );
+        return _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, userManager.globalTotalStaked(), user);
     }
 
     /**
@@ -237,26 +224,20 @@ contract Comptroller is Controller, IComptroller {
         IUserManager userManager = _getUserManager(token);
 
         // Lookup account state from UserManager
-        (
-            UserManagerAccountState memory userManagerAccountState,
-            Info memory userInfo,
-            uint256 pastBlocks
-        ) = _getUserInfo(userManager, account, token, 0);
-
-        // Lookup global state from UserManager
-        UserManagerState memory userManagerState = _getUserManagerState(userManager);
-
-        uint256 amount = _calculateRewardsByBlocks(
+        (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) = _getUserInfo(
+            userManager,
             account,
             token,
-            pastBlocks,
-            userInfo,
-            userManagerState.totalStaked,
-            userManagerAccountState
+            0
         );
 
+        // Lookup global state from UserManager
+        uint256 globalTotalStaked = userManager.globalTotalStaked();
+
+        uint256 amount = _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, globalTotalStaked, user);
+
         // update the global states
-        gInflationIndex = _getInflationIndexNew(userManagerState.totalStaked, block.number - gLastUpdatedBlock);
+        gInflationIndex = _getInflationIndexNew(globalTotalStaked, block.number - gLastUpdatedBlock);
         gLastUpdatedBlock = block.number;
         users[account][token].updatedBlock = block.number;
         users[account][token].inflationIndex = gInflationIndex;
@@ -299,21 +280,6 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     /**
-     * @dev Get UserManager global state values
-     */
-    function _getUserManagerState(IUserManager userManager)
-        internal
-        view
-        returns (UserManagerState memory userManagerState)
-    {
-        userManagerState.totalFrozen = userManager.totalFrozen();
-        userManagerState.totalStaked = userManager.totalStaked() - userManagerState.totalFrozen;
-        if (userManagerState.totalStaked < 1e18) {
-            userManagerState.totalStaked = 1e18;
-        }
-    }
-
-    /**
      * @dev Get UserManager user specific state (view function does NOT update UserManage state)
      * @param userManager UserManager contract
      * @param account Account address
@@ -329,7 +295,7 @@ contract Comptroller is Controller, IComptroller {
         internal
         view
         returns (
-            UserManagerAccountState memory userManagerAccountState,
+            UserManagerAccountState memory user,
             Info memory userInfo,
             uint256 pastBlocks
         )
@@ -342,10 +308,7 @@ contract Comptroller is Controller, IComptroller {
 
         pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        (userManagerAccountState.effectiveStaked, userManagerAccountState.effectiveLocked) = userManager.getStakeInfo(
-            account,
-            pastBlocks
-        );
+        (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.getStakeInfo(account, pastBlocks);
     }
 
     /**
@@ -363,7 +326,7 @@ contract Comptroller is Controller, IComptroller {
     )
         internal
         returns (
-            UserManagerAccountState memory userManagerAccountState,
+            UserManagerAccountState memory user,
             Info memory userInfo,
             uint256 pastBlocks
         )
@@ -376,8 +339,10 @@ contract Comptroller is Controller, IComptroller {
 
         pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
 
-        (userManagerAccountState.effectiveStaked, userManagerAccountState.effectiveLocked) = userManager
-            .onWithdrawRewards(account, pastBlocks);
+        (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.onWithdrawRewards(
+            account,
+            pastBlocks
+        );
     }
 
     /**
@@ -387,7 +352,7 @@ contract Comptroller is Controller, IComptroller {
      *  @param pastBlocks # of blocks past
      *  @param userInfo User info
      *  @param totalStaked Effective total staked
-     *  @param userManagerAccountState User account global state
+     *  @param user User account global state
      *  @return Unclaimed rewards
      */
     function _calculateRewardsByBlocks(
@@ -396,29 +361,15 @@ contract Comptroller is Controller, IComptroller {
         uint256 pastBlocks,
         Info memory userInfo,
         uint256 totalStaked,
-        UserManagerAccountState memory userManagerAccountState
+        UserManagerAccountState memory user
     ) internal view returns (uint256) {
         uint256 startInflationIndex = users[account][token].inflationIndex;
 
-        if (
-            userManagerAccountState.effectiveStaked == 0 ||
-            totalStaked == 0 ||
-            startInflationIndex == 0 ||
-            pastBlocks == 0
-        ) {
+        if (user.effectiveStaked == 0 || totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
             return 0;
         }
 
-        IUserManager userManagerContract = _getUserManager(token);
-
-        // Lookup account state from UserManager
-        userManagerAccountState.isMember = userManagerContract.checkIsMember(account);
-
-        uint256 rewardMultiplier = _getRewardsMultiplier(
-            userManagerAccountState.effectiveStaked,
-            userManagerAccountState.effectiveLocked,
-            userManagerAccountState.isMember
-        );
+        uint256 rewardMultiplier = _getRewardsMultiplier(user);
 
         uint256 curInflationIndex = _getInflationIndexNew(totalStaked, pastBlocks);
 
@@ -426,9 +377,7 @@ contract Comptroller is Controller, IComptroller {
 
         return
             userInfo.accrued +
-            (curInflationIndex - startInflationIndex).wadMul(userManagerAccountState.effectiveStaked).wadMul(
-                rewardMultiplier
-            );
+            (curInflationIndex - startInflationIndex).wadMul(user.effectiveStaked).wadMul(rewardMultiplier);
     }
 
     /**
@@ -498,17 +447,13 @@ contract Comptroller is Controller, IComptroller {
         return blockDelta * _inflationPerBlock(effectiveAmount).wadDiv(effectiveAmount) + inflationIndex;
     }
 
-    function _getRewardsMultiplier(
-        uint256 userStaked,
-        uint256 lockedStake,
-        bool isMember_
-    ) internal pure returns (uint256) {
-        if (isMember_) {
-            if (userStaked == 0) {
+    function _getRewardsMultiplier(UserManagerAccountState memory user) internal pure returns (uint256) {
+        if (user.isMember) {
+            if (user.effectiveStaked == 0) {
                 return memberRatio;
             }
 
-            uint256 lendingRatio = lockedStake.wadDiv(userStaked);
+            uint256 lendingRatio = user.effectiveLocked.wadDiv(user.effectiveStaked);
 
             return lendingRatio + memberRatio;
         } else {

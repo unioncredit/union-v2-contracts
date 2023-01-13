@@ -47,16 +47,39 @@ contract FakeUserManager {
         return (totalStaked, totalLockedStake, totalFrozen);
     }
 
-    function getStakeInfo(address, uint256) public view returns (uint256, uint256) {
-        return (totalStaked, totalLockedStake);
+    function getStakeInfo(address, uint256)
+        public
+        view
+        returns (
+            uint256,
+            uint256,
+            bool
+        )
+    {
+        return (totalStaked, totalLockedStake, isMember);
     }
 
-    function onWithdrawRewards(address, uint256) public view returns (uint256, uint256) {
-        return (frozenCoinAge, totalFrozen);
+    function onWithdrawRewards(address, uint256)
+        public
+        view
+        returns (
+            uint256,
+            uint256,
+            bool
+        )
+    {
+        return (frozenCoinAge, totalFrozen, isMember);
     }
 
     function checkIsMember(address) public view returns (bool) {
         return isMember;
+    }
+
+    function globalTotalStaked() external view returns (uint256 globalTotal) {
+        globalTotal = totalStaked - totalFrozen;
+        if (globalTotal < 1e18) {
+            globalTotal = 1e18;
+        }
     }
 }
 
@@ -72,6 +95,7 @@ contract TestCalculateRewards is TestComptrollerBase {
     function testGetRewardsMultiplierMember() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
+        assertEq(true, um.checkIsMember(address(this)));
         uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
         assertEq(multiplier, comptroller.memberRatio());
     }
