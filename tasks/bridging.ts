@@ -73,39 +73,55 @@ const reportERC20Balances = async () => {
     console.log(`UNION on L1:${l1Balance}     UNION on L2:${l2Balance}`);
 };
 
+const deposit = async (signerPk, depositAmount, recipientAddr?: string) => {
+    await setup(signerPk);
+
+    const amount = parseEther(depositAmount);
+
+    const recipient = recipientAddr ? recipientAddr : signerAddr;
+
+    console.log("Deposit UNION ...");
+    await reportERC20Balances();
+    const start = new Date().getTime();
+
+    // Need the l2 address to know which bridge is responsible
+    const allowanceResponse = await crossChainMessenger.approveERC20(
+        unionTokenAddrs.l1Addr,
+        unionTokenAddrs.l2Addr,
+        amount
+    );
+    await allowanceResponse.wait();
+    console.log(`Allowance given by tx ${allowanceResponse.hash}`);
+    console.log(`\tMore info: https://goerli.etherscan.io/tx/${allowanceResponse.hash}`);
+    console.log(`Time so far ${(new Date().getTime() - start) / 1000} seconds`);
+
+    const response = await crossChainMessenger.depositERC20(unionTokenAddrs.l1Addr, unionTokenAddrs.l2Addr, amount, {
+        recipient
+    });
+    console.log(`Deposit transaction hash (on L1): ${response.hash}`);
+    console.log(`\tMore info: https://goerli.etherscan.io/tx/${response.hash}`);
+    await response.wait();
+    console.log("Waiting for status to change to RELAYED");
+    console.log(`Time so far ${(new Date().getTime() - start) / 1000} seconds`);
+    await crossChainMessenger.waitForMessageStatus(response.hash, MessageStatus.RELAYED);
+
+    await reportERC20Balances();
+    console.log(`Deposit UNION took ${(new Date().getTime() - start) / 1000} seconds\n\n`);
+};
+
+task("op:depositTo", "Deposit UNION tokens to Optimism")
+    .addParam("pk", "Private key to use for deployment")
+    .addParam("amount", "Amount of UNION to deposit (will be converted to wei)")
+    .addParam("recipient", "Account to receive the deposit")
+    .setAction(async (args: TaskArguments) => {
+        await deposit(args.pk, args.amount, args.recipient);
+    });
+
 task("op:deposit", "Deposit UNION tokens to Optimism")
     .addParam("pk", "Private key to use for deployment")
     .addParam("amount", "Amount of UNION to deposit (will be converted to wei)")
-    .setAction(async (args: TaskArguments, hre: HardhatRuntimeEnvironment) => {
-        await setup(args.pk);
-
-        const amount = parseEther(args.amount);
-
-        console.log("Deposit UNION ...");
-        await reportERC20Balances();
-        const start = new Date().getTime();
-
-        // Need the l2 address to know which bridge is responsible
-        const allowanceResponse = await crossChainMessenger.approveERC20(
-            unionTokenAddrs.l1Addr,
-            unionTokenAddrs.l2Addr,
-            amount
-        );
-        await allowanceResponse.wait();
-        console.log(`Allowance given by tx ${allowanceResponse.hash}`);
-        console.log(`\tMore info: https://goerli.etherscan.io/tx/${allowanceResponse.hash}`);
-        console.log(`Time so far ${(new Date().getTime() - start) / 1000} seconds`);
-
-        const response = await crossChainMessenger.depositERC20(unionTokenAddrs.l1Addr, unionTokenAddrs.l2Addr, amount);
-        console.log(`Deposit transaction hash (on L1): ${response.hash}`);
-        console.log(`\tMore info: https://goerli.etherscan.io/tx/${response.hash}`);
-        await response.wait();
-        console.log("Waiting for status to change to RELAYED");
-        console.log(`Time so far ${(new Date().getTime() - start) / 1000} seconds`);
-        await crossChainMessenger.waitForMessageStatus(response.hash, MessageStatus.RELAYED);
-
-        await reportERC20Balances();
-        console.log(`Deposit UNION took ${(new Date().getTime() - start) / 1000} seconds\n\n`);
+    .setAction(async (args: TaskArguments) => {
+        await deposit(args.pk, args.amount);
     });
 
 task("op:withdraw", "Withdraw UNION tokens from Optimism")
