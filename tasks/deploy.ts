@@ -7,8 +7,14 @@ import {HardhatRuntimeEnvironment, TaskArguments} from "hardhat/types";
 import deploy, {Contracts} from "../deploy/index";
 import {getConfig} from "../deploy/config";
 import {deployContract} from "../deploy/helpers";
-import {UnionLens, UnionLens__factory} from "../typechain-types";
-import {OpUNION, OpUNION__factory} from "../typechain-types";
+import {
+    UnionLens,
+    UnionLens__factory,
+    OpUNION,
+    OpUNION__factory,
+    OpConnector,
+    OpConnector__factory
+} from "../typechain-types";
 
 const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {[key: string]: string}} => {
     return {
@@ -74,22 +80,117 @@ task("deploy:op", "Deploy Union V2 on Optimism")
             waitForBlocks
         );
 
-        console.log("\n[*] Deployment complete\n");
-
         // ------------------------------------------------------
         // Save deployment and config
         // ------------------------------------------------------
 
         console.log("[*] Saving deployment addresses");
 
-        // create save directory
+        // create deploy directory
         const dir = path.resolve(__dirname, "../deployments", hre.network.name);
         !fs.existsSync(dir) && fs.mkdirSync(dir);
 
         // save deployment
         const saveDeploymentPath = path.resolve(dir, "optimism.json");
-        fs.writeFileSync(saveDeploymentPath, JSON.stringify({opUnion: opUnion.address}, null, 2));
+        fs.writeFileSync(
+            saveDeploymentPath,
+            JSON.stringify(
+                {
+                    opUnion: opUnion.address
+                },
+                null,
+                2
+            )
+        );
         console.log(`    - deployment: ${saveDeploymentPath}`);
+
+        console.log("[*] Complete");
+    });
+
+task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
+    .addParam("pk", "Private key to use for deployment")
+    .addParam("confirmations", "How many confirmations to wait for")
+    // .addParam("members", "Initial union members")
+    .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
+        // ------------------------------------------------------
+        // Setup
+        // ------------------------------------------------------
+        const config = getConfig();
+        console.log("[*] Deployment config");
+        console.log(config);
+
+        const privateKey = taskArguments.pk;
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
+
+        const waitForBlocks = taskArguments.confirmations;
+
+        console.log(
+            [
+                "[*] Deploying contracts",
+                `    - waitForBlocks: ${waitForBlocks}`,
+                `    - deployer: ${await deployer.getAddress()}`
+            ].join("\n")
+        );
+
+        // get deploy directory
+        const dir = path.resolve(__dirname, "../deployments", hre.network.name);
+        if (!fs.existsSync(dir)) {
+            console.log("[!] Cannot find deployment file");
+            process.exit();
+        }
+
+        // read deployment file
+        const deploymentFile = path.resolve(dir, "deployment.json");
+
+        let deployedContracts;
+        try {
+            const data = fs.readFileSync(deploymentFile, {encoding: "utf8"});
+            deployedContracts = JSON.parse(data);
+        } catch (err) {
+            console.log({err});
+            process.exit();
+        }
+
+        console.log(deployedContracts);
+
+        // validate addresses
+        if (
+            !deployedContracts.comptroller ||
+            !config.addresses.unionToken ||
+            !config.addresses.opUnion ||
+            !config.addresses.opL1Bridge
+        ) {
+            console.log("[!] Required address null");
+            process.exit();
+        }
+
+        const opConector = await deployContract<OpConnector>(
+            new OpConnector__factory(deployer),
+            "opConnector",
+            [
+                config.addresses.unionToken,
+                config.addresses.opUnion,
+                deployedContracts.comptroller,
+                config.addresses.opL1Bridge
+            ],
+            true,
+            waitForBlocks
+        );
+        console.log("\n[*] Deployment complete\n");
+
+        // save deployment
+        const connDeploymentPath = path.resolve(dir, "connector.json");
+        fs.writeFileSync(
+            connDeploymentPath,
+            JSON.stringify(
+                {
+                    opConnector: opConector.address
+                },
+                null,
+                2
+            )
+        );
+        console.log(`    - deployment: ${connDeploymentPath}`);
 
         console.log("[*] Complete");
     });

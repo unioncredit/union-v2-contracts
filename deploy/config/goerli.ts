@@ -7,6 +7,8 @@ export default {
         aave: {
             market: "0x0C501fB73808e1BD73cBDdd0c99237bbc481Bb58",
             lendingPool: "0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6"
-        }
+        },
+        opL1Bridge: "0x636Af16bf2f682dD3109e60102b8E1A089FedAa8",
+        opUnion: "0x04622FDe6a7C0B19Ff7748eC8882870367530074"
     }
 } as DeployConfig;

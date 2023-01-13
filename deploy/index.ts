@@ -52,6 +52,8 @@ export interface Addresses {
         union?: string;
     };
     opL2Bridge?: string;
+    opL1Bridge?: string;
+    opUnion?: string;
 }
 
 export interface DeployConfig {
