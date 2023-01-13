@@ -96,6 +96,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public originationFee;
 
     /**
+     * @dev The max allowed value for originationFee
+     */
+    uint256 public originationFeeMax;
+
+    /**
      *  @dev The debt limit for the whole system
      */
     uint256 public debtCeiling;
@@ -155,6 +160,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     error MemberIsOverdue();
     error ReserveFactoryExceedLimit();
     error DepositToAssetManagerFailed();
+    error OriginationFeeExceedLimit();
 
     /* -------------------------------------------------------------------
       Events 
@@ -239,6 +245,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 initialExchangeRateMantissa_,
         uint256 reserveFactorMantissa_,
         uint256 originationFee_,
+        uint256 originationFeeMax_,
         uint256 debtCeiling_,
         uint256 maxBorrow_,
         uint256 minBorrow_,
@@ -253,6 +260,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
         underlying = underlying_;
         originationFee = originationFee_;
+        originationFeeMax = originationFeeMax_;
         debtCeiling = debtCeiling_;
         maxBorrow = maxBorrow_;
         minBorrow = minBorrow_;
@@ -289,6 +297,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param originationFee_ Fees deducted for each loan transaction
      */
     function setOriginationFee(uint256 originationFee_) external override onlyAdmin {
+        if (originationFee_ > originationFeeMax) revert OriginationFeeExceedLimit();
         originationFee = originationFee_;
     }
 

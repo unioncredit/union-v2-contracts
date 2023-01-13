@@ -40,11 +40,21 @@ contract TestSetters is TestUTokenBase {
     }
 
     function testCannotSetOriginationFeeNotAdmin(uint256 originationFee) public {
+        vm.assume(originationFee <= uToken.originationFeeMax());
         vm.expectRevert(Controller.SenderNotAdmin.selector);
         uToken.setOriginationFee(originationFee);
     }
 
+    function testCannotSetOriginationFeeAboveMax(uint256 originationFee) public {
+        vm.assume(originationFee > uToken.originationFeeMax());
+        vm.startPrank(ADMIN);
+        vm.expectRevert(UToken.OriginationFeeExceedLimit.selector);
+        uToken.setOriginationFee(originationFee);
+        vm.stopPrank();
+    }
+
     function testSetOriginationFee(uint256 originationFee) public {
+        vm.assume(originationFee <= uToken.originationFeeMax());
         vm.startPrank(ADMIN);
         uToken.setOriginationFee(originationFee);
         vm.stopPrank();
