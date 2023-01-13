@@ -26,7 +26,7 @@ before(async () => {
 });
 
 use((chai, _) => {
-    chai.Assertion.addMethod("revertedWithSig", function (this: any, expectedErrorSig: unknown) {
+    chai.Assertion.addMethod("revertedWith", function (this: any, expectedErrorSig: unknown) {
         const onSuccess = () => {
             this.assert(
                 false,
