@@ -54,7 +54,7 @@
     },
     "devDependencies": {
         "@eth-optimism/contracts": "^0.5.39",
-        "@eth-optimism/sdk": "^1.8.0",
+        "@eth-optimism/sdk": "^1.9.1",
         "glob": "^8.0.3"
     }
 }
