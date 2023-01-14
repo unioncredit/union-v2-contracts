@@ -96,6 +96,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public originationFee;
 
     /**
+     * @dev The max allowed value for originationFee
+     */
+    uint256 public originationFeeMax;
+
+    /**
      *  @dev The debt limit for the whole system
      */
     uint256 public debtCeiling;
@@ -155,6 +160,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     error MemberIsOverdue();
     error ReserveFactoryExceedLimit();
     error DepositToAssetManagerFailed();
+    error OriginationFeeExceedLimit();
 
     /* -------------------------------------------------------------------
       Events 
@@ -239,6 +245,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 initialExchangeRateMantissa_,
         uint256 reserveFactorMantissa_,
         uint256 originationFee_,
+        uint256 originationFeeMax_,
         uint256 debtCeiling_,
         uint256 maxBorrow_,
         uint256 minBorrow_,
@@ -253,6 +260,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
         underlying = underlying_;
         originationFee = originationFee_;
+        originationFeeMax = originationFeeMax_;
         debtCeiling = debtCeiling_;
         maxBorrow = maxBorrow_;
         minBorrow = minBorrow_;
@@ -289,6 +297,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param originationFee_ Fees deducted for each loan transaction
      */
     function setOriginationFee(uint256 originationFee_) external override onlyAdmin {
+        if (originationFee_ > originationFeeMax) revert OriginationFeeExceedLimit();
         originationFee = originationFee_;
     }
 
@@ -593,7 +602,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 amount,
         uint256 interest
     ) internal {
-        if(getBlockNumber() != accrualBlockNumber) revert AccrueBlockParity();
+        if (getBlockNumber() != accrualBlockNumber) revert AccrueBlockParity();
         uint256 borrowedAmount = borrowBalanceStoredInternal(borrower);
         uint256 repayAmount = amount > borrowedAmount ? borrowedAmount : amount;
         if (repayAmount == 0) revert AmountZero();
@@ -620,15 +629,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
 
-            if (getBorrowed(borrower) == 0) {
-                // If the principal is now 0 we can reset the last repaid block to 0.
-                // which indicates that the borrower has no outstanding loans.
-                accountBorrows[borrower].lastRepay = 0;
-            } else {
-                // Save the current block number as last repaid
-                accountBorrows[borrower].lastRepay = getBlockNumber();
-            }
-
             // Call update locked on the userManager to lock this borrowers stakers. This function
             // will revert if the account does not have enough vouchers to cover the repay amount. ie
             // the borrower is trying to repay more than is locked (owed)
@@ -637,7 +637,16 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             if (isOverdue) {
                 // For borrowers that are paying back overdue balances we need to update their
                 // frozen balance and the global total frozen balance on the UserManager
-                IUserManager(userManager).updateFrozenInfo(borrower, 0);
+                IUserManager(userManager).onRepayBorrow(borrower);
+            }
+
+            if (getBorrowed(borrower) == 0) {
+                // If the principal is now 0 we can reset the last repaid block to 0.
+                // which indicates that the borrower has no outstanding loans.
+                accountBorrows[borrower].lastRepay = 0;
+            } else {
+                // Save the current block number as last repaid
+                accountBorrows[borrower].lastRepay = getBlockNumber();
             }
         } else {
             // For repayments that don't pay off the minimum we just need to adjust the

@@ -15,6 +15,8 @@ contract TestUserManagerBase is TestWrapper {
     address public constant ACCOUNT = address(2);
     uint256 public constant maxOverdue = 1000;
     uint256 public constant effectiveCount = 3;
+    uint256 public constant maxVouchers = 500;
+    uint256 public constant maxVouchees = 1000;
 
     function setUp() public virtual {
         address userManagerLogic = address(new UserManager());
@@ -25,7 +27,7 @@ contract TestUserManagerBase is TestWrapper {
             deployProxy(
                 userManagerLogic,
                 abi.encodeWithSignature(
-                    "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256)",
+                    "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
                     address(assetManagerMock),
                     address(unionTokenMock),
                     address(daiMock),
@@ -33,7 +35,8 @@ contract TestUserManagerBase is TestWrapper {
                     ADMIN,
                     maxOverdue,
                     effectiveCount,
-                    1000
+                    maxVouchers,
+                    maxVouchees
                 )
             )
         );

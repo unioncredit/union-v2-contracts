@@ -140,7 +140,7 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     ------------------------------------------------------------------- */
 
     // solhint-disable-next-line no-empty-blocks
-    function deposit(address tokenAddress) external override checkTokenSupported(tokenAddress) returns (bool) {
+    function deposit(address tokenAddress) external view override checkTokenSupported(tokenAddress) returns (bool) {
         return true;
         // Don't have to do anything because AssetManager already transfered tokens here
     }
