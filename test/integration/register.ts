@@ -76,6 +76,6 @@ describe("Register member", () => {
         await contracts.userManager.setEffectiveCount(1);
         await contracts.unionToken.connect(member).approve(contracts.userManager.address, memberFee);
         const tx = contracts.userManager.connect(member).registerMember(memberAddress);
-        expect(tx).to.be.revertedWithSig(error.NotEnoughStakers);
+        expect(tx).to.be.revertedWith(error.NotEnoughStakers);
     });
 });

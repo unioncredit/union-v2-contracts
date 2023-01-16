@@ -20,7 +20,7 @@ describe("Writing off member debt", () => {
     let helpers: Helpers;
 
     const beforeContext = async () => {
-        if(isForked()) await fork();
+        if (isForked()) await fork();
 
         deployer = await getDeployer();
         const signers = await getSigners();
@@ -83,14 +83,14 @@ describe("Writing off member debt", () => {
         it("cannot if not overdue", async () => {
             const amount = parseUnits("100");
             const resp = contracts.userManager.connect(user).debtWriteOff(deployerAddress, borrowerAddress, amount);
-            await expect(resp).to.be.revertedWithSig(error.AuthFailed);
+            await expect(resp).to.be.revertedWith(error.AuthFailed);
         });
         it("cannot if grace period has not passed", async () => {
             const amount = parseUnits("100");
             await helpers.withOverdueblocks(10, async () => {
                 await roll(10);
                 const resp = contracts.userManager.connect(user).debtWriteOff(deployerAddress, borrowerAddress, amount);
-                await expect(resp).to.be.revertedWithSig(error.AuthFailed);
+                await expect(resp).to.be.revertedWith(error.AuthFailed);
             });
         });
         it("public can write off debt", async () => {

@@ -13,6 +13,9 @@ import goerliForkConfig from "./goerli-fork";
 // Local test configs
 import localConfig from "./local";
 
+// Optimism testnet configs
+import optimismGoerliConfig from "./optimism-goerli";
+
 export const baseConfig = {
     addresses: {
         aave: {
@@ -56,6 +59,8 @@ export const getConfig = () => {
             return {...baseConfig, ...goerliForkConfig};
         case "local":
             return {...baseConfig, ...localConfig};
+        case "optimism-goerli":
+            return {...baseConfig, ...optimismGoerliConfig};
         default:
             return baseConfig;
     }

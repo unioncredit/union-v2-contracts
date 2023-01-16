@@ -54,7 +54,7 @@ describe("Staking and unstaking", () => {
         before(beforeContext);
         it("cannot stake more than limit", async () => {
             const maxStake = await contracts.userManager.maxStakeAmount();
-            await expect(contracts.userManager.stake(maxStake.add(1))).to.be.revertedWithSig(error.StakeLimitReached);
+            await expect(contracts.userManager.stake(maxStake.add(1))).to.be.revertedWith(error.StakeLimitReached);
         });
         it("stake with DAI permit", async () => {
             const stakeAmount = parseUnits("1");
@@ -99,7 +99,7 @@ describe("Staking and unstaking", () => {
         it("cannot unstake more than staked", async () => {
             const stakeAmount = await contracts.userManager.getStakerBalance(deployerAddress);
             const resp = contracts.userManager.unstake(stakeAmount.add(1));
-            await expect(resp).to.be.revertedWithSig(error.InsufficientBalance);
+            await expect(resp).to.be.revertedWith(error.InsufficientBalance);
         });
         it("unstaking transfers underlying token from assetManager", async () => {
             const stakeAmount = await contracts.userManager.getStakerBalance(deployerAddress);
@@ -217,7 +217,7 @@ describe("Staking and unstaking", () => {
             await helpers.borrow(borrower, borrowAmount);
 
             const resp = contracts.userManager.connect(staker).unstake(stakedAmount);
-            await expect(resp).to.be.revertedWithSig(error.InsufficientBalance);
+            await expect(resp).to.be.revertedWith(error.InsufficientBalance);
         });
     });
 });
