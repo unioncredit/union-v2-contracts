@@ -140,7 +140,8 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     ------------------------------------------------------------------- */
 
     // solhint-disable-next-line no-empty-blocks
-    function deposit(address tokenAddress) external override checkTokenSupported(tokenAddress) {
+    function deposit(address tokenAddress) external view override checkTokenSupported(tokenAddress) returns (bool) {
+        return true;
         // Don't have to do anything because AssetManager already transfered tokens here
     }
 
@@ -155,9 +156,10 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
         address tokenAddress,
         address recipient,
         uint256 tokenAmount
-    ) external override onlyAssetManager checkTokenSupported(tokenAddress) {
+    ) external override onlyAssetManager checkTokenSupported(tokenAddress) returns (bool) {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.safeTransfer(recipient, tokenAmount);
+        return true;
     }
 
     /**
@@ -171,9 +173,11 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
         override
         onlyAssetManager
         checkTokenSupported(tokenAddress)
+        returns (bool)
     {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.safeTransfer(recipient, token.balanceOf(address(this)));
+        return true;
     }
 
     // solhint-disable-next-line no-empty-blocks

@@ -14,7 +14,10 @@ interface IUserManager {
         returns (
             bool,
             uint96,
-            uint96
+            uint96,
+            uint64,
+            uint256,
+            uint256
         );
 
     function vouchers(address borrower, uint256 index)
@@ -86,6 +89,8 @@ interface IUserManager {
 
     function totalFrozen() external view returns (uint256);
 
+    function globalTotalStaked() external view returns (uint256);
+
     /**
      *  @dev Add a new member
      *  Accept claims only from the admin
@@ -121,13 +126,41 @@ interface IUserManager {
     function getTotalLockedStake(address staker) external view returns (uint256);
 
     /**
-     *  @dev Get staker's defaulted / frozen staked token amount
+     *  @dev Get the staker's effective staked and locked amount
      *  @param staker Staker address
-     *  @return Frozen token amount
+     *  @param pastBlocks Number of blocks since last rewards withdrawal
+     *  @return  user's effective staked amount
+     *           user's effective locked amount
      */
-    function getFrozenInfo(address staker, uint256 blocks) external view returns (uint256, uint256);
+    function getStakeInfo(address staker, uint256 pastBlocks)
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            bool
+        );
 
-    function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256);
+    /**
+     * @dev Update the frozen info by the comptroller
+     * @param staker Staker address
+     * @param pastBlocks The past blocks
+     * @return  effectStaked user's total stake - frozen
+     *          effectLocked user's locked amount - frozen
+     */
+    function onWithdrawRewards(address staker, uint256 pastBlocks)
+        external
+        returns (
+            uint256,
+            uint256,
+            bool
+        );
+
+    /**
+     * @dev Update the frozen info by the utoken repay
+     * @param borrower Borrower address
+     */
+    function onRepayBorrow(address borrower) external;
 
     /**
      *  @dev Update userManager locked info

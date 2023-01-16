@@ -10,6 +10,12 @@ import goerliConfig from "./goerli";
 // Fork Configs
 import goerliForkConfig from "./goerli-fork";
 
+// Local test configs
+import localConfig from "./local";
+
+// Optimism testnet configs
+import optimismGoerliConfig from "./optimism-goerli";
+
 export const baseConfig = {
     addresses: {
         aave: {
@@ -20,7 +26,8 @@ export const baseConfig = {
     userManager: {
         maxOverdue: "2592000", // 12 x overdueBlocks
         effectiveCount: "1",
-        maxVouchers: "1000"
+        maxVouchers: "400",
+        maxVouchees: "1000"
     },
     uToken: {
         name: "uDAI",
@@ -28,6 +35,7 @@ export const baseConfig = {
         initialExchangeRateMantissa: parseUnits("1"),
         reserveFactorMantissa: parseUnits("1"),
         originationFee: parseUnits("0.005"),
+        originationFeeMax: parseUnits("0.5"),
         debtCeiling: parseUnits("250000"),
         maxBorrow: parseUnits("25000"),
         minBorrow: parseUnits("100"),
@@ -49,6 +57,10 @@ export const getConfig = () => {
             return {...baseConfig, ...goerliConfig};
         case "goerli-fork":
             return {...baseConfig, ...goerliForkConfig};
+        case "local":
+            return {...baseConfig, ...localConfig};
+        case "optimism-goerli":
+            return {...baseConfig, ...optimismGoerliConfig};
         default:
             return baseConfig;
     }

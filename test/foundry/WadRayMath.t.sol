@@ -13,4 +13,9 @@ contract TestWadRayMath is TestWrapper {
         uint256 resp = WadRayMath.wadDiv(100, 10);
         assertEq(resp, 10000000000000000000);
     }
+
+    function testCannotWadMulWhenOverflow() public {
+        vm.expectRevert(WadRayMath.MultiplicationOverflow.selector);
+        WadRayMath.wadMul(115792089237316195423570985008687907853269984665640564039457584007913129639935, 2);
+    }
 }

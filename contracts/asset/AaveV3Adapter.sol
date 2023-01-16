@@ -187,8 +187,13 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
     function mapTokenToAToken(address tokenAddress) external onlyAdmin {
         LendingPool3.ReserveData memory reserveData = lendingPool.getReserveData(tokenAddress);
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
-        token.safeApprove(address(lendingPool), 0);
-        token.safeApprove(address(lendingPool), type(uint256).max);
+
+        address spender = address(lendingPool);
+        uint256 currentAllowance = token.allowance(address(this), spender);
+        if (currentAllowance < type(uint256).max) {
+            token.safeIncreaseAllowance(spender, type(uint256).max - currentAllowance);
+        }
+
         tokenToAToken[tokenAddress] = reserveData.aTokenAddress;
     }
 
@@ -196,10 +201,21 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
      * @dev Deposit tokens into the underlying Aave V3 lending pool
      * @param tokenAddress Token address
      */
-    function deposit(address tokenAddress) external override checkTokenSupported(tokenAddress) {
+    function deposit(address tokenAddress)
+        external
+        override
+        onlyAssetManager
+        checkTokenSupported(tokenAddress)
+        returns (bool)
+    {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         uint256 amount = token.balanceOf(address(this));
-        lendingPool.supply(tokenAddress, amount, address(this), 0);
+        try lendingPool.supply(tokenAddress, amount, address(this), 0) {
+            return true;
+        } catch {
+            token.safeTransfer(assetManager, amount);
+            return false;
+        }
     }
 
     /**
@@ -213,8 +229,16 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
         address tokenAddress,
         address recipient,
         uint256 tokenAmount
-    ) external override onlyAssetManager checkTokenSupported(tokenAddress) {
-        lendingPool.withdraw(tokenAddress, tokenAmount, recipient);
+    ) external override onlyAssetManager checkTokenSupported(tokenAddress) returns (bool) {
+        if (_checkBal(tokenAddress)) {
+            try lendingPool.withdraw(tokenAddress, tokenAmount, recipient) {
+                return true;
+            } catch {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -228,8 +252,17 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
         override
         onlyAssetManager
         checkTokenSupported(tokenAddress)
+        returns (bool)
     {
-        lendingPool.withdraw(tokenAddress, type(uint256).max, recipient);
+        if (_checkBal(tokenAddress)) {
+            try lendingPool.withdraw(tokenAddress, type(uint256).max, recipient) {
+                return true;
+            } catch {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -260,5 +293,11 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
 
     function _supportsToken(address tokenAddress) internal view returns (bool) {
         return tokenToAToken[tokenAddress] != address(0);
+    }
+
+    function _checkBal(address tokenAddress) internal view returns (bool) {
+        address aTokenAddress = tokenToAToken[tokenAddress];
+        IERC20Upgradeable aToken = IERC20Upgradeable(aTokenAddress);
+        return aToken.balanceOf(address(this)) > 0;
     }
 }
