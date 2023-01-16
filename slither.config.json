@@ -6,6 +6,6 @@
     "exclude_high": false,
     "solc_disable_warnings": false,
     "disable_color": false,
-    "filter_paths": "node_modules|contracts/mocks",
+    "filter_paths": "node_modules|contracts/mocks|test/foundry|lib",
     "legacy_ast": false
 }
