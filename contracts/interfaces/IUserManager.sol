@@ -99,7 +99,7 @@ interface IUserManager {
     function addMember(address account) external;
 
     /**
-     *  @dev Update the trust amount for exisitng members.
+     *  @dev Update the trust amount for existing members.
      *  @param borrower Borrower address
      *  @param trustAmount Trust amount
      */

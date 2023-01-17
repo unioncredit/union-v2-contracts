@@ -222,7 +222,7 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
      * @dev Withdraw tokens from this adapter
      * @dev Only callable by the AssetManager
      * @param tokenAddress Token to withdraw
-     * @param recipient Recieved by
+     * @param recipient Received by
      * @param tokenAmount Amount of tokens to withdraw
      */
     function withdraw(
@@ -245,7 +245,7 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
      * @dev Withdraw all tokens from this adapter
      * @dev Only callable by the AssetManager
      * @param tokenAddress Token to withdraw
-     * @param recipient Recieved by
+     * @param recipient Received by
      */
     function withdrawAll(address tokenAddress, address recipient)
         external
