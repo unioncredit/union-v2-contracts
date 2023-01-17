@@ -4,6 +4,7 @@ pragma solidity 0.8.16;
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import {Controller} from "../Controller.sol";
 import {IAssetManager} from "../interfaces/IAssetManager.sol";
@@ -18,6 +19,8 @@ import {IUToken} from "../interfaces/IUToken.sol";
  */
 contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCastUpgradeable for uint256;
+    using SafeCastUpgradeable for uint128;
 
     /* -------------------------------------------------------------------
       Storage Types 
@@ -555,13 +558,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             // Adding the Vouch the the vouchers array for this staker
             uint256 voucherIndex = vouchers[borrower].length;
             if (voucherIndex >= maxVouchers) revert MaxVouchers();
-            voucherIndexes[borrower][staker] = Index(true, uint128(voucherIndex));
+            voucherIndexes[borrower][staker] = Index(true, voucherIndex.toUint128());
             vouchers[borrower].push(Vouch(staker, trustAmount, 0, 0));
 
             // Add the voucherIndex of this new vouch to the vouchees array for this
             // staker then update the voucheeIndexes with the voucheeIndex
-            vouchees[staker].push(Vouchee(borrower, uint96(voucherIndex)));
-            voucheeIndexes[borrower][staker] = Index(true, uint128(voucheeIndex));
+            vouchees[staker].push(Vouchee(borrower, voucherIndex.toUint96()));
+            voucheeIndexes[borrower][staker] = Index(true, voucheeIndex.toUint128());
         }
 
         emit LogUpdateTrust(staker, borrower, trustAmount);
@@ -598,7 +601,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             delete voucherIndexes[borrower][staker];
             // Update the last vouchers coresponsing Vouchee item
             uint128 voucheeIdx = voucherIndexes[borrower][lastVoucher.staker].idx;
-            vouchees[staker][voucheeIdx].voucherIndex = uint96(removeVoucherIndex.idx);
+            vouchees[staker][voucheeIdx].voucherIndex = removeVoucherIndex.idx.toUint96();
         }
 
         // Update the vouchee entry for this borrower => staker pair

@@ -41,7 +41,7 @@ contract UnionLens {
       Storage 
     ------------------------------------------------------------------- */
 
-    IMarketRegistry public marketRegistry;
+    IMarketRegistry public immutable marketRegistry;
 
     /* -------------------------------------------------------------------
       Constructor 
