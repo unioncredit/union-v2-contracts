@@ -76,7 +76,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public totalBorrows;
 
     /**
-     *  @dev Total amount of reserves of the underlying held in this marke
+     *  @dev Total amount of reserves of the underlying held in this market
      */
     uint256 public totalReserves;
 
