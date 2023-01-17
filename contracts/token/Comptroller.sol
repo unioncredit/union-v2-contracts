@@ -181,7 +181,7 @@ contract Comptroller is Controller, IComptroller {
     ) public view override returns (uint256) {
         IUserManager userManager = _getUserManager(token);
 
-        // Lookup account stataddress accounte from UserManager
+        // Lookup account state from UserManager
         (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) = _getUserInfoView(
             userManager,
             account,

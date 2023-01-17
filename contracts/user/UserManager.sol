@@ -141,7 +141,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     mapping(address => Staker) public stakers;
 
     /**
-     *  @dev Borrower (borrower) mapped to recieved vouches (staker)
+     *  @dev Borrower (borrower) mapped to received vouches (staker)
      */
     mapping(address => Vouch[]) public vouchers;
 
@@ -444,7 +444,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     /**
      *  @dev  Get the count of vouchers
-     *        Vouchers are addresses that this borrower is recieving a vouch from.
+     *        Vouchers are addresses that this borrower is receiving a vouch from.
      *  @param borrower Address of borrower
      */
     function getVoucherCount(address borrower) external view returns (uint256) {
@@ -453,7 +453,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     /**
      *  @dev  Get the count of vouchees
-     *        Voucheers are addresses that this staker is vouching for
+     *        Vouchers are addresses that this staker is vouching for
      *  @param staker Address of staker
      */
     function getVoucheeCount(address staker) external view returns (uint256) {
@@ -518,7 +518,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev  Update the trust amount for exisitng members.
+     *  @dev  Update the trust amount for existing members.
      *  @dev  Trust is the amount of the underlying token you would in theory be
      *        happy to lend to another member. Vouch is derived from trust and stake.
      *        Vouch is the minimum of trust and staked amount.
@@ -570,8 +570,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     /**
      *  @dev Remove voucher for member
      *  Can be called by either the borrower or the staker. It will remove the voucher from
-     *  the voucher array by replacing it with the last item of the array and reseting the array
-     *  size to -1 by poping off the last item
+     *  the voucher array by replacing it with the last item of the array and resting the array
+     *  size to -1 by popping off the last item
      *  Only callable by a member when the contract is not paused
      *  Emit {LogCancelVouch} event
      *  @param staker Staker address
@@ -655,7 +655,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     /**
      *  @notice Register a a member, and burn an application fees
-     *  @dev    In order to register as a member an address must be recieving x amount
+     *  @dev    In order to register as a member an address must be receiving x amount
      *          of vouches greater than 0 from stakers. x is defined by `effectiveCount`
      *          Emits {LogRegisterMember} event
      *  @param newMember New member address
@@ -752,7 +752,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     /**
      *  @notice Write off a borrowers debt
-     *  @dev    Used the stakers locked stake to write off the loan, transfering the
+     *  @dev    Used the stakers locked stake to write off the loan, transferring the
      *          Stake to the AssetManager and adjusting balances in the AssetManager
      *          and the UToken to repay the principal
      *  @dev    Emits {LogDebtWriteOff} event

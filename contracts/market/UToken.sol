@@ -196,7 +196,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
     /**
      *  @dev Token removed from the reserves
-     *  @param receiver reciever address of tokens
+     *  @param receiver receiver address of tokens
      *  @param reduceAmount amount of tokens to withdraw
      *  @param totalReservesNew new total reserves amount
      */
@@ -797,8 +797,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     * @dev Remove tokens to the reseve
-     * @param receiver address to recieve tokens
+     * @dev Remove tokens to the reserve
+     * @param receiver address to receive tokens
      * @param reduceAmount amount of tokens to remove
      */
     function removeReserves(address receiver, uint256 reduceAmount)
