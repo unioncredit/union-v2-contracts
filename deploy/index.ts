@@ -124,9 +124,10 @@ export default async function (
     }
 
     // deploy UNION
+    const unionTokenAddress = config.addresses.unionToken || config.addresses.opUnion;
     let unionToken: IUnionToken | FaucetERC20_ERC20Permit;
-    if (config.addresses.unionToken) {
-        unionToken = IUnionToken__factory.connect(config.addresses.unionToken, signer);
+    if (unionTokenAddress) {
+        unionToken = IUnionToken__factory.connect(unionTokenAddress, signer);
     } else {
         unionToken = await deployContract<FaucetERC20_ERC20Permit>(
             new FaucetERC20_ERC20Permit__factory(signer),

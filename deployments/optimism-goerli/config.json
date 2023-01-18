@@ -1,0 +1,51 @@
+{
+  "addresses": {
+    "unionToken": "0x23B0483E07196c425d771240E81A9c2f1E113D3A",
+    "opL2Bridge": "0x4200000000000000000000000000000000000010"
+  },
+  "userManager": {
+    "maxOverdue": "2592000",
+    "effectiveCount": "1",
+    "maxVouchers": "400",
+    "maxVouchees": "1000"
+  },
+  "uToken": {
+    "name": "uDAI",
+    "symbol": "uDAI",
+    "initialExchangeRateMantissa": {
+      "type": "BigNumber",
+      "hex": "0x0de0b6b3a7640000"
+    },
+    "reserveFactorMantissa": {
+      "type": "BigNumber",
+      "hex": "0x0de0b6b3a7640000"
+    },
+    "originationFee": {
+      "type": "BigNumber",
+      "hex": "0x11c37937e08000"
+    },
+    "originationFeeMax": {
+      "type": "BigNumber",
+      "hex": "0x06f05b59d3b20000"
+    },
+    "debtCeiling": {
+      "type": "BigNumber",
+      "hex": "0x34f086f3b33b68400000"
+    },
+    "maxBorrow": {
+      "type": "BigNumber",
+      "hex": "0x054b40b1f852bda00000"
+    },
+    "minBorrow": {
+      "type": "BigNumber",
+      "hex": "0x056bc75e2d63100000"
+    },
+    "overdueBlocks": "216000"
+  },
+  "fixedInterestRateModel": {
+    "interestRatePerBlock": "38051750380"
+  },
+  "comptroller": {
+    "halfDecayPoint": "500000"
+  }
+}
