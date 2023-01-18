@@ -13,7 +13,7 @@ interface IInterestRateModel {
     function getBorrowRate() external view returns (uint256);
 
     /**
-     * @dev Calculates the current suppier interest rate per block
+     * @dev Calculates the current suppler interest rate per block
      * @return The supply rate per block (as a percentage, and scaled by 1e18)
      */
     function getSupplyRate(uint256 reserveFactorMantissa) external view returns (uint256);

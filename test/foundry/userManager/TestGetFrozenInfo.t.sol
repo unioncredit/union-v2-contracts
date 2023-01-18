@@ -25,9 +25,9 @@ contract TestGetFrozenInfo is TestUserManagerBase {
         userManager.updateLocked(ACCOUNT, lockAmount, true);
         vm.stopPrank();
         vm.roll(block.number + 10);
-        (uint256 effectStaked, uint256 effectLocked) = userManager.getStakeInfo(address(this), 0);
-        assertEq(effectStaked, stakeAmount);
-        assertEq(effectLocked, lockAmount / 2);
+        (uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this), 0);
+        assertEq(effectiveStaked, stakeAmount);
+        assertEq(effectiveLocked, lockAmount / 2);
     }
 
     function testGetStakeInfoPastBlocks(uint96 lockAmount) public {
@@ -41,8 +41,8 @@ contract TestGetFrozenInfo is TestUserManagerBase {
         vm.stopPrank();
 
         vm.roll(block.number + 10);
-        (uint256 effectStaked, uint256 effectLocked) = userManager.getStakeInfo(address(this), block.number + 1);
+        (, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this), block.number + 1);
 
-        assertEq(effectLocked, 0);
+        assertEq(effectiveLocked, 0);
     }
 }

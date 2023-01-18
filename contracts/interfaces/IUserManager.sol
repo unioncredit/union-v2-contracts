@@ -89,6 +89,8 @@ interface IUserManager {
 
     function totalFrozen() external view returns (uint256);
 
+    function globalTotalStaked() external view returns (uint256);
+
     /**
      *  @dev Add a new member
      *  Accept claims only from the admin
@@ -97,7 +99,7 @@ interface IUserManager {
     function addMember(address account) external;
 
     /**
-     *  @dev Update the trust amount for exisitng members.
+     *  @dev Update the trust amount for existing members.
      *  @param borrower Borrower address
      *  @param trustAmount Trust amount
      */
@@ -130,7 +132,14 @@ interface IUserManager {
      *  @return  user's effective staked amount
      *           user's effective locked amount
      */
-    function getStakeInfo(address staker, uint256 pastBlocks) external view returns (uint256, uint256);
+    function getStakeInfo(address staker, uint256 pastBlocks)
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            bool
+        );
 
     /**
      * @dev Update the frozen info by the comptroller
@@ -139,7 +148,13 @@ interface IUserManager {
      * @return  effectStaked user's total stake - frozen
      *          effectLocked user's locked amount - frozen
      */
-    function onWithdrawRewards(address staker, uint256 pastBlocks) external returns (uint256, uint256);
+    function onWithdrawRewards(address staker, uint256 pastBlocks)
+        external
+        returns (
+            uint256,
+            uint256,
+            bool
+        );
 
     /**
      * @dev Update the frozen info by the utoken repay
