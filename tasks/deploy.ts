@@ -12,6 +12,8 @@ import {
     UnionLens__factory,
     OpUNION,
     OpUNION__factory,
+    OpOwner,
+    OpOwner__factory,
     OpConnector,
     OpConnector__factory
 } from "../typechain-types";
@@ -80,6 +82,14 @@ task("deploy:op", "Deploy Union V2 on Optimism")
             waitForBlocks
         );
 
+        const opOwner = await deployContract<OpOwner>(
+            new OpOwner__factory(deployer),
+            "opOwner",
+            [config.addresses.opOwner, config.addresses.opL2CrossDomainMessenger],
+            true,
+            waitForBlocks
+        );
+
         // ------------------------------------------------------
         // Save deployment and config
         // ------------------------------------------------------
@@ -96,7 +106,8 @@ task("deploy:op", "Deploy Union V2 on Optimism")
             saveDeploymentPath,
             JSON.stringify(
                 {
-                    opUnion: opUnion.address
+                    opUnion: opUnion.address,
+                    opOwner: opOwner.address
                 },
                 null,
                 2
