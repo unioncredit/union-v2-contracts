@@ -258,7 +258,8 @@ task("deploy", "Deploy Union V2 contracts")
         const members = taskArguments.members.split(",");
         for (const member of members) {
             console.log(`    - ${member}`);
-            await deployment.userManager.addMember(member);
+            const tx = await deployment.userManager.addMember(member);
+            await tx.wait();
         }
 
         console.log("[*] Complete");
