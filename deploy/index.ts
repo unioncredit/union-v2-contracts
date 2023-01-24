@@ -207,7 +207,8 @@ export default async function (
             debug
         );
         userManager = UserManagerERC20__factory.connect(proxy.address, signer);
-        await marketRegistry.setUserManager(dai.address, userManager.address);
+        const tx = await marketRegistry.setUserManager(dai.address, userManager.address);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy fixedInterestRateModel
@@ -256,11 +257,21 @@ export default async function (
             debug
         );
         uToken = UErc20__factory.connect(proxy.address, signer);
-        await userManager.setUToken(uToken.address);
-        await marketRegistry.setUToken(dai.address, uToken.address);
-        await uToken.setUserManager(userManager.address);
-        await uToken.setAssetManager(assetManager.address);
-        await uToken.setInterestRateModel(fixedInterestRateModel.address);
+
+        let tx = await userManager.setUToken(uToken.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await marketRegistry.setUToken(dai.address, uToken.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await uToken.setUserManager(userManager.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await uToken.setAssetManager(assetManager.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await uToken.setInterestRateModel(fixedInterestRateModel.address);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy pure token
@@ -302,11 +313,15 @@ export default async function (
 
     if (!config.addresses.assetManager) {
         // Add pure token adapter to assetManager
-        await assetManager.addToken(dai.address);
-        await assetManager.addAdapter(pureToken.address);
+        let tx = await assetManager.addToken(dai.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await assetManager.addAdapter(pureToken.address);
+        await tx.wait(waitForBlocks);
 
         if (aaveV3Adapter?.address) {
-            await assetManager.addAdapter(aaveV3Adapter.address);
+            tx = await assetManager.addAdapter(aaveV3Adapter.address);
+            await tx.wait(waitForBlocks);
         }
     }
 

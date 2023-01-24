@@ -2,7 +2,7 @@ import {DeployConfig} from "../index";
 
 export default {
     addresses: {
-        unionToken: "0x23B0483E07196c425d771240E81A9c2f1E113D3A",
+        opUnion: "0x04622FDe6a7C0B19Ff7748eC8882870367530074",
         opL2Bridge: "0x4200000000000000000000000000000000000010"
     }
 } as DeployConfig;
