@@ -236,7 +236,7 @@ task("deploy", "Deploy Union V2 contracts")
         // Deployment
         // ------------------------------------------------------
 
-        const deployment = await deploy({...config, admin: deployer.address}, deployer, true, waitForBlocks);
+        const deployment = await deploy({admin: deployer.address, ...config}, deployer, true, waitForBlocks);
         const deploymentAddresses = deploymentToAddresses(deployment);
 
         console.log("\n[*] Deployment complete\n");

@@ -6,5 +6,6 @@ export default {
         opL2Bridge: "0x4200000000000000000000000000000000000010",
         opL2CrossDomainMessenger: "0x4200000000000000000000000000000000000007",
         opOwner: "" //use l1 timelock address
-    }
+    },
+    admin: "" //use l2 OpOwner address
 } as DeployConfig;
