@@ -9,5 +9,5 @@ export default {
         file: "dist/index.js",
         format: "cjs"
     },
-    plugins: [commonjs(), resolve(), json()]
+    plugins: [commonjs(), resolve({resolveOnly: ["graphql-request"]}), json()]
 };
