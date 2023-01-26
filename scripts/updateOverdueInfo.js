@@ -5,7 +5,6 @@ const uTokenAddress = "0x3EE494a1819f423b1d0f43d8F287E32c728e341b"; //goerli
 const userManagerAddress = "0x0c9ba300e6cDD6AEbc4ED3Fd853585cE49d980ad"; //goerli
 const URL = "https://api.thegraph.com/subgraphs/name/geraldhost/union-goerli";
 
-// Use "rollup -c" to package and copy to https://defender.openzeppelin.com/#/autotask to run
 exports.handler = async function (event) {
     // Initialize defender relayer provider and signer
     const provider = new DefenderRelayProvider(event);
@@ -22,18 +21,24 @@ exports.handler = async function (event) {
         }
     `;
 
-    const borrowers = await request(URL, borrowQuery, {
+    const borrowerQuery = await request(URL, borrowQuery, {
         first: 1000
     });
+    const borrowers = borrowerQuery.borrow;
+    console.log({borrowers});
+
     let overdueBorrowers = [],
         stakers = [];
-    const promises = Array.from(borrowers.borrow).map(async account => {
+    const promises = Array.from(borrowers).map(async borrower => {
+        const account = borrower.account;
         const isOverdue = await uToken.checkIsOverdue(account);
         if (isOverdue) {
             overdueBorrowers.push(account);
         }
     });
     await Promise.all(promises);
+
+    console.log({overdueBorrowers});
 
     for (let i = 0; i < overdueBorrowers.length; i++) {
         const borrower = overdueBorrowers[i];
@@ -68,6 +73,8 @@ exports.handler = async function (event) {
             }
         }
     }
+
+    console.log({stakers});
 
     if (stakers.length > 0) {
         const tx = await userManager.batchUpdateFrozenInfo(stakers);
