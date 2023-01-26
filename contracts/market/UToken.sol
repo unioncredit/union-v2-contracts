@@ -6,6 +6,7 @@ import {ERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import {Controller} from "../Controller.sol";
 import {IUserManager} from "../interfaces/IUserManager.sol";
@@ -19,6 +20,7 @@ import {IInterestRateModel} from "../interfaces/IInterestRateModel.sol";
  */
 contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCastUpgradeable for uint256;
 
     /* -------------------------------------------------------------------
       Types 
@@ -76,7 +78,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public totalBorrows;
 
     /**
-     *  @dev Total amount of reserves of the underlying held in this marke
+     *  @dev Total amount of reserves of the underlying held in this market
      */
     uint256 public totalReserves;
 
@@ -94,6 +96,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @dev fee paid at loan origin
      */
     uint256 public originationFee;
+
+    /**
+     * @dev The max allowed value for originationFee
+     */
+    uint256 public originationFeeMax;
 
     /**
      *  @dev The debt limit for the whole system
@@ -155,6 +162,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     error MemberIsOverdue();
     error ReserveFactoryExceedLimit();
     error DepositToAssetManagerFailed();
+    error OriginationFeeExceedLimit();
 
     /* -------------------------------------------------------------------
       Events 
@@ -190,7 +198,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
     /**
      *  @dev Token removed from the reserves
-     *  @param receiver reciever address of tokens
+     *  @param receiver receiver address of tokens
      *  @param reduceAmount amount of tokens to withdraw
      *  @param totalReservesNew new total reserves amount
      */
@@ -239,6 +247,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 initialExchangeRateMantissa_,
         uint256 reserveFactorMantissa_,
         uint256 originationFee_,
+        uint256 originationFeeMax_,
         uint256 debtCeiling_,
         uint256 maxBorrow_,
         uint256 minBorrow_,
@@ -253,6 +262,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
         underlying = underlying_;
         originationFee = originationFee_;
+        originationFeeMax = originationFeeMax_;
         debtCeiling = debtCeiling_;
         maxBorrow = maxBorrow_;
         minBorrow = minBorrow_;
@@ -289,6 +299,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param originationFee_ Fees deducted for each loan transaction
      */
     function setOriginationFee(uint256 originationFee_) external override onlyAdmin {
+        if (originationFee_ > originationFeeMax) revert OriginationFeeExceedLimit();
         originationFee = originationFee_;
     }
 
@@ -554,7 +565,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // Call update locked on the userManager to lock this borrowers stakers. This function
         // will revert if the account does not have enough vouchers to cover the borrow amount. ie
         // the borrower is trying to borrow more than is able to be underwritten
-        IUserManager(userManager).updateLocked(msg.sender, uint96(actualAmount + fee), true);
+        IUserManager(userManager).updateLocked(msg.sender, (actualAmount + fee).toUint96(), true);
 
         emit LogBorrow(msg.sender, to, actualAmount, fee);
     }
@@ -587,12 +598,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param amount Repay amount
      *  @param interest Interest amount
      */
-    function _repayBorrowFresh(
-        address payer,
-        address borrower,
-        uint256 amount,
-        uint256 interest
-    ) internal {
+    function _repayBorrowFresh(address payer, address borrower, uint256 amount, uint256 interest) internal {
         if (getBlockNumber() != accrualBlockNumber) revert AccrueBlockParity();
         uint256 borrowedAmount = borrowBalanceStoredInternal(borrower);
         uint256 repayAmount = amount > borrowedAmount ? borrowedAmount : amount;
@@ -623,7 +629,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             // Call update locked on the userManager to lock this borrowers stakers. This function
             // will revert if the account does not have enough vouchers to cover the repay amount. ie
             // the borrower is trying to repay more than is locked (owed)
-            IUserManager(userManager).updateLocked(borrower, uint96(repayAmount - interest), false);
+            IUserManager(userManager).updateLocked(borrower, (repayAmount - interest).toUint96(), false);
 
             if (isOverdue) {
                 // For borrowers that are paying back overdue balances we need to update their
@@ -788,17 +794,14 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     * @dev Remove tokens to the reseve
-     * @param receiver address to recieve tokens
+     * @dev Remove tokens to the reserve
+     * @param receiver address to receive tokens
      * @param reduceAmount amount of tokens to remove
      */
-    function removeReserves(address receiver, uint256 reduceAmount)
-        external
-        override
-        whenNotPaused
-        nonReentrant
-        onlyAdmin
-    {
+    function removeReserves(
+        address receiver,
+        uint256 reduceAmount
+    ) external override whenNotPaused nonReentrant onlyAdmin {
         if (!accrueInterest()) revert AccrueInterestFailed();
 
         uint256 remaining = IAssetManager(assetManager).withdraw(underlying, receiver, reduceAmount);

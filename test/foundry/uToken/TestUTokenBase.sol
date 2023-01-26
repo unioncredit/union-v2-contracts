@@ -10,6 +10,7 @@ contract TestUTokenBase is TestWrapper {
     address public constant BOB = address(3);
 
     uint256 internal constant ORIGINATION_FEE = 0.01 ether;
+    uint256 internal constant ORIGINATION_FEE_MAX = 0.05 ether;
     uint256 internal constant MIN_BORROW = 1 ether;
     uint256 internal constant MAX_BORROW = 100 ether;
     uint256 internal constant BORROW_INTEREST_PER_BLOCK = 0.000001 ether; //0.0001%
@@ -27,13 +28,14 @@ contract TestUTokenBase is TestWrapper {
             deployProxy(
                 uTokenLogic,
                 abi.encodeWithSignature(
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
+                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
                     "UTokenMock",
                     "UTM",
                     address(daiMock),
                     INIT_EXCHANGE_RATE,
                     RESERVE_FACTOR,
                     ORIGINATION_FEE,
+                    ORIGINATION_FEE_MAX,
                     debtCeiling,
                     MAX_BORROW,
                     MIN_BORROW,

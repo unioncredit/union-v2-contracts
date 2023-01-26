@@ -7,7 +7,14 @@ import {HardhatRuntimeEnvironment, TaskArguments} from "hardhat/types";
 import deploy, {Contracts} from "../deploy/index";
 import {getConfig} from "../deploy/config";
 import {deployContract} from "../deploy/helpers";
-import {UnionLens, UnionLens__factory} from "../typechain-types";
+import {
+    UnionLens,
+    UnionLens__factory,
+    OpUNION,
+    OpUNION__factory,
+    OpConnector,
+    OpConnector__factory
+} from "../typechain-types";
 
 const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {[key: string]: string}} => {
     return {
@@ -26,6 +33,168 @@ const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {
     };
 };
 
+const getDeployer = (privateKey: string, provider: ethers.providers.BaseProvider) => {
+    if (!privateKey.match(/^[A-Fa-f0-9]{1,64}$/)) {
+        console.log("[!] Invalid format of private key");
+        process.exit();
+    }
+
+    return new ethers.Wallet(privateKey, provider);
+};
+
+task("deploy:op", "Deploy Union V2 on Optimism")
+    .addParam("pk", "Private key to use for deployment")
+    .addParam("confirmations", "How many confirmations to wait for")
+    // .addParam("members", "Initial union members")
+    .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
+        // ------------------------------------------------------
+        // Setup
+        // ------------------------------------------------------
+
+        const config = getConfig();
+        const privateKey = taskArguments.pk;
+        const waitForBlocks = taskArguments.confirmations;
+
+        console.log("[*] Deployment config");
+        console.log(config);
+
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
+
+        console.log(
+            [
+                "[*] Deploying contracts",
+                `    - waitForBlocks: ${waitForBlocks}`,
+                `    - deployer: ${await deployer.getAddress()}`
+            ].join("\n")
+        );
+
+        // ------------------------------------------------------
+        // Deployment
+        // ------------------------------------------------------
+
+        const opUnion = await deployContract<OpUNION>(
+            new OpUNION__factory(deployer),
+            "opUnion",
+            [config.addresses.opL2Bridge, config.addresses.unionToken],
+            true,
+            waitForBlocks
+        );
+
+        // ------------------------------------------------------
+        // Save deployment and config
+        // ------------------------------------------------------
+
+        console.log("[*] Saving deployment addresses");
+
+        // create deploy directory
+        const dir = path.resolve(__dirname, "../deployments", hre.network.name);
+        !fs.existsSync(dir) && fs.mkdirSync(dir);
+
+        // save deployment
+        const saveDeploymentPath = path.resolve(dir, "optimism.json");
+        fs.writeFileSync(
+            saveDeploymentPath,
+            JSON.stringify(
+                {
+                    opUnion: opUnion.address
+                },
+                null,
+                2
+            )
+        );
+        console.log(`    - deployment: ${saveDeploymentPath}`);
+
+        console.log("[*] Complete");
+    });
+
+task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
+    .addParam("pk", "Private key to use for deployment")
+    .addParam("confirmations", "How many confirmations to wait for")
+    // .addParam("members", "Initial union members")
+    .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
+        // ------------------------------------------------------
+        // Setup
+        // ------------------------------------------------------
+        const config = getConfig();
+        console.log("[*] Deployment config");
+        console.log(config);
+
+        const privateKey = taskArguments.pk;
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
+
+        const waitForBlocks = taskArguments.confirmations;
+
+        console.log(
+            [
+                "[*] Deploying contracts",
+                `    - waitForBlocks: ${waitForBlocks}`,
+                `    - deployer: ${await deployer.getAddress()}`
+            ].join("\n")
+        );
+
+        // get deploy directory
+        const dir = path.resolve(__dirname, "../deployments", hre.network.name);
+        if (!fs.existsSync(dir)) {
+            console.log("[!] Cannot find deployment file");
+            process.exit();
+        }
+
+        // read deployment file
+        const deploymentFile = path.resolve(dir, "deployment.json");
+
+        let deployedContracts;
+        try {
+            const data = fs.readFileSync(deploymentFile, {encoding: "utf8"});
+            deployedContracts = JSON.parse(data);
+        } catch (err) {
+            console.log({err});
+            process.exit();
+        }
+
+        console.log(deployedContracts);
+
+        // validate addresses
+        if (
+            !deployedContracts.comptroller ||
+            !config.addresses.unionToken ||
+            !config.addresses.opUnion ||
+            !config.addresses.opL1Bridge
+        ) {
+            console.log("[!] Required address null");
+            process.exit();
+        }
+
+        const opConector = await deployContract<OpConnector>(
+            new OpConnector__factory(deployer),
+            "opConnector",
+            [
+                config.addresses.unionToken,
+                config.addresses.opUnion,
+                deployedContracts.comptroller,
+                config.addresses.opL1Bridge
+            ],
+            true,
+            waitForBlocks
+        );
+        console.log("\n[*] Deployment complete\n");
+
+        // save deployment
+        const connDeploymentPath = path.resolve(dir, "connector.json");
+        fs.writeFileSync(
+            connDeploymentPath,
+            JSON.stringify(
+                {
+                    opConnector: opConector.address
+                },
+                null,
+                2
+            )
+        );
+        console.log(`    - deployment: ${connDeploymentPath}`);
+
+        console.log("[*] Complete");
+    });
+
 task("deploy", "Deploy Union V2 contracts")
     .addParam("pk", "Private key to use for deployment")
     .addParam("confirmations", "How many confirmations to wait for")
@@ -39,15 +208,10 @@ task("deploy", "Deploy Union V2 contracts")
         const privateKey = taskArguments.pk;
         const waitForBlocks = taskArguments.confirmations;
 
-        if (!privateKey.match(/^[A-Fa-f0-9]{1,64}$/)) {
-            console.log("[!] Invalid format of private key");
-            process.exit();
-        }
-
         console.log("[*] Deployment config");
         console.log(config);
 
-        const deployer = new ethers.Wallet(privateKey, hre.ethers.provider);
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
 
         console.log(
             [
@@ -94,7 +258,8 @@ task("deploy", "Deploy Union V2 contracts")
         const members = taskArguments.members.split(",");
         for (const member of members) {
             console.log(`    - ${member}`);
-            await deployment.userManager.addMember(member);
+            const tx = await deployment.userManager.addMember(member);
+            await tx.wait(waitForBlocks);
         }
 
         console.log("[*] Complete");
@@ -113,12 +278,7 @@ task("deploy:lens", "Deploy Union lens contract")
         const marketRegistry = taskArguments.marketregistry;
         const waitForBlocks = taskArguments.confirmations;
 
-        if (!privateKey.match(/^[A-Fa-f0-9]{1,64}$/)) {
-            console.log("[!] Invalid format of private key");
-            process.exit();
-        }
-
-        const deployer = new ethers.Wallet(privateKey, hre.ethers.provider);
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
 
         console.log(
             [

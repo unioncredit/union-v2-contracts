@@ -51,6 +51,9 @@ export interface Addresses {
         dai?: string;
         union?: string;
     };
+    opL2Bridge?: string;
+    opL1Bridge?: string;
+    opUnion?: string;
 }
 
 export interface DeployConfig {
@@ -68,6 +71,7 @@ export interface DeployConfig {
         initialExchangeRateMantissa: BigNumberish;
         reserveFactorMantissa: BigNumberish;
         originationFee: BigNumberish;
+        originationFeeMax: BigNumberish;
         debtCeiling: BigNumberish;
         maxBorrow: BigNumberish;
         minBorrow: BigNumberish;
@@ -120,9 +124,10 @@ export default async function (
     }
 
     // deploy UNION
+    const unionTokenAddress = config.addresses.unionToken || config.addresses.opUnion;
     let unionToken: IUnionToken | FaucetERC20_ERC20Permit;
-    if (config.addresses.unionToken) {
-        unionToken = IUnionToken__factory.connect(config.addresses.unionToken, signer);
+    if (unionTokenAddress) {
+        unionToken = IUnionToken__factory.connect(unionTokenAddress, signer);
     } else {
         unionToken = await deployContract<FaucetERC20_ERC20Permit>(
             new FaucetERC20_ERC20Permit__factory(signer),
@@ -185,7 +190,8 @@ export default async function (
             new UserManagerERC20__factory(signer),
             "UserManagerERC20",
             {
-                signature: "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
+                signature:
+                    "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
                 args: [
                     assetManager.address,
                     unionToken.address,
@@ -201,7 +207,8 @@ export default async function (
             debug
         );
         userManager = UserManagerERC20__factory.connect(proxy.address, signer);
-        await marketRegistry.setUserManager(dai.address, userManager.address);
+        const tx = await marketRegistry.setUserManager(dai.address, userManager.address);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy fixedInterestRateModel
@@ -231,7 +238,7 @@ export default async function (
             "UErc20",
             {
                 signature:
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
+                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
                 args: [
                     config.uToken.name,
                     config.uToken.symbol,
@@ -239,6 +246,7 @@ export default async function (
                     config.uToken.initialExchangeRateMantissa,
                     config.uToken.reserveFactorMantissa,
                     config.uToken.originationFee,
+                    config.uToken.originationFeeMax,
                     config.uToken.debtCeiling,
                     config.uToken.maxBorrow,
                     config.uToken.minBorrow,
@@ -249,11 +257,21 @@ export default async function (
             debug
         );
         uToken = UErc20__factory.connect(proxy.address, signer);
-        await userManager.setUToken(uToken.address);
-        await marketRegistry.setUToken(dai.address, uToken.address);
-        await uToken.setUserManager(userManager.address);
-        await uToken.setAssetManager(assetManager.address);
-        await uToken.setInterestRateModel(fixedInterestRateModel.address);
+
+        let tx = await userManager.setUToken(uToken.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await marketRegistry.setUToken(dai.address, uToken.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await uToken.setUserManager(userManager.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await uToken.setAssetManager(assetManager.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await uToken.setInterestRateModel(fixedInterestRateModel.address);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy pure token
@@ -295,11 +313,15 @@ export default async function (
 
     if (!config.addresses.assetManager) {
         // Add pure token adapter to assetManager
-        await assetManager.addToken(dai.address);
-        await assetManager.addAdapter(pureToken.address);
+        let tx = await assetManager.addToken(dai.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await assetManager.addAdapter(pureToken.address);
+        await tx.wait(waitForBlocks);
 
         if (aaveV3Adapter?.address) {
-            await assetManager.addAdapter(aaveV3Adapter.address);
+            tx = await assetManager.addAdapter(aaveV3Adapter.address);
+            await tx.wait(waitForBlocks);
         }
     }
 

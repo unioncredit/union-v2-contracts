@@ -7,7 +7,7 @@ declare module "mocha" {
 declare global {
     export namespace Chai {
         interface Assertion {
-            revertedWithSig(sig: string): Promise<void>;
+            revertedWith(sig: string): Promise<void>;
         }
     }
 }

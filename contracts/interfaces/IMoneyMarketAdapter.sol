@@ -7,7 +7,7 @@ pragma solidity 0.8.16;
  */
 interface IMoneyMarketAdapter {
     /**
-     * @dev set assetmanager.
+     * @dev set assetManager.
      */
     function setAssetManager(address setAssetManager) external;
 

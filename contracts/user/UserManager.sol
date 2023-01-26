@@ -4,6 +4,7 @@ pragma solidity 0.8.16;
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import {Controller} from "../Controller.sol";
 import {IAssetManager} from "../interfaces/IAssetManager.sol";
@@ -18,6 +19,8 @@ import {IUToken} from "../interfaces/IUToken.sol";
  */
 contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCastUpgradeable for uint256;
+    using SafeCastUpgradeable for uint128;
 
     /* -------------------------------------------------------------------
       Storage Types 
@@ -141,7 +144,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     mapping(address => Staker) public stakers;
 
     /**
-     *  @dev Borrower (borrower) mapped to recieved vouches (staker)
+     *  @dev Borrower (borrower) mapped to received vouches (staker)
      */
     mapping(address => Vouch[]) public vouchers;
 
@@ -444,7 +447,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     /**
      *  @dev  Get the count of vouchers
-     *        Vouchers are addresses that this borrower is recieving a vouch from.
+     *        Vouchers are addresses that this borrower is receiving a vouch from.
      *  @param borrower Address of borrower
      */
     function getVoucherCount(address borrower) external view returns (uint256) {
@@ -453,7 +456,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     /**
      *  @dev  Get the count of vouchees
-     *        Voucheers are addresses that this staker is vouching for
+     *        Vouchers are addresses that this staker is vouching for
      *  @param staker Address of staker
      */
     function getVoucheeCount(address staker) external view returns (uint256) {
@@ -518,7 +521,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     }
 
     /**
-     *  @dev  Update the trust amount for exisitng members.
+     *  @dev  Update the trust amount for existing members.
      *  @dev  Trust is the amount of the underlying token you would in theory be
      *        happy to lend to another member. Vouch is derived from trust and stake.
      *        Vouch is the minimum of trust and staked amount.
@@ -555,13 +558,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             // Adding the Vouch the the vouchers array for this staker
             uint256 voucherIndex = vouchers[borrower].length;
             if (voucherIndex >= maxVouchers) revert MaxVouchers();
-            voucherIndexes[borrower][staker] = Index(true, uint128(voucherIndex));
+            voucherIndexes[borrower][staker] = Index(true, voucherIndex.toUint128());
             vouchers[borrower].push(Vouch(staker, trustAmount, 0, 0));
 
             // Add the voucherIndex of this new vouch to the vouchees array for this
             // staker then update the voucheeIndexes with the voucheeIndex
-            vouchees[staker].push(Vouchee(borrower, uint96(voucherIndex)));
-            voucheeIndexes[borrower][staker] = Index(true, uint128(voucheeIndex));
+            vouchees[staker].push(Vouchee(borrower, voucherIndex.toUint96()));
+            voucheeIndexes[borrower][staker] = Index(true, voucheeIndex.toUint128());
         }
 
         emit LogUpdateTrust(staker, borrower, trustAmount);
@@ -570,8 +573,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     /**
      *  @dev Remove voucher for member
      *  Can be called by either the borrower or the staker. It will remove the voucher from
-     *  the voucher array by replacing it with the last item of the array and reseting the array
-     *  size to -1 by poping off the last item
+     *  the voucher array by replacing it with the last item of the array and resting the array
+     *  size to -1 by popping off the last item
      *  Only callable by a member when the contract is not paused
      *  Emit {LogCancelVouch} event
      *  @param staker Staker address
@@ -598,7 +601,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             delete voucherIndexes[borrower][staker];
             // Update the last vouchers coresponsing Vouchee item
             uint128 voucheeIdx = voucherIndexes[borrower][lastVoucher.staker].idx;
-            vouchees[staker][voucheeIdx].voucherIndex = uint96(removeVoucherIndex.idx);
+            vouchees[staker][voucheeIdx].voucherIndex = removeVoucherIndex.idx.toUint96();
         }
 
         // Update the vouchee entry for this borrower => staker pair
@@ -648,36 +651,20 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         bytes32 r,
         bytes32 s
     ) external whenNotPaused {
-        IUnionToken unionTokenContract = IUnionToken(unionToken);
-        unionTokenContract.permit(msg.sender, address(this), value, deadline, v, r, s);
+        IUnionToken(unionToken).permit(msg.sender, address(this), value, deadline, v, r, s);
         registerMember(newMember);
     }
 
     /**
-     *  @notice Register a a member, and burn an application fees
-     *  @dev    In order to register as a member an address must be recieving x amount
+     *  @notice Register a a member, and burn the application fee
+     *  @dev    In order to register as a member an address must be receiving x amount
      *          of vouches greater than 0 from stakers. x is defined by `effectiveCount`
      *          Emits {LogRegisterMember} event
      *  @param newMember New member address
      */
     function registerMember(address newMember) public virtual whenNotPaused {
-        if (stakers[newMember].isMember) revert NoExistingMember();
+        _validateNewMember(newMember);
 
-        uint256 count = 0;
-        uint256 vouchersLength = vouchers[newMember].length;
-
-        // Loop through all the vouchers to count how many active vouches there
-        // are that are greater than 0. Vouch is the min of stake and trust
-        for (uint256 i = 0; i < vouchersLength; i++) {
-            Vouch memory vouch = vouchers[newMember][i];
-            Staker memory staker = stakers[vouch.staker];
-            if (staker.stakedAmount > 0) count++;
-            if (count >= effectiveCount) break;
-        }
-
-        if (count < effectiveCount) revert NotEnoughStakers();
-
-        stakers[newMember].isMember = true;
         IUnionToken(unionToken).burnFrom(msg.sender, newMemberFee);
 
         emit LogRegisterMember(msg.sender, newMember);
@@ -752,7 +739,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     /**
      *  @notice Write off a borrowers debt
-     *  @dev    Used the stakers locked stake to write off the loan, transfering the
+     *  @dev    Used the stakers locked stake to write off the loan, transferring the
      *          Stake to the AssetManager and adjusting balances in the AssetManager
      *          and the UToken to repay the principal
      *  @dev    Emits {LogDebtWriteOff} event
@@ -956,13 +943,19 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *  @param pastBlocks Number of blocks since last rewards withdrawal
      *  @return effectiveStaked user's effective staked amount
      *          effectiveLocked user's effective locked amount
+     *          isMember
      */
     function getStakeInfo(address staker, uint256 pastBlocks)
         external
         view
-        returns (uint256 effectiveStaked, uint256 effectiveLocked)
+        returns (
+            uint256 effectiveStaked,
+            uint256 effectiveLocked,
+            bool isMember
+        )
     {
         (effectiveStaked, effectiveLocked, ) = _getEffectiveAmounts(staker, pastBlocks);
+        isMember = stakers[staker].isMember;
     }
 
     /**
@@ -971,10 +964,15 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @param pastBlocks The past blocks
      * @return  effectiveStaked user's total stake - frozen
      *          effectiveLocked user's locked amount - frozen
+     *          isMember
      */
     function onWithdrawRewards(address staker, uint256 pastBlocks)
         external
-        returns (uint256 effectiveStaked, uint256 effectiveLocked)
+        returns (
+            uint256 effectiveStaked,
+            uint256 effectiveLocked,
+            bool isMember
+        )
     {
         if (address(comptroller) != msg.sender) revert AuthFailed();
         uint256 memberTotalFrozen = 0;
@@ -990,6 +988,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             memberFrozen[staker] = memberTotalFrozen;
             totalFrozen = totalFrozen - memberFrozenBefore + memberTotalFrozen;
         }
+
+        isMember = stakers[staker].isMember;
     }
 
     /**
@@ -1040,6 +1040,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
     }
 
+    function globalTotalStaked() external view returns (uint256 globalTotal) {
+        globalTotal = totalStaked - totalFrozen;
+        if (globalTotal < 1e18) {
+            globalTotal = 1e18;
+        }
+    }
+
     /* -------------------------------------------------------------------
        Internal Functions 
     ------------------------------------------------------------------- */
@@ -1077,5 +1084,27 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         });
 
         return coinAge;
+    }
+
+    function _validateNewMember(address newMember) internal {
+        if (stakers[newMember].isMember) revert NoExistingMember();
+
+        uint256 count = 0;
+        uint256 vouchersLength = vouchers[newMember].length;
+        Vouch memory vouch;
+        Staker memory staker;
+
+        // Loop through all the vouchers to count how many active vouches there
+        // are that are greater than 0. Vouch is the min of stake and trust
+        for (uint256 i = 0; i < vouchersLength; i++) {
+            vouch = vouchers[newMember][i];
+            staker = stakers[vouch.staker];
+            if (staker.stakedAmount > 0) count++;
+            if (count >= effectiveCount) break;
+        }
+
+        if (count < effectiveCount) revert NotEnoughStakers();
+
+        stakers[newMember].isMember = true;
     }
 }
