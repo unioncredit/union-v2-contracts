@@ -85,7 +85,7 @@ task("deploy:op", "Deploy Union V2 on Optimism")
         const opOwner = await deployContract<OpOwner>(
             new OpOwner__factory(deployer),
             "opOwner",
-            [config.addresses.opOwner, config.addresses.opL2CrossDomainMessenger],
+            [config.addresses.opAdmin, config.addresses.opOwner, config.addresses.opL2CrossDomainMessenger],
             true,
             waitForBlocks
         );
