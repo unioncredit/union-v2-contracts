@@ -651,36 +651,20 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         bytes32 r,
         bytes32 s
     ) external whenNotPaused {
-        IUnionToken unionTokenContract = IUnionToken(unionToken);
-        unionTokenContract.permit(msg.sender, address(this), value, deadline, v, r, s);
+        IUnionToken(unionToken).permit(msg.sender, address(this), value, deadline, v, r, s);
         registerMember(newMember);
     }
 
     /**
-     *  @notice Register a a member, and burn an application fees
+     *  @notice Register a a member, and burn the application fee
      *  @dev    In order to register as a member an address must be receiving x amount
      *          of vouches greater than 0 from stakers. x is defined by `effectiveCount`
      *          Emits {LogRegisterMember} event
      *  @param newMember New member address
      */
     function registerMember(address newMember) public virtual whenNotPaused {
-        if (stakers[newMember].isMember) revert NoExistingMember();
+        _validateNewMember(newMember);
 
-        uint256 count = 0;
-        uint256 vouchersLength = vouchers[newMember].length;
-
-        // Loop through all the vouchers to count how many active vouches there
-        // are that are greater than 0. Vouch is the min of stake and trust
-        for (uint256 i = 0; i < vouchersLength; i++) {
-            Vouch memory vouch = vouchers[newMember][i];
-            Staker memory staker = stakers[vouch.staker];
-            if (staker.stakedAmount > 0) count++;
-            if (count >= effectiveCount) break;
-        }
-
-        if (count < effectiveCount) revert NotEnoughStakers();
-
-        stakers[newMember].isMember = true;
         IUnionToken(unionToken).burnFrom(msg.sender, newMemberFee);
 
         emit LogRegisterMember(msg.sender, newMember);
@@ -1100,5 +1084,27 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         });
 
         return coinAge;
+    }
+
+    function _validateNewMember(address newMember) internal {
+        if (stakers[newMember].isMember) revert NoExistingMember();
+
+        uint256 count = 0;
+        uint256 vouchersLength = vouchers[newMember].length;
+        Vouch memory vouch;
+        Staker memory staker;
+
+        // Loop through all the vouchers to count how many active vouches there
+        // are that are greater than 0. Vouch is the min of stake and trust
+        for (uint256 i = 0; i < vouchersLength; i++) {
+            vouch = vouchers[newMember][i];
+            staker = stakers[vouch.staker];
+            if (staker.stakedAmount > 0) count++;
+            if (count >= effectiveCount) break;
+        }
+
+        if (count < effectiveCount) revert NotEnoughStakers();
+
+        stakers[newMember].isMember = true;
     }
 }
