@@ -53,6 +53,9 @@ export interface Addresses {
     };
     opL2Bridge?: string;
     opL1Bridge?: string;
+    opL2CrossDomainMessenger?: string;
+    opOwner?: string;
+    opAdmin?: string;
     opUnion?: string;
 }
 

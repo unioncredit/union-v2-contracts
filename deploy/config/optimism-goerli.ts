@@ -10,5 +10,4 @@ export default {
         opAdmin: "0x7a0C61EdD8b5c0c5C1437AEb571d7DDbF8022Be4" //use l2 multi-sig address
     },
     admin: "0x5eFD403912661A984B810814Ba366Aa633777353" //use l2 OpOwner address
-    }
 } as DeployConfig;
