@@ -8,3 +8,7 @@ node_modules/
 .openzeppelin
 typechain-types/
 coverage/
+docs
+.env
+.envrc
+dist

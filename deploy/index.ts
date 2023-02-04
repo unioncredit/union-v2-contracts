@@ -53,6 +53,9 @@ export interface Addresses {
     };
     opL2Bridge?: string;
     opL1Bridge?: string;
+    opL2CrossDomainMessenger?: string;
+    opOwner?: string;
+    opAdmin?: string;
     opUnion?: string;
 }
 
@@ -208,7 +211,7 @@ export default async function (
         );
         userManager = UserManagerERC20__factory.connect(proxy.address, signer);
         const tx = await marketRegistry.setUserManager(dai.address, userManager.address);
-        await tx.wait();
+        await tx.wait(waitForBlocks);
     }
 
     // deploy fixedInterestRateModel
@@ -257,16 +260,21 @@ export default async function (
             debug
         );
         uToken = UErc20__factory.connect(proxy.address, signer);
+
         let tx = await userManager.setUToken(uToken.address);
-        await tx.wait();
+        await tx.wait(waitForBlocks);
+
         tx = await marketRegistry.setUToken(dai.address, uToken.address);
-        await tx.wait();
+        await tx.wait(waitForBlocks);
+
         tx = await uToken.setUserManager(userManager.address);
-        await tx.wait();
+        await tx.wait(waitForBlocks);
+
         tx = await uToken.setAssetManager(assetManager.address);
-        await tx.wait();
+        await tx.wait(waitForBlocks);
+
         tx = await uToken.setInterestRateModel(fixedInterestRateModel.address);
-        await tx.wait();
+        await tx.wait(waitForBlocks);
     }
 
     // deploy pure token
@@ -309,13 +317,14 @@ export default async function (
     if (!config.addresses.assetManager) {
         // Add pure token adapter to assetManager
         let tx = await assetManager.addToken(dai.address);
-        await tx.wait();
+        await tx.wait(waitForBlocks);
+
         tx = await assetManager.addAdapter(pureToken.address);
-        await tx.wait();
+        await tx.wait(waitForBlocks);
 
         if (aaveV3Adapter?.address) {
             tx = await assetManager.addAdapter(aaveV3Adapter.address);
-            await tx.wait();
+            await tx.wait(waitForBlocks);
         }
     }
 
