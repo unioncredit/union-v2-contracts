@@ -118,14 +118,13 @@ export default async function (
             new MarketRegistry__factory(signer),
             "MarketRegistry",
             {
-                signature: "__MarketRegistry_init()",
+                signature: "__MarketRegistry_init(address)",
                 args: [config.admin]
             },
             debug
         );
         marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
     }
-
     // deploy UNION
     const unionTokenAddress = config.addresses.unionToken || config.addresses.opUnion;
     let unionToken: IUnionToken | FaucetERC20_ERC20Permit;
@@ -140,7 +139,6 @@ export default async function (
             waitForBlocks
         );
     }
-
     // deploy DAI
     let dai: IDai | FaucetERC20_ERC20Permit;
     if (config.addresses.dai) {
@@ -154,14 +152,13 @@ export default async function (
             waitForBlocks
         );
     }
-
     // deploy comptroller
     let comptroller: Comptroller;
     if (config.addresses.comptroller) {
         comptroller = Comptroller__factory.connect(config.addresses.comptroller, signer);
     } else {
         const {proxy} = await deployProxy<Comptroller>(new Comptroller__factory(signer), "Comptroller", {
-            signature: "__Comptroller_init(address,address,uint256)",
+            signature: "__Comptroller_init(address,address,address,uint256)",
             args: [config.admin, unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint]
         });
         comptroller = Comptroller__factory.connect(proxy.address, signer);
@@ -176,7 +173,7 @@ export default async function (
             new AssetManager__factory(signer),
             "AssetManager",
             {
-                signature: "__AssetManager_init(address)",
+                signature: "__AssetManager_init(address,address)",
                 args: [config.admin, marketRegistry.address]
             },
             debug
@@ -286,7 +283,7 @@ export default async function (
             new PureTokenAdapter__factory(signer),
             "PureTokenAdapter",
             {
-                signature: "__PureTokenAdapter_init(address)",
+                signature: "__PureTokenAdapter_init(address,address)",
                 args: [config.admin, assetManager.address]
             },
             debug
@@ -305,7 +302,7 @@ export default async function (
                 new AaveV3Adapter__factory(signer),
                 "AaveV3Adapter",
                 {
-                    signature: "__AaveV3Adapter_init(address,address,address)",
+                    signature: "__AaveV3Adapter_init(address,address,address,address)",
                     args: [
                         config.admin,
                         assetManager.address,

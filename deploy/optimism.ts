@@ -165,7 +165,7 @@ export default async function (
             new MarketRegistry__factory(signer),
             "MarketRegistry",
             {
-                signature: "__MarketRegistry_init()",
+                signature: "__MarketRegistry_init(address)",
                 args: [opOwner.address]
             },
             debug
@@ -179,7 +179,7 @@ export default async function (
         comptroller = Comptroller__factory.connect(config.addresses.comptroller, signer);
     } else {
         const {proxy} = await deployProxy<Comptroller>(new Comptroller__factory(signer), "Comptroller", {
-            signature: "__Comptroller_init(address,address,uint256)",
+            signature: "__Comptroller_init(address,address,address,uint256)",
             args: [opOwner.address, opUnion.address, marketRegistry.address, config.comptroller.halfDecayPoint]
         });
         comptroller = Comptroller__factory.connect(proxy.address, signer);
@@ -194,7 +194,7 @@ export default async function (
             new AssetManager__factory(signer),
             "AssetManager",
             {
-                signature: "__AssetManager_init(address)",
+                signature: "__AssetManager_init(address,address)",
                 args: [opOwner.address, marketRegistry.address]
             },
             debug
@@ -306,7 +306,7 @@ export default async function (
             new PureTokenAdapter__factory(signer),
             "PureTokenAdapter",
             {
-                signature: "__PureTokenAdapter_init(address)",
+                signature: "__PureTokenAdapter_init(address,address)",
                 args: [opOwner.address, assetManager.address]
             },
             debug
@@ -325,7 +325,7 @@ export default async function (
                 new AaveV3Adapter__factory(signer),
                 "AaveV3Adapter",
                 {
-                    signature: "__AaveV3Adapter_init(address,address,address)",
+                    signature: "__AaveV3Adapter_init(address,address,address,address)",
                     args: [
                         opOwner.address,
                         assetManager.address,
