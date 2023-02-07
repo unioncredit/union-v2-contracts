@@ -4,8 +4,12 @@ import {
     AssetManager__factory,
     Comptroller,
     Comptroller__factory,
-    UserManagerERC20,
-    UserManagerERC20__factory,
+    UserManagerOp,
+    UserManagerOp__factory,
+    OpUNION,
+    OpUNION__factory,
+    OpOwner,
+    OpOwner__factory,
     UToken,
     UToken__factory,
     UDai,
@@ -33,7 +37,6 @@ import {deployProxy, deployContract} from "./helpers";
 export interface Addresses {
     userManager?: string;
     uToken?: string;
-    unionToken?: string;
     dai?: string;
     marketRegistry?: string;
     fixedRateInterestModel?: string;
@@ -51,6 +54,7 @@ export interface Addresses {
         dai?: string;
         union?: string;
     };
+    unionToken?: string;
     opL2Bridge?: string;
     opL1Bridge?: string;
     opL2CrossDomainMessenger?: string;
@@ -88,15 +92,16 @@ export interface DeployConfig {
     };
 }
 
-export interface Contracts {
-    userManager: UserManagerERC20;
+export interface OpContracts {
+    userManager: UserManagerOp;
+    opUnion?: OpUNION;
+    opOwner?: OpOwner;
     uToken: UErc20;
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
     assetManager: AssetManager;
     dai: IDai | FaucetERC20_ERC20Permit;
     marketRegistry: MarketRegistry;
-    unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
         pureToken: PureTokenAdapter;
         aaveV3Adapter?: AaveV3Adapter;
@@ -108,34 +113,30 @@ export default async function (
     signer: Signer,
     debug = false,
     waitForBlocks: number | undefined = undefined
-): Promise<Contracts> {
-    // deploy market registry
-    let marketRegistry: MarketRegistry;
-    if (config.addresses.marketRegistry) {
-        marketRegistry = MarketRegistry__factory.connect(config.addresses.marketRegistry, signer);
+): Promise<OpContracts> {
+    // deploy opUnion
+    let opUnion: OpUNION;
+    if (config.addresses.opUnion) {
+        opUnion = OpUNION__factory.connect(config.addresses.opUnion, signer);
     } else {
-        const {proxy} = await deployProxy<MarketRegistry>(
-            new MarketRegistry__factory(signer),
-            "MarketRegistry",
-            {
-                signature: "__MarketRegistry_init()",
-                args: [config.admin]
-            },
-            debug
+        opUnion = await deployContract<OpUNION>(
+            new OpUNION__factory(signer),
+            "OpUNION",
+            [config.addresses.opL2Bridge, config.addresses.unionToken],
+            debug,
+            waitForBlocks
         );
-        marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
     }
 
-    // deploy UNION
-    const unionTokenAddress = config.addresses.unionToken || config.addresses.opUnion;
-    let unionToken: IUnionToken | FaucetERC20_ERC20Permit;
-    if (unionTokenAddress) {
-        unionToken = IUnionToken__factory.connect(unionTokenAddress, signer);
+    // deploy opOwner
+    let opOwner: OpOwner;
+    if (config.addresses.opOwner) {
+        opOwner = OpOwner__factory.connect(config.addresses.opOwner, signer);
     } else {
-        unionToken = await deployContract<FaucetERC20_ERC20Permit>(
-            new FaucetERC20_ERC20Permit__factory(signer),
-            "UnionToken",
-            ["Union Token", "UNION"],
+        opOwner = await deployContract<OpOwner>(
+            new OpOwner__factory(signer),
+            "OpOwner",
+            [config.addresses.opAdmin, config.addresses.opOwner, config.addresses.opL2CrossDomainMessenger],
             debug,
             waitForBlocks
         );
@@ -155,6 +156,23 @@ export default async function (
         );
     }
 
+    // deploy market registry
+    let marketRegistry: MarketRegistry;
+    if (config.addresses.marketRegistry) {
+        marketRegistry = MarketRegistry__factory.connect(config.addresses.marketRegistry, signer);
+    } else {
+        const {proxy} = await deployProxy<MarketRegistry>(
+            new MarketRegistry__factory(signer),
+            "MarketRegistry",
+            {
+                signature: "__MarketRegistry_init()",
+                args: [opOwner.address]
+            },
+            debug
+        );
+        marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
+    }
+
     // deploy comptroller
     let comptroller: Comptroller;
     if (config.addresses.comptroller) {
@@ -162,7 +180,7 @@ export default async function (
     } else {
         const {proxy} = await deployProxy<Comptroller>(new Comptroller__factory(signer), "Comptroller", {
             signature: "__Comptroller_init(address,address,uint256)",
-            args: [config.admin, unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint]
+            args: [opOwner.address, opUnion.address, marketRegistry.address, config.comptroller.halfDecayPoint]
         });
         comptroller = Comptroller__factory.connect(proxy.address, signer);
     }
@@ -177,7 +195,7 @@ export default async function (
             "AssetManager",
             {
                 signature: "__AssetManager_init(address)",
-                args: [config.admin, marketRegistry.address]
+                args: [opOwner.address, marketRegistry.address]
             },
             debug
         );
@@ -185,22 +203,22 @@ export default async function (
     }
 
     // deploy user manager
-    let userManager: UserManagerERC20;
+    let userManager: UserManagerOp;
     if (config.addresses.userManager) {
-        userManager = UserManagerERC20__factory.connect(config.addresses.userManager, signer);
+        userManager = UserManagerOp__factory.connect(config.addresses.userManager, signer);
     } else {
-        const {proxy} = await deployProxy<UserManagerERC20>(
-            new UserManagerERC20__factory(signer),
-            "UserManagerERC20",
+        const {proxy} = await deployProxy<UserManagerOp>(
+            new UserManagerOp__factory(signer),
+            "UserManagerOp",
             {
                 signature:
                     "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
                 args: [
                     assetManager.address,
-                    unionToken.address,
+                    opUnion.address,
                     dai.address,
                     comptroller.address,
-                    config.admin,
+                    opOwner.address,
                     config.userManager.maxOverdue,
                     config.userManager.effectiveCount,
                     config.userManager.maxVouchers,
@@ -209,7 +227,7 @@ export default async function (
             },
             debug
         );
-        userManager = UserManagerERC20__factory.connect(proxy.address, signer);
+        userManager = UserManagerOp__factory.connect(proxy.address, signer);
         const tx = await marketRegistry.setUserManager(dai.address, userManager.address);
         await tx.wait(waitForBlocks);
     }
@@ -229,6 +247,8 @@ export default async function (
             debug,
             waitForBlocks
         );
+        let tx = await fixedInterestRateModel.transferOwnership(opOwner.address);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy uToken
@@ -254,7 +274,7 @@ export default async function (
                     config.uToken.maxBorrow,
                     config.uToken.minBorrow,
                     config.uToken.overdueBlocks,
-                    config.admin
+                    opOwner.address
                 ]
             },
             debug
@@ -287,7 +307,7 @@ export default async function (
             "PureTokenAdapter",
             {
                 signature: "__PureTokenAdapter_init(address)",
-                args: [config.admin, assetManager.address]
+                args: [opOwner.address, assetManager.address]
             },
             debug
         );
@@ -307,7 +327,7 @@ export default async function (
                 {
                     signature: "__AaveV3Adapter_init(address,address,address)",
                     args: [
-                        config.admin,
+                        opOwner.address,
                         assetManager.address,
                         config.addresses.aave?.lendingPool,
                         config.addresses.aave?.market
@@ -334,9 +354,10 @@ export default async function (
     }
 
     return {
+        opUnion,
+        opOwner,
         userManager,
         uToken,
-        unionToken,
         marketRegistry,
         fixedInterestRateModel,
         comptroller,

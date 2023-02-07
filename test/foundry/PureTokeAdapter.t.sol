@@ -7,13 +7,18 @@ import {Controller} from "union-v2-contracts/Controller.sol";
 contract TestPureTokenAdapter is TestWrapper {
     PureTokenAdapter public pureToken;
 
+    address public constant ADMIN = address(0);
+
     function setUp() public virtual {
         address logic = address(new PureTokenAdapter());
 
         deployMocks();
 
         pureToken = PureTokenAdapter(
-            deployProxy(logic, abi.encodeWithSignature("__PureTokenAdapter_init(address)", [address(assetManagerMock)]))
+            deployProxy(
+                logic,
+                abi.encodeWithSignature("__PureTokenAdapter_init(address,address)", [ADMIN, address(assetManagerMock)])
+            )
         );
     }
 
@@ -22,6 +27,7 @@ contract TestPureTokenAdapter is TestWrapper {
     }
 
     function testSetAssetManager(address assetManager) public {
+        vm.prank(ADMIN);
         pureToken.setAssetManager(assetManager);
         assertEq(assetManager, pureToken.assetManager());
     }
@@ -33,6 +39,7 @@ contract TestPureTokenAdapter is TestWrapper {
     }
 
     function testSetFloor(address token, uint256 amount) public {
+        vm.prank(ADMIN);
         pureToken.setFloor(token, amount);
         assertEq(pureToken.floorMap(token), amount);
     }
@@ -44,6 +51,7 @@ contract TestPureTokenAdapter is TestWrapper {
     }
 
     function testSetCeiling(address token, uint256 amount) public {
+        vm.prank(ADMIN);
         pureToken.setCeiling(token, amount);
         assertEq(pureToken.ceilingMap(token), amount);
     }
@@ -117,6 +125,7 @@ contract TestPureTokenAdapter is TestWrapper {
 
     function testClaimRewards() public {
         // nothing to assert just check this passes
+        vm.prank(ADMIN);
         pureToken.claimRewards(address(daiMock), address(0));
     }
 }

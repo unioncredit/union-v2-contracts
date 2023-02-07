@@ -33,8 +33,8 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
-    function __PureTokenAdapter_init(address _assetManager) public initializer {
-        Controller.__Controller_init(msg.sender);
+    function __PureTokenAdapter_init(address admin, address _assetManager) public initializer {
+        Controller.__Controller_init(admin);
         assetManager = _assetManager;
     }
 
@@ -168,13 +168,10 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
      * @param tokenAddress Token to withdraw
      * @param recipient Recieved by
      */
-    function withdrawAll(address tokenAddress, address recipient)
-        external
-        override
-        onlyAssetManager
-        checkTokenSupported(tokenAddress)
-        returns (bool)
-    {
+    function withdrawAll(
+        address tokenAddress,
+        address recipient
+    ) external override onlyAssetManager checkTokenSupported(tokenAddress) returns (bool) {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.safeTransfer(recipient, token.balanceOf(address(this)));
         return true;
