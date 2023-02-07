@@ -58,8 +58,8 @@ export interface Addresses {
     opL2Bridge?: string;
     opL1Bridge?: string;
     opL2CrossDomainMessenger?: string;
-    opOwner?: string;
-    opAdmin?: string;
+    opOwnerAddress?: string;
+    opAdminAddress?: string;
     opUnion?: string;
 }
 
@@ -136,7 +136,11 @@ export default async function (
         opOwner = await deployContract<OpOwner>(
             new OpOwner__factory(signer),
             "OpOwner",
-            [config.addresses.opAdmin, config.addresses.opOwner, config.addresses.opL2CrossDomainMessenger],
+            [
+                config.addresses.opAdminAddress,
+                config.addresses.opOwnerAddress,
+                config.addresses.opL2CrossDomainMessenger
+            ],
             debug,
             waitForBlocks
         );
@@ -178,10 +182,15 @@ export default async function (
     if (config.addresses.comptroller) {
         comptroller = Comptroller__factory.connect(config.addresses.comptroller, signer);
     } else {
-        const {proxy} = await deployProxy<Comptroller>(new Comptroller__factory(signer), "Comptroller", {
-            signature: "__Comptroller_init(address,address,address,uint256)",
-            args: [opOwner.address, opUnion.address, marketRegistry.address, config.comptroller.halfDecayPoint]
-        });
+        const {proxy} = await deployProxy<Comptroller>(
+            new Comptroller__factory(signer),
+            "Comptroller",
+            {
+                signature: "__Comptroller_init(address,address,address,uint256)",
+                args: [opOwner.address, opUnion.address, marketRegistry.address, config.comptroller.halfDecayPoint]
+            },
+            debug
+        );
         comptroller = Comptroller__factory.connect(proxy.address, signer);
     }
 
