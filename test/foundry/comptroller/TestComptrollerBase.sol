@@ -21,6 +21,8 @@ contract TestComptrollerBase is TestWrapper {
     Comptroller public comptroller;
     ComptrollerInternals public comptrollerInternals;
 
+    address public constant ADMIN = address(0);
+
     uint256 public halfDecayPoint = 1000000;
 
     function setUp() public virtual {
@@ -32,7 +34,8 @@ contract TestComptrollerBase is TestWrapper {
             deployProxy(
                 logic,
                 abi.encodeWithSignature(
-                    "__Comptroller_init(address,address,uint256)",
+                    "__Comptroller_init(address,address,address,uint256)",
+                    ADMIN,
                     unionTokenMock,
                     marketRegistryMock,
                     halfDecayPoint
@@ -48,7 +51,8 @@ contract TestComptrollerBase is TestWrapper {
             deployProxy(
                 logic,
                 abi.encodeWithSignature(
-                    "__Comptroller_init(address,address,uint256)",
+                    "__Comptroller_init(address,address,address,uint256)",
+                    ADMIN,
                     unionTokenMock,
                     marketRegistryMock,
                     halfDecayPoint

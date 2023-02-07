@@ -11,11 +11,13 @@ contract TestDepositWithdraw is TestAssetManagerBase {
     function setUp() public override {
         super.setUp();
         adapterMock2 = new AdapterMock();
+        vm.startPrank(ADMIN);
         adapterMock.setFloor(address(daiMock), daiAmount);
         adapterMock2.setFloor(address(daiMock), daiAmount);
         assetManager.addAdapter(address(adapterMock));
         assetManager.addAdapter(address(adapterMock2));
         assetManager.addToken(address(daiMock));
+        vm.stopPrank();
         daiMock.mint(address(this), daiAmount);
         daiMock.approve(address(assetManager), daiAmount);
     }
@@ -27,6 +29,7 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testCannotSetWithdrawSequenceNotParity(uint256[] calldata newSeq) public {
         vm.assume(newSeq.length != 2);
+        vm.prank(ADMIN);
         vm.expectRevert(AssetManager.NotParity.selector);
         assetManager.setWithdrawSequence(newSeq);
     }
@@ -35,6 +38,7 @@ contract TestDepositWithdraw is TestAssetManagerBase {
         uint256[] memory newSeq = new uint256[](2);
         newSeq[0] = 1;
         newSeq[1] = 0;
+        vm.prank(ADMIN);
         assetManager.setWithdrawSequence(newSeq);
         assertEq(assetManager.withdrawSeq(0), newSeq[0]);
         assertEq(assetManager.withdrawSeq(1), newSeq[1]);
@@ -42,7 +46,9 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testWithdrawSequence(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
+        vm.startPrank(ADMIN);
         setTokens(address(this), address(123));
+        vm.stopPrank();
 
         assetManager.deposit(address(daiMock), amount);
         assertEq(daiMock.balanceOf(address(adapterMock)), amount);
@@ -52,6 +58,7 @@ contract TestDepositWithdraw is TestAssetManagerBase {
         uint256[] memory newSeq = new uint256[](2);
         newSeq[0] = 1;
         newSeq[1] = 0;
+        vm.prank(ADMIN);
         assetManager.setWithdrawSequence(newSeq);
 
         vm.startPrank(address(123));

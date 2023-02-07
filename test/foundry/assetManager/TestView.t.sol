@@ -32,13 +32,6 @@ contract TestView is TestAssetManagerBase {
         marketRegistryMock.setUToken(address(daiMock), b);
     }
 
-    function deposit(uint256 amount) public {
-        assetManager.addToken(address(daiMock));
-        daiMock.mint(address(this), amount);
-        daiMock.approve(address(assetManager), amount);
-        assetManager.deposit(address(daiMock), amount);
-    }
-
     function testGetPoolBalance(uint256 amount) public {
         daiMock.mint(address(assetManager), amount);
         assertEq(amount, assetManager.getPoolBalance(address(daiMock)));
@@ -65,9 +58,12 @@ contract TestView is TestAssetManagerBase {
         daiMock.mint(address(assetManager), amount);
         vm.startPrank(ADMIN);
         setTokens(address(this), address(this));
-        deposit(amount);
-        assertEq(assetManager.getLoanableAmount(address(daiMock)), amount * 2);
+        assetManager.addToken(address(daiMock));
         vm.stopPrank();
+        daiMock.mint(address(this), amount);
+        daiMock.approve(address(assetManager), amount);
+        assetManager.deposit(address(daiMock), amount);
+        assertEq(assetManager.getLoanableAmount(address(daiMock)), amount * 2);
     }
 
     function testTotalSupply(uint256 adapterAmount) public {

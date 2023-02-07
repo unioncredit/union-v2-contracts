@@ -35,39 +35,15 @@ contract FakeUserManager {
         return totalLockedStake;
     }
 
-    function _calculateCoinAge(address, uint256)
-        public
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    function _calculateCoinAge(address, uint256) public view returns (uint256, uint256, uint256) {
         return (totalStaked, totalLockedStake, totalFrozen);
     }
 
-    function getStakeInfo(address, uint256)
-        public
-        view
-        returns (
-            uint256,
-            uint256,
-            bool
-        )
-    {
+    function getStakeInfo(address, uint256) public view returns (uint256, uint256, bool) {
         return (totalStaked, totalLockedStake, isMember);
     }
 
-    function onWithdrawRewards(address, uint256)
-        public
-        view
-        returns (
-            uint256,
-            uint256,
-            bool
-        )
-    {
+    function onWithdrawRewards(address, uint256) public view returns (uint256, uint256, bool) {
         return (frozenCoinAge, totalFrozen, isMember);
     }
 
@@ -87,6 +63,7 @@ contract FakeUserManager {
 contract TestCalculateRewards is TestComptrollerBase {
     function testGetRewardsMultiplierNonMember() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, false);
+        vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
         uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
         assertEq(multiplier, comptroller.nonMemberRatio());
@@ -94,6 +71,7 @@ contract TestCalculateRewards is TestComptrollerBase {
 
     function testGetRewardsMultiplierMember() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
+        vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
         assertEq(true, um.checkIsMember(address(this)));
         uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
@@ -102,6 +80,7 @@ contract TestCalculateRewards is TestComptrollerBase {
 
     function testCalculateRewardsByBlocks() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
+        vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
         vm.prank(address(um));
         comptroller.withdrawRewards(address(this), address(daiMock));

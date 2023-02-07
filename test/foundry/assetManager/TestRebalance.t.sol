@@ -37,16 +37,17 @@ contract TestRebalance is TestAssetManagerBase {
         uint256 amount = 100 ether;
         daiMock.mint(address(adapter0), amount);
         daiMock.mint(address(adapter1), amount);
-
+        vm.startPrank(ADMIN);
         assetManager.addAdapter(address(adapter0));
         assetManager.addAdapter(address(adapter1));
-
         assetManager.addToken(address(daiMock));
+        vm.stopPrank();
     }
 
     function testRebalance() public {
         uint256[] memory weights = new uint256[](1);
         weights[0] = 7000;
+        vm.prank(ADMIN);
         assetManager.rebalance(address(daiMock), weights);
 
         uint256 balance0 = daiMock.balanceOf(address(adapter0));
@@ -59,6 +60,7 @@ contract TestRebalance is TestAssetManagerBase {
     function testRebalance5050() public {
         uint256[] memory weights = new uint256[](1);
         weights[0] = 5000;
+        vm.prank(ADMIN);
         assetManager.rebalance(address(daiMock), weights);
 
         uint256 balance0 = daiMock.balanceOf(address(adapter0));
@@ -71,6 +73,7 @@ contract TestRebalance is TestAssetManagerBase {
     function testCannotRebalanceUnsupported() public {
         uint256[] memory weights = new uint256[](1);
         weights[0] = 7000;
+        vm.prank(ADMIN);
         vm.expectRevert(AssetManager.UnsupportedToken.selector);
         assetManager.rebalance(address(1), weights);
     }

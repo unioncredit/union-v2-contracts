@@ -35,27 +35,11 @@ contract FakeUserManager {
         return totalLockedStake;
     }
 
-    function getStakeInfo(address, uint256)
-        public
-        view
-        returns (
-            uint256,
-            uint256,
-            bool
-        )
-    {
+    function getStakeInfo(address, uint256) public view returns (uint256, uint256, bool) {
         return (totalStaked, totalLockedStake, isMember);
     }
 
-    function onWithdrawRewards(address, uint256)
-        public
-        view
-        returns (
-            uint256,
-            uint256,
-            bool
-        )
-    {
+    function onWithdrawRewards(address, uint256) public view returns (uint256, uint256, bool) {
         return (totalStaked, totalLockedStake, isMember);
     }
 
@@ -79,6 +63,7 @@ contract TestWithdrawRewards is TestComptrollerBase {
 
     function testWithdrawRewards() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, false);
+        vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
         uint256 balanceBefore = unionTokenMock.balanceOf(address(this));
 
