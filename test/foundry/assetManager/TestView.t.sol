@@ -32,13 +32,6 @@ contract TestView is TestAssetManagerBase {
         marketRegistryMock.setUToken(address(daiMock), b);
     }
 
-    function deposit(uint256 amount) public {
-        assetManager.addToken(address(daiMock));
-        daiMock.mint(address(this), amount);
-        daiMock.approve(address(assetManager), amount);
-        assetManager.deposit(address(daiMock), amount);
-    }
-
     function testGetPoolBalance(uint256 amount) public {
         daiMock.mint(address(assetManager), amount);
         assertEq(amount, assetManager.getPoolBalance(address(daiMock)));
@@ -47,9 +40,11 @@ contract TestView is TestAssetManagerBase {
     function testGetPoolBalanceSupportedMarket(uint256 adapterAmount, uint256 mintAmount) public {
         vm.assume(adapterAmount <= 1000 ether && mintAmount <= 1000 ether);
         FakeAdapter fakeAdapter = new FakeAdapter(adapterAmount);
+        vm.startPrank(ADMIN);
         assetManager.addAdapter(address(fakeAdapter));
         assetManager.addToken(address(daiMock));
         daiMock.mint(address(assetManager), mintAmount);
+        vm.stopPrank();
         assertEq(mintAmount + adapterAmount, assetManager.getPoolBalance(address(daiMock)));
     }
 
@@ -61,29 +56,39 @@ contract TestView is TestAssetManagerBase {
     function testGetLoanableAmountWithPrincipal(uint256 amount) public {
         vm.assume(amount > 0 && amount <= 1000000 ether);
         daiMock.mint(address(assetManager), amount);
+        vm.startPrank(ADMIN);
         setTokens(address(this), address(this));
-        deposit(amount);
+        assetManager.addToken(address(daiMock));
+        vm.stopPrank();
+        daiMock.mint(address(this), amount);
+        daiMock.approve(address(assetManager), amount);
+        assetManager.deposit(address(daiMock), amount);
         assertEq(assetManager.getLoanableAmount(address(daiMock)), amount * 2);
     }
 
     function testTotalSupply(uint256 adapterAmount) public {
         vm.assume(adapterAmount <= 1000 ether);
         FakeAdapter fakeAdapter = new FakeAdapter(adapterAmount);
+        vm.startPrank(ADMIN);
         assetManager.addAdapter(address(fakeAdapter));
         assetManager.addToken(address(daiMock));
+        vm.stopPrank();
         assertEq(adapterAmount, assetManager.totalSupply(address(daiMock)));
     }
 
     function testTotalSupplyView(uint256 adapterAmount) public {
         vm.assume(adapterAmount <= 1000 ether);
         FakeAdapter fakeAdapter = new FakeAdapter(adapterAmount);
+        vm.startPrank(ADMIN);
         assetManager.addAdapter(address(fakeAdapter));
         assetManager.addToken(address(daiMock));
+        vm.stopPrank();
         assertEq(adapterAmount, assetManager.totalSupplyView(address(daiMock)));
     }
 
     function testIsMarketSupported() public {
         assert(!assetManager.isMarketSupported(address(daiMock)));
+        vm.prank(ADMIN);
         assetManager.addToken(address(daiMock));
         assert(assetManager.isMarketSupported(address(daiMock)));
     }
@@ -91,12 +96,14 @@ contract TestView is TestAssetManagerBase {
     function testMoneyMarketsCount() public {
         assertEq(assetManager.moneyMarketsCount(), 0);
         FakeAdapter fakeAdapter = new FakeAdapter(0);
+        vm.prank(ADMIN);
         assetManager.addAdapter(address(fakeAdapter));
         assertEq(assetManager.moneyMarketsCount(), 1);
     }
 
     function testSupportedTokensCount() public {
         assertEq(assetManager.supportedTokensCount(), 0);
+        vm.prank(ADMIN);
         assetManager.addToken(address(daiMock));
         assertEq(assetManager.supportedTokensCount(), 1);
     }

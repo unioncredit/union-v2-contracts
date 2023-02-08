@@ -65,11 +65,12 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
     ------------------------------------------------------------------- */
 
     function __AaveV3Adapter_init(
+        address admin,
         address _assetManager,
         LendingPool3 _lendingPool,
         AMarket3 _market
     ) public initializer {
-        Controller.__Controller_init(msg.sender);
+        Controller.__Controller_init(admin);
         assetManager = _assetManager;
         lendingPool = _lendingPool;
         market = _market;
@@ -201,13 +202,9 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
      * @dev Deposit tokens into the underlying Aave V3 lending pool
      * @param tokenAddress Token address
      */
-    function deposit(address tokenAddress)
-        external
-        override
-        onlyAssetManager
-        checkTokenSupported(tokenAddress)
-        returns (bool)
-    {
+    function deposit(
+        address tokenAddress
+    ) external override onlyAssetManager checkTokenSupported(tokenAddress) returns (bool) {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         uint256 amount = token.balanceOf(address(this));
         try lendingPool.supply(tokenAddress, amount, address(this), 0) {
@@ -247,13 +244,10 @@ contract AaveV3Adapter is Controller, IMoneyMarketAdapter {
      * @param tokenAddress Token to withdraw
      * @param recipient Received by
      */
-    function withdrawAll(address tokenAddress, address recipient)
-        external
-        override
-        onlyAssetManager
-        checkTokenSupported(tokenAddress)
-        returns (bool)
-    {
+    function withdrawAll(
+        address tokenAddress,
+        address recipient
+    ) external override onlyAssetManager checkTokenSupported(tokenAddress) returns (bool) {
         if (_checkBal(tokenAddress)) {
             try lendingPool.withdraw(tokenAddress, type(uint256).max, recipient) {
                 return true;

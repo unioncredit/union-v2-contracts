@@ -13,17 +13,22 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         super.setUp();
         address logic = address(new PureTokenAdapter());
         pureToken = PureTokenAdapter(
-            deployProxy(logic, abi.encodeWithSignature("__PureTokenAdapter_init(address)", [address(assetManagerMock)]))
+            deployProxy(
+                logic,
+                abi.encodeWithSignature("__PureTokenAdapter_init(address,address)", [ADMIN, address(assetManagerMock)])
+            )
         );
     }
 
     function testSetMarketRegistry() public {
         assert(assetManager.marketRegistry() != address(123));
+        vm.prank(ADMIN);
         assetManager.setMarketRegistry(address(123));
         assertEq(assetManager.marketRegistry(), address(123));
     }
 
     function testAddToken(address token) public {
+        vm.prank(ADMIN);
         assetManager.addToken(token);
         assert(assetManager.isMarketSupported(token));
     }
@@ -35,13 +40,16 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     }
 
     function testCannotAddTokenAlreadyExists(address token) public {
+        vm.prank(ADMIN);
         assetManager.addToken(token);
         assert(assetManager.isMarketSupported(token));
         vm.expectRevert(AssetManager.TokenExists.selector);
+        vm.prank(ADMIN);
         assetManager.addToken(token);
     }
 
     function testRemoveToken(address token) public {
+        vm.startPrank(ADMIN);
         assetManager.addToken(token);
         assert(assetManager.isMarketSupported(token));
         assertEq(assetManager.supportedTokensList(0), token);
@@ -49,17 +57,21 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         assert(!assetManager.isMarketSupported(token));
         vm.expectRevert();
         assetManager.supportedTokensList(0);
+        vm.stopPrank();
     }
 
     function testCannotRemoveTokenWhenRemainingFunds() public {
+        vm.startPrank(ADMIN);
         assetManager.addToken(address(daiMock));
         assetManager.addAdapter(address(pureToken));
         daiMock.mint(address(pureToken), 10000);
         vm.expectRevert(AssetManager.RemainingFunds.selector);
         assetManager.removeToken(address(daiMock));
+        vm.stopPrank();
     }
 
     function testCannotRemoveTokenNonAdmin(address token) public {
+        vm.prank(ADMIN);
         assetManager.addToken(token);
         assert(assetManager.isMarketSupported(token));
         vm.prank(address(123));
@@ -68,15 +80,18 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     }
 
     function testAddAdapter(address adapter) public {
+        vm.prank(ADMIN);
         assetManager.addAdapter(adapter);
         assertEq(address(assetManager.moneyMarkets(0)), adapter);
     }
 
     function testAddAdapterTwice(address adapter) public {
+        vm.startPrank(ADMIN);
         assetManager.addAdapter(adapter);
         assertEq(address(assetManager.moneyMarkets(0)), adapter);
         assetManager.addAdapter(adapter);
         assertEq(address(assetManager.moneyMarkets(0)), adapter);
+        vm.stopPrank();
     }
 
     function testCannotAddAdapterNonAdmin(address adapter) public {
@@ -86,6 +101,7 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     }
 
     function testRemoveAdapter(address adapter) public {
+        vm.startPrank(ADMIN);
         assetManager.addAdapter(adapter);
         assertEq(address(assetManager.moneyMarkets(0)), adapter);
         assertEq(assetManager.withdrawSeq(0), 0);
@@ -94,9 +110,11 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         assetManager.moneyMarkets(0);
         vm.expectRevert();
         assetManager.withdrawSeq(0);
+        vm.stopPrank();
     }
 
     function testCannotRemoveAdapterNonAdmin(address adapter) public {
+        vm.prank(ADMIN);
         assetManager.addAdapter(adapter);
         assertEq(address(assetManager.moneyMarkets(0)), adapter);
         vm.prank(address(123));
@@ -105,35 +123,43 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     }
 
     function testCannotRemoveAdapterWhenRemainingFunds() public {
+        vm.startPrank(ADMIN);
         assetManager.addToken(address(daiMock));
         assetManager.addAdapter(address(pureToken));
         daiMock.mint(address(pureToken), 10000);
         vm.expectRevert(AssetManager.RemainingFunds.selector);
         assetManager.removeAdapter(address(pureToken));
+        vm.stopPrank();
     }
 
     function testGetMoneyMarket(uint256 _rate) public {
+        vm.startPrank(ADMIN);
         assetManager.addAdapter(address(adapterMock));
         adapterMock.setRate(_rate);
         daiMock.mint(address(adapterMock), daiAmount);
         (uint256 rate, uint256 tokenSupply) = assetManager.getMoneyMarket(address(daiMock), 0);
         assertEq(tokenSupply, daiAmount);
         assertEq(rate, _rate);
+        vm.stopPrank();
     }
 
     function testRemoveTokenApprovals() public {
+        vm.startPrank(ADMIN);
         assetManager.addAdapter(address(adapterMock));
         assetManager.addToken(address(daiMock));
         assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), type(uint256).max);
         assetManager.removeAdapter(address(adapterMock));
         assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), 0);
+        vm.stopPrank();
     }
 
     function testRemoveMarketsApprovals() public {
+        vm.startPrank(ADMIN);
         assetManager.addAdapter(address(adapterMock));
         assetManager.addToken(address(daiMock));
         assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), type(uint256).max);
         assetManager.removeToken(address(daiMock));
         assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), 0);
+        vm.stopPrank();
     }
 }

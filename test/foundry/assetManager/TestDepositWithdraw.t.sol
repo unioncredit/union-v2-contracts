@@ -11,8 +11,10 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
         daiMock.mint(address(this), daiAmount);
         daiMock.approve(address(assetManager), daiAmount);
+        vm.startPrank(ADMIN);
         assetManager.addToken(address(daiMock));
         assetManager.addAdapter(address(adapterMock));
+        vm.stopPrank();
     }
 
     function setTokens(address a, address b) public {
@@ -22,9 +24,10 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testDeposit(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
+        vm.startPrank(ADMIN);
         adapterMock.setCeiling(address(daiMock), amount);
-
         setTokens(address(this), address(123));
+        vm.stopPrank();
         assetManager.deposit(address(daiMock), amount);
         assertEq(assetManager.totalPrincipal(address(daiMock)), amount);
         assertEq(assetManager.balances(address(this), address(daiMock)), amount);
@@ -33,9 +36,11 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testDepositWhenAdapterRevert(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
+        vm.startPrank(ADMIN);
         adapterMock.setRevert();
         adapterMock.setCeiling(address(daiMock), amount);
         setTokens(address(this), address(123));
+        vm.stopPrank();
         assetManager.deposit(address(daiMock), amount);
         assertEq(assetManager.totalPrincipal(address(daiMock)), amount);
         assertEq(assetManager.balances(address(this), address(daiMock)), amount);
@@ -44,7 +49,9 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testDepositAsUToken(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
+        vm.startPrank(ADMIN);
         setTokens(address(123), address(this));
+        vm.stopPrank();
         uint256 balBefore = daiMock.balanceOf(address(assetManager));
         assetManager.deposit(address(daiMock), amount);
         uint256 balAfter = daiMock.balanceOf(address(assetManager));
@@ -69,7 +76,9 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testWithdraw(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
+        vm.startPrank(ADMIN);
         setTokens(address(123), address(this));
+        vm.stopPrank();
         assetManager.deposit(address(daiMock), amount);
         assetManager.withdraw(address(daiMock), address(123), amount);
         assertEq(daiMock.balanceOf(address(123)), amount);
@@ -77,11 +86,12 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testWithdrawAsUToken(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
+        vm.startPrank(ADMIN);
         setTokens(address(this), address(123));
+        vm.stopPrank();
         assetManager.deposit(address(daiMock), amount);
         assetManager.withdraw(address(daiMock), address(123), amount);
         assertEq(daiMock.balanceOf(address(123)), amount);
-
         assertEq(assetManager.totalPrincipal(address(daiMock)), 0);
         assertEq(assetManager.balances(address(this), address(daiMock)), 0);
     }

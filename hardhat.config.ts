@@ -21,7 +21,8 @@ export default {
             gasPrice: 3000000000
         },
         "optimism-goerli": {
-            url: process.env.NODE_URL || ""
+            url: process.env.NODE_URL || "",
+            gasPrice: 3000000000
         }
     },
     solidity: {
@@ -31,7 +32,7 @@ export default {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 100
+                        runs: 200
                     },
                     evmVersion: "istanbul"
                 }

@@ -11,6 +11,10 @@ contract TestDebtWriteOff is TestAssetManagerBase {
 
         daiMock.mint(address(this), daiAmount);
         daiMock.approve(address(assetManager), daiAmount);
+        vm.startPrank(ADMIN);
+        marketRegistryMock.setUToken(address(daiMock), ADMIN);
+        marketRegistryMock.setUserManager(address(daiMock), ADMIN);
+        vm.stopPrank();
     }
 
     function setTokens(address a, address b) public {
@@ -26,7 +30,9 @@ contract TestDebtWriteOff is TestAssetManagerBase {
 
     function testDebtWriteOff(uint256 amount) public {
         vm.assume(amount != 0 && amount < daiAmount);
+        vm.startPrank(ADMIN);
         setTokens(address(this), address(123));
+        vm.stopPrank();
         assetManager.deposit(address(daiMock), amount);
         assertEq(assetManager.totalPrincipal(address(daiMock)), amount);
         assertEq(assetManager.balances(address(this), address(daiMock)), amount);

@@ -105,8 +105,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
-    function __AssetManager_init(address _marketRegistry) external initializer {
-        Controller.__Controller_init(msg.sender);
+    function __AssetManager_init(address admin, address _marketRegistry) external initializer {
+        Controller.__Controller_init(admin);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
         marketRegistry = _marketRegistry;
     }
@@ -238,12 +238,10 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param marketId MoneyMarkets array index
      *  @return rate tokenSupply, rate(compound is supplyRatePerBlock 1e18, aave is supplyRatePerYear 1e27)
      */
-    function getMoneyMarket(address tokenAddress, uint256 marketId)
-        external
-        view
-        override
-        returns (uint256 rate, uint256 tokenSupply)
-    {
+    function getMoneyMarket(
+        address tokenAddress,
+        uint256 marketId
+    ) external view override returns (uint256 rate, uint256 tokenSupply) {
         rate = moneyMarkets[marketId].getRate(tokenAddress);
         tokenSupply += moneyMarkets[marketId].getSupplyView(tokenAddress);
     }
@@ -259,14 +257,10 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param amount ERC20 token address
      *  @return Deposited amount
      */
-    function deposit(address token, uint256 amount)
-        external
-        override
-        whenNotPaused
-        onlyAuth(token)
-        nonReentrant
-        returns (bool)
-    {
+    function deposit(
+        address token,
+        uint256 amount
+    ) external override whenNotPaused onlyAuth(token) nonReentrant returns (bool) {
         IERC20Upgradeable poolToken = IERC20Upgradeable(token);
         if (amount == 0) revert AmountZero();
 
@@ -504,12 +498,10 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      * rebalance so that the first one has 10.5% of the tokens, the second one 55%, and the third one 34.5%, this param
      * will be [1050, 5500].
      */
-    function rebalance(address tokenAddress, uint256[] calldata percentages)
-        external
-        override
-        onlyAdmin
-        checkMarketSupported(tokenAddress)
-    {
+    function rebalance(
+        address tokenAddress,
+        uint256[] calldata percentages
+    ) external override onlyAdmin checkMarketSupported(tokenAddress) {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         uint256 moneyMarketsLength = moneyMarkets.length;
         uint256 percentagesLength = percentages.length;
@@ -553,11 +545,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
       Internal Functions 
     ------------------------------------------------------------------- */
 
-    function _checkSenderBalance(
-        address sender,
-        address tokenAddress,
-        uint256 amount
-    ) private view returns (bool) {
+    function _checkSenderBalance(address sender, address tokenAddress, uint256 amount) private view returns (bool) {
         if (_isUToken(sender, tokenAddress)) {
             // For all the lending markets, which have no deposits, return the tokens from the pool
             return getLoanableAmount(tokenAddress) >= amount;
@@ -574,11 +562,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         return IMarketRegistry(marketRegistry).userManagers(token) == sender;
     }
 
-    function _increaseAllowance(
-        IERC20Upgradeable token,
-        address spender,
-        uint256 amount
-    ) internal {
+    function _increaseAllowance(IERC20Upgradeable token, address spender, uint256 amount) internal {
         uint256 currentAllowance = token.allowance(address(this), spender);
         if (currentAllowance < amount) {
             token.safeIncreaseAllowance(spender, amount - currentAllowance);

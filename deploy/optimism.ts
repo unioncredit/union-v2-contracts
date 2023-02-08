@@ -1,11 +1,15 @@
 import {BigNumberish, Signer} from "ethers";
-
+import {formatUnits, Interface} from "ethers/lib/utils";
 import {
     AssetManager__factory,
     Comptroller,
     Comptroller__factory,
-    UserManagerERC20,
-    UserManagerERC20__factory,
+    UserManagerOp,
+    UserManagerOp__factory,
+    OpUNION,
+    OpUNION__factory,
+    OpOwner,
+    OpOwner__factory,
     UToken,
     UToken__factory,
     UDai,
@@ -33,12 +37,12 @@ import {deployProxy, deployContract} from "./helpers";
 export interface Addresses {
     userManager?: string;
     uToken?: string;
-    unionToken?: string;
     dai?: string;
     marketRegistry?: string;
     fixedRateInterestModel?: string;
     comptroller?: string;
     assetManager?: string;
+    opOwner?: string;
     adapters?: {
         aaveV3Adapter?: string;
         pureTokenAdapter?: string;
@@ -51,11 +55,12 @@ export interface Addresses {
         dai?: string;
         union?: string;
     };
+    unionToken?: string;
     opL2Bridge?: string;
     opL1Bridge?: string;
     opL2CrossDomainMessenger?: string;
-    opOwner?: string;
-    opAdmin?: string;
+    opOwnerAddress?: string;
+    opAdminAddress?: string;
     opUnion?: string;
 }
 
@@ -88,15 +93,16 @@ export interface DeployConfig {
     };
 }
 
-export interface Contracts {
-    userManager: UserManagerERC20;
+export interface OpContracts {
+    userManager: UserManagerOp;
+    opUnion?: OpUNION;
+    opOwner?: OpOwner;
     uToken: UErc20;
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
     assetManager: AssetManager;
     dai: IDai | FaucetERC20_ERC20Permit;
     marketRegistry: MarketRegistry;
-    unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
         pureToken: PureTokenAdapter;
         aaveV3Adapter?: AaveV3Adapter;
@@ -108,37 +114,35 @@ export default async function (
     signer: Signer,
     debug = false,
     waitForBlocks: number | undefined = undefined
-): Promise<Contracts> {
-    // deploy market registry
-    let marketRegistry: MarketRegistry;
-    if (config.addresses.marketRegistry) {
-        marketRegistry = MarketRegistry__factory.connect(config.addresses.marketRegistry, signer);
+): Promise<OpContracts> {
+    // deploy opUnion
+    let opUnion: OpUNION;
+    if (config.addresses.opUnion) {
+        opUnion = OpUNION__factory.connect(config.addresses.opUnion, signer);
     } else {
-        const {proxy} = await deployProxy<MarketRegistry>(
-            new MarketRegistry__factory(signer),
-            "MarketRegistry",
-            {
-                signature: "__MarketRegistry_init(address)",
-                args: [config.admin]
-            },
-            debug
-        );
-        marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
-    }
-    // deploy UNION
-    const unionTokenAddress = config.addresses.unionToken || config.addresses.opUnion;
-    let unionToken: IUnionToken | FaucetERC20_ERC20Permit;
-    if (unionTokenAddress) {
-        unionToken = IUnionToken__factory.connect(unionTokenAddress, signer);
-    } else {
-        unionToken = await deployContract<FaucetERC20_ERC20Permit>(
-            new FaucetERC20_ERC20Permit__factory(signer),
-            "UnionToken",
-            ["Union Token", "UNION"],
+        opUnion = await deployContract<OpUNION>(
+            new OpUNION__factory(signer),
+            "OpUNION",
+            [config.addresses.opL2Bridge, config.addresses.unionToken],
             debug,
             waitForBlocks
         );
     }
+
+    // deploy opOwner
+    let opOwner: OpOwner;
+    if (config.addresses.opOwner) {
+        opOwner = OpOwner__factory.connect(config.addresses.opOwner, signer);
+    } else {
+        opOwner = await deployContract<OpOwner>(
+            new OpOwner__factory(signer),
+            "OpOwner",
+            [config.admin, config.addresses.opOwnerAddress, config.addresses.opL2CrossDomainMessenger],
+            debug,
+            waitForBlocks
+        );
+    }
+
     // deploy DAI
     let dai: IDai | FaucetERC20_ERC20Permit;
     if (config.addresses.dai) {
@@ -152,15 +156,38 @@ export default async function (
             waitForBlocks
         );
     }
+
+    // deploy market registry
+    let marketRegistry: MarketRegistry;
+    if (config.addresses.marketRegistry) {
+        marketRegistry = MarketRegistry__factory.connect(config.addresses.marketRegistry, signer);
+    } else {
+        const {proxy} = await deployProxy<MarketRegistry>(
+            new MarketRegistry__factory(signer),
+            "MarketRegistry",
+            {
+                signature: "__MarketRegistry_init(address)",
+                args: [opOwner.address]
+            },
+            debug
+        );
+        marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
+    }
+
     // deploy comptroller
     let comptroller: Comptroller;
     if (config.addresses.comptroller) {
         comptroller = Comptroller__factory.connect(config.addresses.comptroller, signer);
     } else {
-        const {proxy} = await deployProxy<Comptroller>(new Comptroller__factory(signer), "Comptroller", {
-            signature: "__Comptroller_init(address,address,address,uint256)",
-            args: [config.admin, unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint]
-        });
+        const {proxy} = await deployProxy<Comptroller>(
+            new Comptroller__factory(signer),
+            "Comptroller",
+            {
+                signature: "__Comptroller_init(address,address,address,uint256)",
+                args: [opOwner.address, opUnion.address, marketRegistry.address, config.comptroller.halfDecayPoint]
+            },
+            debug
+        );
         comptroller = Comptroller__factory.connect(proxy.address, signer);
     }
 
@@ -174,7 +201,7 @@ export default async function (
             "AssetManager",
             {
                 signature: "__AssetManager_init(address,address)",
-                args: [config.admin, marketRegistry.address]
+                args: [opOwner.address, marketRegistry.address]
             },
             debug
         );
@@ -182,22 +209,22 @@ export default async function (
     }
 
     // deploy user manager
-    let userManager: UserManagerERC20;
+    let userManager: UserManagerOp;
     if (config.addresses.userManager) {
-        userManager = UserManagerERC20__factory.connect(config.addresses.userManager, signer);
+        userManager = UserManagerOp__factory.connect(config.addresses.userManager, signer);
     } else {
-        const {proxy} = await deployProxy<UserManagerERC20>(
-            new UserManagerERC20__factory(signer),
-            "UserManagerERC20",
+        const {proxy} = await deployProxy<UserManagerOp>(
+            new UserManagerOp__factory(signer),
+            "UserManagerOp",
             {
                 signature:
                     "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
                 args: [
                     assetManager.address,
-                    unionToken.address,
+                    opUnion.address,
                     dai.address,
                     comptroller.address,
-                    config.admin,
+                    opOwner.address,
                     config.userManager.maxOverdue,
                     config.userManager.effectiveCount,
                     config.userManager.maxVouchers,
@@ -206,8 +233,11 @@ export default async function (
             },
             debug
         );
-        userManager = UserManagerERC20__factory.connect(proxy.address, signer);
-        const tx = await marketRegistry.setUserManager(dai.address, userManager.address);
+        userManager = UserManagerOp__factory.connect(proxy.address, signer);
+
+        const iface = new Interface([`function setUserManager(address,address) external`]);
+        const encoded = iface.encodeFunctionData("setUserManager(address,address)", [dai.address, userManager.address]);
+        const tx = await opOwner.execute(marketRegistry.address, 0, encoded);
         await tx.wait(waitForBlocks);
     }
 
@@ -226,6 +256,8 @@ export default async function (
             debug,
             waitForBlocks
         );
+        let tx = await fixedInterestRateModel.transferOwnership(opOwner.address);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy uToken
@@ -251,26 +283,39 @@ export default async function (
                     config.uToken.maxBorrow,
                     config.uToken.minBorrow,
                     config.uToken.overdueBlocks,
-                    config.admin
+                    opOwner.address
                 ]
             },
             debug
         );
         uToken = UErc20__factory.connect(proxy.address, signer);
 
-        let tx = await userManager.setUToken(uToken.address);
+        const iface = new Interface([
+            `function setUToken(address) external`,
+            `function setUToken(address,address) external`,
+            `function setUserManager(address) external`,
+            `function setAssetManager(address) external`,
+            `function setInterestRateModel(address) external`
+        ]);
+
+        let encoded = iface.encodeFunctionData("setUToken(address)", [uToken.address]);
+        let tx = await opOwner.execute(userManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        tx = await marketRegistry.setUToken(dai.address, uToken.address);
+        encoded = iface.encodeFunctionData("setUToken(address,address)", [dai.address, uToken.address]);
+        tx = await opOwner.execute(marketRegistry.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        tx = await uToken.setUserManager(userManager.address);
+        encoded = iface.encodeFunctionData("setUserManager(address)", [userManager.address]);
+        tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        tx = await uToken.setAssetManager(assetManager.address);
+        encoded = iface.encodeFunctionData("setAssetManager(address)", [assetManager.address]);
+        tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        tx = await uToken.setInterestRateModel(fixedInterestRateModel.address);
+        encoded = iface.encodeFunctionData("setInterestRateModel(address)", [fixedInterestRateModel.address]);
+        tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
     }
 
@@ -284,7 +329,7 @@ export default async function (
             "PureTokenAdapter",
             {
                 signature: "__PureTokenAdapter_init(address,address)",
-                args: [config.admin, assetManager.address]
+                args: [opOwner.address, assetManager.address]
             },
             debug
         );
@@ -304,7 +349,7 @@ export default async function (
                 {
                     signature: "__AaveV3Adapter_init(address,address,address,address)",
                     args: [
-                        config.admin,
+                        opOwner.address,
                         assetManager.address,
                         config.addresses.aave?.lendingPool,
                         config.addresses.aave?.market
@@ -317,23 +362,29 @@ export default async function (
     }
 
     if (!config.addresses.assetManager) {
+        const iface = new Interface([`function addToken(address) external`, `function addAdapter(address) external`]);
+
         // Add pure token adapter to assetManager
-        let tx = await assetManager.addToken(dai.address);
+        let encoded = iface.encodeFunctionData("addToken(address)", [dai.address]);
+        let tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        tx = await assetManager.addAdapter(pureToken.address);
+        encoded = iface.encodeFunctionData("addAdapter(address)", [pureToken.address]);
+        tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
         if (aaveV3Adapter?.address) {
-            tx = await assetManager.addAdapter(aaveV3Adapter.address);
+            encoded = iface.encodeFunctionData("addAdapter(address)", [aaveV3Adapter.address]);
+            tx = await opOwner.execute(assetManager.address, 0, encoded);
             await tx.wait(waitForBlocks);
         }
     }
 
     return {
+        opUnion,
+        opOwner,
         userManager,
         uToken,
-        unionToken,
         marketRegistry,
         fixedInterestRateModel,
         comptroller,

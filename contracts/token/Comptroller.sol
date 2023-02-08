@@ -44,17 +44,17 @@ contract Comptroller is Controller, IComptroller {
     /**
      * @dev Initial inflation index
      */
-    uint256 public constant INIT_INFLATION_INDEX = 10**18;
+    uint256 public constant INIT_INFLATION_INDEX = 10 ** 18;
 
     /**
      * @dev Non member reward multiplier rate (75%)
      */
-    uint256 public constant nonMemberRatio = 75 * 10**16; // 75%;
+    uint256 public constant nonMemberRatio = 75 * 10 ** 16; // 75%;
 
     /**
      * @dev Member reward multiplier rate (100%)
      */
-    uint256 public constant memberRatio = 10**18;
+    uint256 public constant memberRatio = 10 ** 18;
 
     /**
      * @dev Half decay point to reduce rewards at
@@ -111,11 +111,12 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     function __Comptroller_init(
+        address admin,
         address unionToken_,
         address marketRegistry_,
         uint256 _halfDecayPoint
     ) public initializer {
-        Controller.__Controller_init(msg.sender);
+        Controller.__Controller_init(admin);
 
         gInflationIndex = INIT_INFLATION_INDEX;
         gLastUpdatedBlock = block.number;
@@ -260,13 +261,10 @@ contract Comptroller is Controller, IComptroller {
      *  @param totalStaked totalStaked amount
      *  @return Whether succeeded
      */
-    function updateTotalStaked(address token, uint256 totalStaked)
-        external
-        override
-        whenNotPaused
-        onlyUserManager(token)
-        returns (bool)
-    {
+    function updateTotalStaked(
+        address token,
+        uint256 totalStaked
+    ) external override whenNotPaused onlyUserManager(token) returns (bool) {
         if (totalStaked > 0) {
             gInflationIndex = _getInflationIndexNew(totalStaked, block.number - gLastUpdatedBlock);
         }
@@ -291,15 +289,7 @@ contract Comptroller is Controller, IComptroller {
         address account,
         address token,
         uint256 futureBlocks
-    )
-        internal
-        view
-        returns (
-            UserManagerAccountState memory user,
-            Info memory userInfo,
-            uint256 pastBlocks
-        )
-    {
+    ) internal view returns (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) {
         userInfo = users[account][token];
         uint256 lastUpdatedBlock = userInfo.updatedBlock;
         if (block.number < lastUpdatedBlock) {
@@ -323,14 +313,7 @@ contract Comptroller is Controller, IComptroller {
         address account,
         address token,
         uint256 futureBlocks
-    )
-        internal
-        returns (
-            UserManagerAccountState memory user,
-            Info memory userInfo,
-            uint256 pastBlocks
-        )
-    {
+    ) internal returns (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) {
         userInfo = users[account][token];
         uint256 lastUpdatedBlock = userInfo.updatedBlock;
         if (block.number < lastUpdatedBlock) {
@@ -410,32 +393,32 @@ contract Comptroller is Controller, IComptroller {
     }
 
     function _lookup(uint256 index) internal pure returns (uint256) {
-        if (index <= 0.00001 * 10**18) {
-            return 1 * 10**18;
-        } else if (index <= 0.0001 * 10**18) {
-            return 0.9 * 10**18;
-        } else if (index <= 0.001 * 10**18) {
-            return 0.8 * 10**18;
-        } else if (index <= 0.01 * 10**18) {
-            return 0.7 * 10**18;
-        } else if (index <= 0.1 * 10**18) {
-            return 0.6 * 10**18;
-        } else if (index <= 1 * 10**18) {
-            return 0.5 * 10**18;
-        } else if (index <= 5 * 10**18) {
-            return 0.25 * 10**18;
-        } else if (index <= 10 * 10**18) {
-            return 0.1 * 10**18;
-        } else if (index <= 100 * 10**18) {
-            return 0.01 * 10**18;
-        } else if (index <= 1000 * 10**18) {
-            return 0.001 * 10**18;
-        } else if (index <= 10000 * 10**18) {
-            return 0.0001 * 10**18;
-        } else if (index <= 100000 * 10**18) {
-            return 0.00001 * 10**18;
+        if (index <= 0.00001 * 10 ** 18) {
+            return 1 * 10 ** 18;
+        } else if (index <= 0.0001 * 10 ** 18) {
+            return 0.9 * 10 ** 18;
+        } else if (index <= 0.001 * 10 ** 18) {
+            return 0.8 * 10 ** 18;
+        } else if (index <= 0.01 * 10 ** 18) {
+            return 0.7 * 10 ** 18;
+        } else if (index <= 0.1 * 10 ** 18) {
+            return 0.6 * 10 ** 18;
+        } else if (index <= 1 * 10 ** 18) {
+            return 0.5 * 10 ** 18;
+        } else if (index <= 5 * 10 ** 18) {
+            return 0.25 * 10 ** 18;
+        } else if (index <= 10 * 10 ** 18) {
+            return 0.1 * 10 ** 18;
+        } else if (index <= 100 * 10 ** 18) {
+            return 0.01 * 10 ** 18;
+        } else if (index <= 1000 * 10 ** 18) {
+            return 0.001 * 10 ** 18;
+        } else if (index <= 10000 * 10 ** 18) {
+            return 0.0001 * 10 ** 18;
+        } else if (index <= 100000 * 10 ** 18) {
+            return 0.00001 * 10 ** 18;
         } else {
-            return 0.000001 * 10**18;
+            return 0.000001 * 10 ** 18;
         }
     }
 
