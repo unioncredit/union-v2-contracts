@@ -39,6 +39,8 @@ const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {
 
 const deploymentOpToAddresses = (contracts: OpContracts): {[key: string]: string | {[key: string]: string}} => {
     return {
+        opUnion: contracts.opUnion.address,
+        opOwner: contracts.opOwner.address,
         userManager: contracts.userManager.address,
         uToken: contracts.uToken.address,
         marketRegistry: contracts.marketRegistry.address,
@@ -212,7 +214,6 @@ task("deploy:op", "Deploy Union V2 on Optimism")
         console.log("[*] Adding initial members");
         const members = taskArguments.members.split(",");
         const iface = new Interface([`function addMember(address) external`]);
-        console.log(deployment, config);
         for (const member of members) {
             console.log(`    - ${member}`);
             const encoded = iface.encodeFunctionData("addMember(address)", [member]);

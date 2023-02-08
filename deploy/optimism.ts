@@ -59,7 +59,7 @@ export interface Addresses {
     opL2Bridge?: string;
     opL1Bridge?: string;
     opL2CrossDomainMessenger?: string;
-    opOwnerAddress?: string;
+    timelock?: string;
     opAdminAddress?: string;
     opUnion?: string;
 }
@@ -137,7 +137,7 @@ export default async function (
         opOwner = await deployContract<OpOwner>(
             new OpOwner__factory(signer),
             "OpOwner",
-            [config.admin, config.addresses.opOwnerAddress, config.addresses.opL2CrossDomainMessenger],
+            [config.admin, config.addresses.timelock, config.addresses.opL2CrossDomainMessenger],
             debug,
             waitForBlocks
         );
