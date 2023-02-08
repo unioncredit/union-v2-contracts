@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import {ethers} from "ethers";
+import {Interface} from "ethers/lib/utils";
 import {task} from "hardhat/config";
 import {HardhatRuntimeEnvironment, TaskArguments} from "hardhat/types";
 
@@ -210,9 +211,12 @@ task("deploy:op", "Deploy Union V2 on Optimism")
 
         console.log("[*] Adding initial members");
         const members = taskArguments.members.split(",");
+        const iface = new Interface([`function addMember(address) external`]);
+        console.log(deployment, config);
         for (const member of members) {
             console.log(`    - ${member}`);
-            const tx = await deployment.userManager.addMember(member);
+            const encoded = iface.encodeFunctionData("addMember(address)", [member]);
+            const tx = await deployment.opOwner.execute(deployment.userManager.address, 0, encoded);
             await tx.wait(waitForBlocks);
         }
 
