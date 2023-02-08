@@ -216,6 +216,11 @@ task("deploy:op", "Deploy Union V2 on Optimism")
             await tx.wait(waitForBlocks);
         }
 
+        if (config?.addresses?.opAdminAddress) {
+            const tx = await deployment.opOwner.transferAdmin(config.addresses.opAdminAddress);
+            await tx.wait(waitForBlocks);
+        }
+
         console.log("[*] Complete");
     });
 

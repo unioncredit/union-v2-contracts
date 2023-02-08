@@ -1,5 +1,5 @@
 import {BigNumberish, Signer} from "ethers";
-
+import {formatUnits, Interface} from "ethers/lib/utils";
 import {
     AssetManager__factory,
     Comptroller,
@@ -42,6 +42,7 @@ export interface Addresses {
     fixedRateInterestModel?: string;
     comptroller?: string;
     assetManager?: string;
+    opOwner?: string;
     adapters?: {
         aaveV3Adapter?: string;
         pureTokenAdapter?: string;
@@ -136,11 +137,7 @@ export default async function (
         opOwner = await deployContract<OpOwner>(
             new OpOwner__factory(signer),
             "OpOwner",
-            [
-                config.addresses.opAdminAddress,
-                config.addresses.opOwnerAddress,
-                config.addresses.opL2CrossDomainMessenger
-            ],
+            [config.admin, config.addresses.opOwnerAddress, config.addresses.opL2CrossDomainMessenger],
             debug,
             waitForBlocks
         );
@@ -237,7 +234,10 @@ export default async function (
             debug
         );
         userManager = UserManagerOp__factory.connect(proxy.address, signer);
-        const tx = await marketRegistry.setUserManager(dai.address, userManager.address);
+
+        const iface = new Interface([`function setUserManager(address,address) external`]);
+        const encoded = iface.encodeFunctionData("setUserManager(address,address)", [dai.address, userManager.address]);
+        const tx = await opOwner.execute(marketRegistry.address, 0, encoded);
         await tx.wait(waitForBlocks);
     }
 
@@ -290,19 +290,32 @@ export default async function (
         );
         uToken = UErc20__factory.connect(proxy.address, signer);
 
-        let tx = await userManager.setUToken(uToken.address);
+        const iface = new Interface([
+            `function setUToken(address) external`,
+            `function setUToken(address,address) external`,
+            `function setUserManager(address) external`,
+            `function setAssetManager(address) external`,
+            `function setInterestRateModel(address) external`
+        ]);
+
+        let encoded = iface.encodeFunctionData("setUToken(address)", [uToken.address]);
+        let tx = await opOwner.execute(userManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        tx = await marketRegistry.setUToken(dai.address, uToken.address);
+        encoded = iface.encodeFunctionData("setUToken(address,address)", [dai.address, uToken.address]);
+        tx = await opOwner.execute(marketRegistry.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        tx = await uToken.setUserManager(userManager.address);
+        encoded = iface.encodeFunctionData("setUserManager(address)", [userManager.address]);
+        tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        tx = await uToken.setAssetManager(assetManager.address);
+        encoded = iface.encodeFunctionData("setAssetManager(address)", [assetManager.address]);
+        tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        tx = await uToken.setInterestRateModel(fixedInterestRateModel.address);
+        encoded = iface.encodeFunctionData("setInterestRateModel(address)", [fixedInterestRateModel.address]);
+        tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
     }
 
@@ -349,15 +362,20 @@ export default async function (
     }
 
     if (!config.addresses.assetManager) {
+        const iface = new Interface([`function addToken(address) external`, `function addAdapter(address) external`]);
+
         // Add pure token adapter to assetManager
-        let tx = await assetManager.addToken(dai.address);
+        let encoded = iface.encodeFunctionData("addToken(address)", [dai.address]);
+        let tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        tx = await assetManager.addAdapter(pureToken.address);
+        encoded = iface.encodeFunctionData("addAdapter(address)", [pureToken.address]);
+        tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
         if (aaveV3Adapter?.address) {
-            tx = await assetManager.addAdapter(aaveV3Adapter.address);
+            encoded = iface.encodeFunctionData("addAdapter(address)", [aaveV3Adapter.address]);
+            tx = await opOwner.execute(assetManager.address, 0, encoded);
             await tx.wait(waitForBlocks);
         }
     }
