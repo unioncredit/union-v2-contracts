@@ -20,8 +20,7 @@ export default {
             url: process.env.NODE_URL || ""
         },
         "optimism-goerli": {
-            url: process.env.NODE_URL || "",
-            gasPrice: 3000000000
+            url: process.env.NODE_URL || ""
         }
     },
     solidity: {
