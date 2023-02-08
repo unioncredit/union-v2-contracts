@@ -4,9 +4,15 @@ Built using [foundry](https://book.getfoundry.sh/) and [hardhat](https://hardhat
 
 ## Deployments
 
-- Goerli
-  - [contract addersses](https://github.com/unioncredit/union-v2-contracts/blob/master/deployments/goerli/deployment.json)
-  - [deployment config](https://github.com/unioncredit/union-v2-contracts/blob/master/deployments/goerli/config.json)
+-   Goerli
+
+    -   [contract addresses](https://github.com/unioncredit/union-v2-contracts/blob/master/deployments/goerli/deployment.json)
+    -   [deployment config](https://github.com/unioncredit/union-v2-contracts/blob/master/deployments/goerli/config.json)
+
+-   Optimism Goerli
+
+    -   [contract addresses](https://github.com/unioncredit/union-v2-contracts/blob/master/deployments/optimism-goerli/deployment.json)
+    -   [deployment config](https://github.com/unioncredit/union-v2-contracts/blob/master/deployments/optimism-goerli/config.json)
 
 ## Install
 
