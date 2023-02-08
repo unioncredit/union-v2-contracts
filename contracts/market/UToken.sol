@@ -802,6 +802,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         address receiver,
         uint256 reduceAmount
     ) external override whenNotPaused nonReentrant onlyAdmin {
+        if (reduceAmount > totalReserves) revert AmountError();
         if (!accrueInterest()) revert AccrueInterestFailed();
 
         uint256 remaining = IAssetManager(assetManager).withdraw(underlying, receiver, reduceAmount);
