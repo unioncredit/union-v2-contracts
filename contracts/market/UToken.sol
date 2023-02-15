@@ -525,7 +525,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     function borrow(address to, uint256 amount) external override onlyMember(msg.sender) whenNotPaused nonReentrant {
         IAssetManager assetManagerContract = IAssetManager(assetManager);
         if (amount < minBorrow) revert AmountLessMinBorrow();
-        if (amount > getRemainingDebtCeiling()) revert AmountExceedGlobalMax();
 
         // Calculate the origination fee
         uint256 fee = calculatingFee(amount);
@@ -550,6 +549,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         fee = calculatingFee(actualAmount);
         uint256 accountBorrowsNew = borrowedAmount + actualAmount + fee;
         uint256 totalBorrowsNew = totalBorrows + actualAmount + fee;
+        if (totalBorrowsNew > debtCeiling) revert AmountExceedGlobalMax();
 
         // Update internal balances
         accountBorrows[msg.sender].principal += actualAmount + fee;
