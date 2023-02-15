@@ -215,8 +215,8 @@ contract Comptroller is Controller, IComptroller {
         users[account][token].updatedBlock = block.number;
         users[account][token].inflationIndex = gInflationIndex;
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
-            unionToken.safeTransfer(account, amount);
             users[account][token].accrued = 0;
+            unionToken.safeTransfer(account, amount);
             emit LogWithdrawRewards(account, amount);
 
             return amount;
