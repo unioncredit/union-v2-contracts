@@ -3,7 +3,11 @@ pragma solidity ^0.8.0;
 import {TestWrapper} from "./TestWrapper.sol";
 import {Controller} from "union-v2-contracts/Controller.sol";
 
-contract FakeController is Controller {}
+contract FakeController is Controller {
+    function __FakeController_init(address admin) external initializer {
+        Controller.__Controller_init(admin);
+    }
+}
 
 contract TestController is TestWrapper {
     Controller public controller;
@@ -11,9 +15,8 @@ contract TestController is TestWrapper {
 
     function setUp() public virtual {
         address controllerLogic = address(new FakeController());
-
         controller = FakeController(
-            deployProxy(controllerLogic, abi.encodeWithSignature("__Controller_init(address)", [ADMIN]))
+            deployProxy(controllerLogic, abi.encodeWithSignature("__FakeController_init(address)", [ADMIN]))
         );
     }
 
