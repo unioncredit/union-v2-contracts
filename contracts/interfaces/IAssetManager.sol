@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
+import {IMoneyMarketAdapter} from "./IMoneyMarketAdapter.sol";
+
 /**
  *  @title AssetManager Interface
  *  @dev Manage the token balances staked by the users and deposited by admins, and invest tokens to the integrated underlying lending protocols.
@@ -62,11 +64,7 @@ interface IAssetManager {
      *  @param amount Withdraw amount, in wei
      *  @return Withdraw amount
      */
-    function withdraw(
-        address token,
-        address account,
-        uint256 amount
-    ) external returns (uint256);
+    function withdraw(address token, address account, uint256 amount) external returns (uint256);
 
     /**
      *  @dev Add a new ERC20 token to support in AssetManager
@@ -108,7 +106,7 @@ interface IAssetManager {
      *  @dev Set withdraw sequence
      *  @param newSeq priority sequence of money market indices to be used while withdrawing
      */
-    function setWithdrawSequence(uint256[] calldata newSeq) external;
+    function setWithdrawSequence(IMoneyMarketAdapter[] calldata newSeq) external;
 
     /**
      *  @dev Rebalance the tokens between integrated lending protocols

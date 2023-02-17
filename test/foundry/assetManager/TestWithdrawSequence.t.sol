@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TestAssetManagerBase} from "./TestAssetManagerBase.sol";
-import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
+import {AssetManager, IMoneyMarketAdapter} from "union-v2-contracts/asset/AssetManager.sol";
 import {AdapterMock} from "union-v2-contracts/mocks/AdapterMock.sol";
 
 contract TestDepositWithdraw is TestAssetManagerBase {
@@ -27,21 +27,28 @@ contract TestDepositWithdraw is TestAssetManagerBase {
         marketRegistryMock.setUToken(address(daiMock), b);
     }
 
-    function testCannotSetWithdrawSequenceNotParity(uint256[] calldata newSeq) public {
+    function testCannotSetWithdrawSequenceNotParity(IMoneyMarketAdapter[] calldata newSeq) public {
         vm.assume(newSeq.length != 2);
         vm.prank(ADMIN);
         vm.expectRevert(AssetManager.NotParity.selector);
         assetManager.setWithdrawSequence(newSeq);
     }
 
+    function testCannotSetWithdrawSequenceUseErrorAddress(IMoneyMarketAdapter[] calldata newSeq) public {
+        vm.assume(newSeq.length == 2);
+        vm.prank(ADMIN);
+        vm.expectRevert(AssetManager.ParamsError.selector);
+        assetManager.setWithdrawSequence(newSeq);
+    }
+
     function testSetWithdrawSequence() public {
-        uint256[] memory newSeq = new uint256[](2);
-        newSeq[0] = 1;
-        newSeq[1] = 0;
+        IMoneyMarketAdapter[] memory newSeq = new IMoneyMarketAdapter[](2);
+        newSeq[0] = IMoneyMarketAdapter(address(adapterMock2));
+        newSeq[1] = IMoneyMarketAdapter(address(adapterMock));
         vm.prank(ADMIN);
         assetManager.setWithdrawSequence(newSeq);
-        assertEq(assetManager.withdrawSeq(0), newSeq[0]);
-        assertEq(assetManager.withdrawSeq(1), newSeq[1]);
+        assertEq(address(assetManager.withdrawSeq(0)), address(newSeq[0]));
+        assertEq(address(assetManager.withdrawSeq(1)), address(newSeq[1]));
     }
 
     function testWithdrawSequence(uint256 amount) public {
@@ -55,9 +62,9 @@ contract TestDepositWithdraw is TestAssetManagerBase {
         assetManager.withdraw(address(daiMock), address(123), amount);
         assertEq(daiMock.balanceOf(address(adapterMock)), 0);
 
-        uint256[] memory newSeq = new uint256[](2);
-        newSeq[0] = 1;
-        newSeq[1] = 0;
+        IMoneyMarketAdapter[] memory newSeq = new IMoneyMarketAdapter[](2);
+        newSeq[0] = IMoneyMarketAdapter(address(adapterMock2));
+        newSeq[1] = IMoneyMarketAdapter(address(adapterMock));
         vm.prank(ADMIN);
         assetManager.setWithdrawSequence(newSeq);
 

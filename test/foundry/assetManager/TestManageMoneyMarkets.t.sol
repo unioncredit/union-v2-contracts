@@ -104,7 +104,7 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         vm.startPrank(ADMIN);
         assetManager.addAdapter(adapter);
         assertEq(address(assetManager.moneyMarkets(0)), adapter);
-        assertEq(assetManager.withdrawSeq(0), 0);
+        assertEq(address(assetManager.withdrawSeq(0)), adapter);
         assetManager.removeAdapter(adapter);
         vm.expectRevert();
         assetManager.moneyMarkets(0);

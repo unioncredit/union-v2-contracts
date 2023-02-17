@@ -40,11 +40,7 @@ contract AssetManagerMock is IAssetManager {
         return true;
     }
 
-    function withdraw(
-        address token,
-        address account,
-        uint256 amount
-    ) external override returns (uint256) {
+    function withdraw(address token, address account, uint256 amount) external override returns (uint256) {
         uint256 remaining = amount;
 
         // If there are tokens in Asset Manager then transfer them on priority
@@ -69,7 +65,7 @@ contract AssetManagerMock is IAssetManager {
 
     function approveAllTokensMax(address) external override {}
 
-    function setWithdrawSequence(uint256[] calldata) external override {}
+    function setWithdrawSequence(IMoneyMarketAdapter[] calldata) external override {}
 
     function rebalance(address, uint256[] calldata) external override {}
 
