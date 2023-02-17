@@ -12,6 +12,8 @@ contract TestGetFrozenInfo is TestUserManagerBase {
         userManager.addMember(address(this));
         vm.stopPrank();
 
+        comptrollerMock.setUserManager(address(userManager));
+
         userManager.stake(stakeAmount);
         userManager.updateTrust(ACCOUNT, stakeAmount);
     }
@@ -27,6 +29,7 @@ contract TestGetFrozenInfo is TestUserManagerBase {
         vm.roll(block.number + 10);
         (uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this), 0);
         assertEq(effectiveStaked, stakeAmount);
+        // lockAmount/2 because only locked for half of the duration
         assertEq(effectiveLocked, lockAmount / 2);
     }
 

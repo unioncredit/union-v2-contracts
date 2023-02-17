@@ -2,8 +2,11 @@
 pragma solidity 0.8.16;
 
 import {IComptroller} from "../interfaces/IComptroller.sol";
+import {IUserManager} from "../interfaces/IUserManager.sol";
 
 contract ComptrollerMock is IComptroller {
+    address public userManager;
+
     function setHalfDecayPoint(uint256) external {}
 
     function inflationPerBlock(uint256) external pure returns (uint256) {}
@@ -12,7 +15,10 @@ contract ComptrollerMock is IComptroller {
         return 0;
     }
 
-    function withdrawRewards(address, address) external pure override returns (uint256) {
+    function withdrawRewards(address account, address) external override returns (uint256) {
+        if (userManager != address(0)) {
+            IUserManager(userManager).onWithdrawRewards(account, 0);
+        }
         return 0;
     }
 
@@ -20,15 +26,15 @@ contract ComptrollerMock is IComptroller {
         return false;
     }
 
-    function calculateRewardsByBlocks(
-        address,
-        address,
-        uint256
-    ) external pure override returns (uint256) {
+    function calculateRewardsByBlocks(address, address, uint256) external pure override returns (uint256) {
         return 0;
     }
 
     function calculateRewards(address, address) external pure override returns (uint256) {
         return 0;
+    }
+
+    function setUserManager(address _userManager) external {
+        userManager = _userManager;
     }
 }
