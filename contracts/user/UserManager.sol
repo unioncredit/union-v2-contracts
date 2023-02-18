@@ -542,6 +542,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             Vouch storage vouch = vouchers[borrower][index.idx];
             if (trustAmount < vouch.locked) revert TrustAmountLtLocked();
             vouch.trust = trustAmount;
+            vouch.lastUpdated = (block.number).toUint64();
         } else {
             // If the member is overdue they cannot create new vouches they can
             // only update existing vouches
@@ -792,6 +793,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         // update vouch trust amount
         vouch.trust -= amount.toUint96();
         vouch.locked -= amount.toUint96();
+        vouch.lastUpdated = (block.number).toUint64();
 
         // Update total frozen and member frozen. We don't want to move th
         // burden of calling updateFrozenInfo into this function as it is quite
