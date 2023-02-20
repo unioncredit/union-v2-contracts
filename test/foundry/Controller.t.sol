@@ -3,19 +3,34 @@ pragma solidity ^0.8.0;
 import {TestWrapper} from "./TestWrapper.sol";
 import {Controller} from "union-v2-contracts/Controller.sol";
 
-contract FakeController is Controller {
+contract FakeControllerOld is Controller {
+    uint256 public temp;
+
     function __FakeController_init(address admin) external initializer {
         Controller.__Controller_init(admin);
+        temp = 1;
+    }
+}
+
+contract FakeControllerNew is Controller {
+    uint256 public temp;
+
+    function __FakeController_init(address admin) external initializer {
+        Controller.__Controller_init(admin);
+    }
+
+    function setTemp(uint256 _temp) external {
+        temp = _temp;
     }
 }
 
 contract TestController is TestWrapper {
-    Controller public controller;
+    FakeControllerNew public controller;
     address public constant ADMIN = address(1);
 
     function setUp() public virtual {
-        address controllerLogic = address(new FakeController());
-        controller = FakeController(
+        address controllerLogic = address(new FakeControllerOld());
+        controller = FakeControllerNew(
             deployProxy(controllerLogic, abi.encodeWithSignature("__FakeController_init(address)", [ADMIN]))
         );
     }
@@ -104,5 +119,15 @@ contract TestController is TestWrapper {
         controller.unpause();
         bool paused = controller.paused();
         assertEq(paused, false);
+    }
+
+    function testUpgrading(uint256 amount) public {
+        vm.assume(amount != 1);
+        address newControllerLogic = address(new FakeControllerNew());
+        vm.prank(ADMIN);
+        controller.upgradeTo(newControllerLogic);
+        assertEq(controller.temp(), 1);
+        controller.setTemp(amount);
+        assertEq(controller.temp(), amount);
     }
 }
