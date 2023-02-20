@@ -9,6 +9,8 @@ contract TestWriteOffDebt is TestUserManagerBase {
 
     function setUp() public override {
         super.setUp();
+        comptrollerMock.setUserManager(address(userManager));
+
         vm.startPrank(staker);
         userManager.stake(100 ether);
         userManager.updateTrust(borrower, 100 ether);
