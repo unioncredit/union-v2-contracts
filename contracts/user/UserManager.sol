@@ -912,6 +912,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 lastUpdate = 0;
         Vouchee memory vouchee;
         Vouch memory vouch;
+        uint256 overdueBlocks = uToken.overdueBlocks();
         for (uint256 i = 0; i < voucheesLength; i++) {
             // Get the vouchee record and look up the borrowers voucher record
             // to get the locked amount and lastUpdated block number
@@ -930,7 +931,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                     // skip the debt all repaid
                     lastRepay != 0)
             ) {
-                if (block.number - lastRepay > uToken.overdueBlocks()) // for the debt overdue
+                if (block.number - lastRepay > overdueBlocks) // for the debt overdue
                 {
                     stakerFrozen += vouch.locked;
                     stakerCoinAges.frozenCoinAge += vouch.locked * (block.number - _max(lastRepay, lastUpdate));
