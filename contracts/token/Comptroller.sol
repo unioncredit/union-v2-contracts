@@ -173,7 +173,7 @@ contract Comptroller is Controller, IComptroller {
         IUserManager userManager = _getUserManager(token);
 
         // Lookup account state from UserManager
-        UserManagerAccountState memory user;
+        UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
         (user.isMember, user.effectiveStaked, user.effectiveLocked, ) = userManager.getStakeInfo(account);
 
         return _calculateRewardsInternal(account, token, userManager.globalTotalStaked(), user);
@@ -201,7 +201,7 @@ contract Comptroller is Controller, IComptroller {
         IUserManager userManager = _getUserManager(token);
 
         // Lookup account state from UserManager
-        UserManagerAccountState memory user;
+        UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
         (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.onWithdrawRewards(account);
 
         // Lookup global state from UserManager
