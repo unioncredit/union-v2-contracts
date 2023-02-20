@@ -353,11 +353,7 @@ contract Comptroller is Controller, IComptroller {
         }
 
         if (user.effectiveStaked == 0) {
-            if (userInfo.accrued == 0) {
-                return 0;
-            } else {
-                return userInfo.accrued;
-            }
+            return userInfo.accrued;
         }
 
         uint256 rewardMultiplier = _getRewardsMultiplier(user);
