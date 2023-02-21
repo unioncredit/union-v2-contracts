@@ -25,6 +25,9 @@ jobs:
             - name: Run unit tests (forge)
               run: forge test
 
+            - name: Run coverage 
+              run: forge coverage --report lcov
+
             - name: Compile hardhat
               run: yarn hh:compile
 
