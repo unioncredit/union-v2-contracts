@@ -33,7 +33,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint96 trust;
         // amount of stake locked by this vouch
         uint96 locked;
-        // block number of last update
+        // only update when lockedCoinAge is updated
         uint64 lastUpdated;
     }
 
@@ -41,8 +41,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         bool isMember;
         uint96 stakedAmount;
         uint96 locked;
-        // block number of last stakedAmount update
-        uint64 lastUpdated;
+        uint64 lastUpdated; // only update when stakedCoinAge is updated
         uint256 stakedCoinAge;
         uint256 lockedCoinAge;
     }
@@ -537,7 +536,6 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             Vouch storage vouch = vouchers[borrower][index.idx];
             if (trustAmount < vouch.locked) revert TrustAmountLtLocked();
             vouch.trust = trustAmount;
-            vouch.lastUpdated = (block.number).toUint64();
         } else {
             // If the member is overdue they cannot create new vouches they can
             // only update existing vouches
@@ -769,7 +767,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         // update frozen coin age
         if (
             (// skip the member never staked
-            staker.lastUpdated != 0 ||
+            staker.lastUpdated != 0 &&
                 // skip the debt all repaid
                 lastRepay != 0)
         ) {
@@ -835,27 +833,29 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      */
     function updateLocked(address borrower, uint256 amount, bool lock) external onlyMarket {
         uint96 remaining = (amount).toUint96();
+        uint96 innerAmount = 0;
+        Staker storage staker;
 
         uint256 vouchersLength = vouchers[borrower].length;
         for (uint256 i = 0; i < vouchersLength; i++) {
             Vouch storage vouch = vouchers[borrower][i];
-            uint96 innerAmount;
+            staker = stakers[vouch.staker];
 
-            stakers[vouch.staker].lockedCoinAge += (block.number - vouch.lastUpdated) * uint256(vouch.locked);
+            staker.lockedCoinAge +=
+                (block.number - _max(vouch.lastUpdated, staker.lastUpdated)) *
+                uint256(vouch.locked);
             if (lock) {
                 // Look up the staker and determine how much unlock stake they
                 // have available for the borrower to borrow. If there is 0
                 // then continue to the next voucher in the array
-                uint96 stakerLocked = stakers[vouch.staker].locked;
-                uint96 stakerStakedAmount = stakers[vouch.staker].stakedAmount;
-                uint96 availableStake = stakerStakedAmount - stakerLocked;
+                uint96 availableStake = staker.stakedAmount - staker.locked;
                 uint96 lockAmount = _min(availableStake, vouch.trust - vouch.locked);
                 if (lockAmount == 0) continue;
                 // Calculate the amount to add to the lock then
                 // add the extra amount to lock to the stakers locked amount
                 // and also update the vouches locked amount and lastUpdated block
                 innerAmount = _min(remaining, lockAmount);
-                stakers[vouch.staker].locked = stakerLocked + innerAmount;
+                staker.locked += innerAmount;
                 vouch.locked += innerAmount;
                 vouch.lastUpdated = uint64(block.number);
             } else {
@@ -867,7 +867,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                 if (locked == 0) continue;
                 innerAmount = _min(locked, remaining);
                 // Update the stored locked values and last updated block
-                stakers[vouch.staker].locked -= innerAmount;
+                staker.locked -= innerAmount;
                 vouch.locked -= innerAmount;
                 vouch.lastUpdated = uint64(block.number);
             }
