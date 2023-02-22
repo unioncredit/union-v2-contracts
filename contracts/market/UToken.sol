@@ -741,32 +741,26 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         uint256 exchangeRate = exchangeRateStored();
 
-        // Amount of the uToken to burn
-        uint256 uTokenAmount;
-
         // Amount of the underlying token to redeem
-        uint256 underlyingAmount;
+        uint256 underlyingAmount = amountOut;
 
         if (amountIn > 0) {
             // We calculate the exchange rate and the amount of underlying to be redeemed:
-            // uTokenAmount = amountIn
             // underlyingAmount = amountIn x exchangeRateCurrent
-            uTokenAmount = amountIn;
             underlyingAmount = (amountIn * exchangeRate) / WAD;
-        } else {
-            // We get the current exchange rate and calculate the amount to be redeemed:
-            // uTokenAmount = amountOut / exchangeRate
-            // underlyingAmount = amountOut
-            uTokenAmount = (amountOut * WAD) / exchangeRate;
-            underlyingAmount = amountOut;
         }
 
         uint256 remaining = IAssetManager(assetManager).withdraw(underlying, msg.sender, underlyingAmount);
-        if (remaining > underlyingAmount) revert WithdrawFailed();
+        // If the remaining amount is greater than or equal to the 
+        // underlyingAmount then we weren't able to withdraw enough
+        // to cover this redemption
+        if (remaining >= underlyingAmount) revert WithdrawFailed();
+
         uint256 actualAmount = underlyingAmount - remaining;
-        totalRedeemable -= actualAmount;
         uint256 realUtokenAmount = (actualAmount * WAD) / exchangeRate;
         _burn(msg.sender, realUtokenAmount);
+
+        totalRedeemable -= actualAmount;
         emit LogRedeem(msg.sender, amountIn, amountOut, actualAmount);
     }
 
