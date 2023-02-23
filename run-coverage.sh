@@ -7,7 +7,7 @@ fi
 
 echo "runing forge coverage..."
 
-forge coverage --report lcov >> /dev/null
+forge coverage --code-size-limit 10000000000000 --report lcov >> /dev/null
 
 echo "runing genhtml..."
 
