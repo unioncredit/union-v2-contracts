@@ -33,9 +33,19 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 lastRepay; //Calculate if it is overdue
     }
 
-    struct UTokenMeta {
+    struct InitParams {
         string name;
         string symbol;
+        address underlying;
+        uint256 initialExchangeRateMantissa;
+        uint256 reserveFactorMantissa;
+        uint256 originationFee;
+        uint256 originationFeeMax;
+        uint256 debtCeiling;
+        uint256 maxBorrow;
+        uint256 minBorrow;
+        uint256 overdueBlocks;
+        address admin;
     }
 
     /* -------------------------------------------------------------------
@@ -245,31 +255,22 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
-    function __UToken_init(
-        address admin_,
-        string memory name_,
-        string memory symbol_,
-        address underlying_,
-        uint256 initialExchangeRateMantissa_,
-        uint256 debtCeiling_,
-        uint256 maxBorrow_,
-        uint256 minBorrow_,
-        uint256 overdueBlocks_,
-        bytes calldata param_
-    ) public initializer {
-        if (initialExchangeRateMantissa_ == 0) revert InitExchangeRateNotZero();
-        (originationFee, originationFeeMax, reserveFactorMantissa) = abi.decode(param_, (uint64, uint64, uint64));
-        if (reserveFactorMantissa > RESERVE_FACTORY_MAX_MANTISSA) revert ReserveFactoryExceedLimit();
-        Controller.__Controller_init(admin_);
-        ERC20Upgradeable.__ERC20_init(name_, symbol_);
-        ERC20PermitUpgradeable.__ERC20Permit_init(name_);
+    function __UToken_init(InitParams memory params) public initializer {
+        if (params.initialExchangeRateMantissa == 0) revert InitExchangeRateNotZero();
+        if (params.reserveFactorMantissa > RESERVE_FACTORY_MAX_MANTISSA) revert ReserveFactoryExceedLimit();
+        Controller.__Controller_init(params.admin);
+        ERC20Upgradeable.__ERC20_init(params.name, params.symbol);
+        ERC20PermitUpgradeable.__ERC20Permit_init(params.name);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
-        underlying = underlying_;
-        debtCeiling = debtCeiling_;
-        maxBorrow = maxBorrow_;
-        minBorrow = minBorrow_;
-        overdueBlocks = overdueBlocks_;
-        initialExchangeRateMantissa = initialExchangeRateMantissa_;
+        underlying = params.underlying;
+        originationFee = params.originationFee;
+        originationFeeMax = params.originationFeeMax;
+        debtCeiling = params.debtCeiling;
+        maxBorrow = params.maxBorrow;
+        minBorrow = params.minBorrow;
+        overdueBlocks = params.overdueBlocks;
+        initialExchangeRateMantissa = params.initialExchangeRateMantissa;
+        reserveFactorMantissa = params.reserveFactorMantissa;
         accrualBlockNumber = getBlockNumber();
         borrowIndex = WAD;
     }
