@@ -24,6 +24,9 @@ jobs:
 
             - name: Run unit tests (forge)
               run: forge test
+            
+           - name: Run coverage (forge)
+              run: forge coverage --code-size-limit 10000000000000 --report lcov
 
             - name: Compile hardhat
               run: yarn hh:compile
