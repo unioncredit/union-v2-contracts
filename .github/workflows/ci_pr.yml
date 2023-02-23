@@ -23,16 +23,22 @@ jobs:
                   version: nightly
 
             - name: Forge build
-              run: forge build --via-ir
+              run: forge build
 
             - name: Run unit tests (forge)
               run: forge test
 
-            - name: Run coverage 
-              run: forge coverage --report lcov --via-ir
+            - name: Run coverage
+              run: forge coverage --report lcov
+
+            - name: Report coverage
+              uses: codecov/codecov-action@v3
+              with:
+                  lcov-file: lcov.info
+                  github-token: ${{ secrets.CODECOV_TOKEN }}
 
             - name: Compile hardhat
               run: yarn hh:compile
 
-            - name: Run int tests 
+            - name: Run int tests
               run: yarn hh:test
