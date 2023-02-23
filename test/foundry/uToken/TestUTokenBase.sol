@@ -28,19 +28,17 @@ contract TestUTokenBase is TestWrapper {
             deployProxy(
                 uTokenLogic,
                 abi.encodeWithSignature(
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
+                    "__UToken_init(address,string,string,address,uint256,uint256,uint256,uint256,uint256,bytes)",
+                    ADMIN,
                     "UTokenMock",
                     "UTM",
                     address(daiMock),
                     INIT_EXCHANGE_RATE,
-                    RESERVE_FACTOR,
-                    ORIGINATION_FEE,
-                    ORIGINATION_FEE_MAX,
                     debtCeiling,
                     MAX_BORROW,
                     MIN_BORROW,
                     OVERDUE_BLOCKS,
-                    ADMIN
+                    abi.encode(ORIGINATION_FEE, ORIGINATION_FEE_MAX, RESERVE_FACTOR)
                 )
             )
         );
