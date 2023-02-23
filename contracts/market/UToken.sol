@@ -33,6 +33,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 lastRepay; //Calculate if it is overdue
     }
 
+    struct UTokenMeta {
+        string name;
+        string symbol;
+    }
+
     /* -------------------------------------------------------------------
       Storage 
     ------------------------------------------------------------------- */
@@ -241,8 +246,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     ------------------------------------------------------------------- */
 
     function __UToken_init(
-        string memory name_,
-        string memory symbol_,
+        UTokenMeta memory meta_,
         address underlying_,
         uint256 initialExchangeRateMantissa_,
         uint256 reserveFactorMantissa_,
@@ -257,8 +261,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (initialExchangeRateMantissa_ == 0) revert InitExchangeRateNotZero();
         if (reserveFactorMantissa_ > RESERVE_FACTORY_MAX_MANTISSA) revert ReserveFactoryExceedLimit();
         Controller.__Controller_init(admin_);
-        ERC20Upgradeable.__ERC20_init(name_, symbol_);
-        ERC20PermitUpgradeable.__ERC20Permit_init(name_);
+        ERC20Upgradeable.__ERC20_init(meta_.name, meta_.symbol);
+        ERC20PermitUpgradeable.__ERC20Permit_init(meta_.name);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
         underlying = underlying_;
         originationFee = originationFee_;
