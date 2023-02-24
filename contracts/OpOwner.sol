@@ -8,7 +8,7 @@ interface IOvmL2CrossDomainMessenger {
 contract OpOwner {
     address private _owner;
     address private _admin;
-    IOvmL2CrossDomainMessenger private ovmL2CrossDomainMessenger;
+    IOvmL2CrossDomainMessenger private immutable ovmL2CrossDomainMessenger;
 
     event CallExecuted(address target, uint256 value, bytes data);
 
@@ -21,11 +21,7 @@ contract OpOwner {
         _;
     }
 
-    constructor(
-        address admin_,
-        address owner_,
-        IOvmL2CrossDomainMessenger ovmL2CrossDomainMessenger_
-    ) {
+    constructor(address admin_, address owner_, IOvmL2CrossDomainMessenger ovmL2CrossDomainMessenger_) {
         _owner = owner_;
         _admin = admin_;
         ovmL2CrossDomainMessenger = ovmL2CrossDomainMessenger_;
@@ -47,11 +43,7 @@ contract OpOwner {
         _admin = newAdmin;
     }
 
-    function execute(
-        address target,
-        uint256 value,
-        bytes calldata data
-    ) public payable onlyAuth {
+    function execute(address target, uint256 value, bytes calldata data) public payable onlyAuth {
         (bool success, ) = target.call{value: value}(data);
         require(success, "underlying transaction reverted");
 
