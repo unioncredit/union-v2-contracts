@@ -37,8 +37,5 @@ jobs:
                   files: lcov.info
                   token: ${{ secrets.CODECOV_TOKEN }}
 
-            # - name: Compile hardhat
-            #   run: yarn hh:compile
-
-            # - name: Run int tests
-            #   run: yarn hh:test
+            - name: Run int tests
+              run: yarn hh:test
