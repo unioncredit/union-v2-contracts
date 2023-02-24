@@ -718,7 +718,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         comptroller.withdrawRewards(msg.sender, stakingToken);
 
         uint256 remaining = IAssetManager(assetManager).withdraw(stakingToken, msg.sender, amount);
-        if (remaining.toUint96() > amount) {
+        if (remaining > amount) {
             revert AssetManagerWithdrawFailed();
         }
         uint96 actualAmount = amount - remaining.toUint96();
@@ -747,11 +747,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *  @param borrowerAddress address of borrower
      *  @param amount amount to writeoff
      */
-    function debtWriteOff(
-        address stakerAddress,
-        address borrowerAddress,
-        uint96 amount
-    ) external {
+    function debtWriteOff(address stakerAddress, address borrowerAddress, uint96 amount) external {
         if (amount == 0) revert AmountZero();
         uint256 overdueBlocks = uToken.overdueBlocks();
         uint256 lastRepay = uToken.getLastRepay(borrowerAddress);
@@ -823,11 +819,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *  @param amount Lock/Unlock amount
      *  @param lock If the amount is being locked or unlocked
      */
-    function updateLocked(
-        address borrower,
-        uint96 amount,
-        bool lock
-    ) external onlyMarket {
+    function updateLocked(address borrower, uint96 amount, bool lock) external onlyMarket {
         uint96 remaining = amount;
 
         uint256 vouchersLength = vouchers[borrower].length;
@@ -889,15 +881,10 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @return  user's effective locked amount
      * @return  user's frozen amount
      */
-    function _getEffectiveAmounts(address stakerAddress, uint256 pastBlocks)
-        private
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    function _getEffectiveAmounts(
+        address stakerAddress,
+        uint256 pastBlocks
+    ) private view returns (uint256, uint256, uint256) {
         uint256 memberTotalFrozen = 0;
         CoinAge memory coinAge = _getCoinAge(stakerAddress);
 
@@ -945,15 +932,10 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *          effectiveLocked user's effective locked amount
      *          isMember
      */
-    function getStakeInfo(address staker, uint256 pastBlocks)
-        external
-        view
-        returns (
-            uint256 effectiveStaked,
-            uint256 effectiveLocked,
-            bool isMember
-        )
-    {
+    function getStakeInfo(
+        address staker,
+        uint256 pastBlocks
+    ) external view returns (uint256 effectiveStaked, uint256 effectiveLocked, bool isMember) {
         (effectiveStaked, effectiveLocked, ) = _getEffectiveAmounts(staker, pastBlocks);
         isMember = stakers[staker].isMember;
     }
@@ -966,14 +948,10 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *          effectiveLocked user's locked amount - frozen
      *          isMember
      */
-    function onWithdrawRewards(address staker, uint256 pastBlocks)
-        external
-        returns (
-            uint256 effectiveStaked,
-            uint256 effectiveLocked,
-            bool isMember
-        )
-    {
+    function onWithdrawRewards(
+        address staker,
+        uint256 pastBlocks
+    ) external returns (uint256 effectiveStaked, uint256 effectiveLocked, bool isMember) {
         if (address(comptroller) != msg.sender) revert AuthFailed();
         uint256 memberTotalFrozen = 0;
         (effectiveStaked, effectiveLocked, memberTotalFrozen) = _getEffectiveAmounts(staker, pastBlocks);
