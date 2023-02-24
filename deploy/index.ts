@@ -1,4 +1,4 @@
-import {BigNumberish, Signer} from "ethers";
+import {BigNumberish, Signer, ethers} from "ethers";
 
 import {
     AssetManager__factory,
@@ -238,20 +238,22 @@ export default async function (
             "UErc20",
             {
                 signature:
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
+                    "__UToken_init((string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address))",
                 args: [
-                    config.uToken.name,
-                    config.uToken.symbol,
-                    dai.address,
-                    config.uToken.initialExchangeRateMantissa,
-                    config.uToken.reserveFactorMantissa,
-                    config.uToken.originationFee,
-                    config.uToken.originationFeeMax,
-                    config.uToken.debtCeiling,
-                    config.uToken.maxBorrow,
-                    config.uToken.minBorrow,
-                    config.uToken.overdueBlocks,
-                    config.admin
+                    {
+                        name: config.uToken.name,
+                        symbol: config.uToken.symbol,
+                        underlying: dai.address,
+                        initialExchangeRateMantissa: config.uToken.initialExchangeRateMantissa,
+                        reserveFactorMantissa: config.uToken.reserveFactorMantissa,
+                        originationFee: config.uToken.originationFee,
+                        originationFeeMax: config.uToken.originationFeeMax,
+                        debtCeiling: config.uToken.debtCeiling,
+                        maxBorrow: config.uToken.maxBorrow,
+                        minBorrow: config.uToken.minBorrow,
+                        overdueBlocks: config.uToken.overdueBlocks,
+                        admin: config.admin
+                    }
                 ]
             },
             debug
