@@ -565,7 +565,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // Call update locked on the userManager to lock this borrowers stakers. This function
         // will revert if the account does not have enough vouchers to cover the borrow amount. ie
         // the borrower is trying to borrow more than is able to be underwritten
-        IUserManager(userManager).updateLocked(msg.sender, (actualAmount + fee).toUint96(), true);
+        IUserManager(userManager).updateLocked(msg.sender, actualAmount + fee, true);
 
         emit LogBorrow(msg.sender, to, actualAmount, fee);
     }
@@ -608,9 +608,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 toRedeemableAmount;
 
         if (repayAmount >= interest) {
-            // If the repayment amount is greater than the interest (min payment)
-            bool isOverdue = checkIsOverdue(borrower);
-
             // Interest is split between the reserves and the uToken minters based on
             // the reserveFactorMantissa When set to WAD all the interest is paid to teh reserves.
             // any interest that isn't sent to the reserves is added to the redeemable amount
@@ -629,12 +626,13 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             // Call update locked on the userManager to lock this borrowers stakers. This function
             // will revert if the account does not have enough vouchers to cover the repay amount. ie
             // the borrower is trying to repay more than is locked (owed)
-            IUserManager(userManager).updateLocked(borrower, (repayAmount - interest).toUint96(), false);
+            IUserManager(userManager).updateLocked(borrower, repayAmount - interest, false);
 
-            if (isOverdue) {
+            uint256 pastBlocks = getBlockNumber() - getLastRepay(borrower);
+            if (pastBlocks > overdueBlocks) {
                 // For borrowers that are paying back overdue balances we need to update their
                 // frozen balance and the global total frozen balance on the UserManager
-                IUserManager(userManager).onRepayBorrow(borrower);
+                IUserManager(userManager).onRepayBorrow(borrower, pastBlocks);
             }
 
             if (getBorrowed(borrower) == 0) {
