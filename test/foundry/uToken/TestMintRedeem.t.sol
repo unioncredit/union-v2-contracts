@@ -15,8 +15,13 @@ contract TestMintRedeem is TestUTokenBase {
         assertEq(expectSupplyRate, uToken.supplyRatePerBlock());
     }
 
-    function testMintUToken(uint256 mintAmount) public {
-        vm.assume(mintAmount > 1e18 / MINTER_FEE_RATE && mintAmount <= 100 ether);
+    function testMintUTokenWithMintFee(uint256 mintAmount, uint256 mintFeeRate) public {
+        vm.assume(mintAmount > uToken.MIN_MINT_AMOUNT() && mintAmount <= 100 ether);
+        vm.assume(mintFeeRate >= 0 && mintFeeRate <= 1e17);
+
+        vm.startPrank(ADMIN);
+        uToken.setMintFeeRate(mintFeeRate);
+        vm.stopPrank();
 
         assertEq(INIT_EXCHANGE_RATE, uToken.exchangeRateStored());
 
@@ -24,9 +29,8 @@ contract TestMintRedeem is TestUTokenBase {
         daiMock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
 
-        uint256 minterFee = (mintAmount * MINTER_FEE_RATE) / 1e18;
-        // uint256 redeemable = (mintAmount * (1e18 - MINTER_FEE_RATE)) / 1e18;
-        uint256 redeemable = mintAmount - minterFee;
+        uint256 mintFee = (mintAmount * mintFeeRate) / 1e18;
+        uint256 redeemable = mintAmount - mintFee;
         uint256 totalRedeemable = uToken.totalRedeemable();
 
         assertEq(redeemable, totalRedeemable);
@@ -39,17 +43,17 @@ contract TestMintRedeem is TestUTokenBase {
         assertEq(balance, (redeemable * 1e18) / currExchangeRate);
     }
 
-    function testMintUTokenFailWithMinterFeeError(uint256 mintAmount) public {
-        vm.assume(mintAmount > 0 && mintAmount < 1e18 / MINTER_FEE_RATE);
+    function testMintUTokenFailWithMinAmount(uint256 mintAmount) public {
+        vm.assume(mintAmount < uToken.MIN_MINT_AMOUNT());
 
         vm.startPrank(ALICE);
         daiMock.approve(address(uToken), mintAmount);
-        vm.expectRevert(UToken.MinterFeeError.selector);
+        vm.expectRevert(UToken.AmountError.selector);
         uToken.mint(mintAmount);
     }
 
     function testRedeemUToken(uint256 mintAmount) public {
-        vm.assume(mintAmount > 1e18 / MINTER_FEE_RATE && mintAmount <= 100 ether);
+        vm.assume(mintAmount > uToken.MIN_MINT_AMOUNT() && mintAmount <= 100 ether);
 
         vm.startPrank(ALICE);
 
@@ -59,8 +63,8 @@ contract TestMintRedeem is TestUTokenBase {
         uint256 uBalance = uToken.balanceOf(ALICE);
         uint256 daiBalance = daiMock.balanceOf(ALICE);
 
-        uint256 minterFee = (mintAmount * MINTER_FEE_RATE) / 1e18;
-        uint256 redeemable = mintAmount - minterFee;
+        uint256 mintFee = (mintAmount * MINT_FEE_RATE) / 1e18;
+        uint256 redeemable = mintAmount - mintFee;
 
         assertEq(uBalance, redeemable);
 
@@ -69,50 +73,50 @@ contract TestMintRedeem is TestUTokenBase {
         assertEq(0, uBalance);
 
         uint256 daiBalanceAfter = daiMock.balanceOf(ALICE);
-        assertEq(daiBalanceAfter, daiBalance + mintAmount - minterFee);
+        assertEq(daiBalanceAfter, daiBalance + mintAmount - mintFee);
     }
 
     function testRedeemUTokenWhenRemaining(uint256 mintAmount) public {
-        vm.assume(mintAmount > 1 ether + 1e18 / MINTER_FEE_RATE && mintAmount <= 100 ether);
+        vm.assume(mintAmount > 1 ether + uToken.MIN_MINT_AMOUNT() && mintAmount <= 100 ether);
 
         vm.startPrank(ALICE);
         daiMock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
 
-        uint256 minterFee = (mintAmount * MINTER_FEE_RATE) / 1e18;
+        uint256 mintFee = (mintAmount * MINT_FEE_RATE) / 1e18;
 
         uint256 totalRedeemable = uToken.totalRedeemable();
         vm.mockCall(
             address(assetManagerMock),
-            abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, ALICE, mintAmount - minterFee),
+            abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, ALICE, mintAmount - mintFee),
             abi.encode(1 ether)
         );
-        uToken.redeem(mintAmount - minterFee, 0);
+        uToken.redeem(mintAmount - mintFee, 0);
         uint256 totalRedeemableAfter = uToken.totalRedeemable();
-        assertEq(totalRedeemableAfter, totalRedeemable + minterFee - mintAmount + 1 ether);
+        assertEq(totalRedeemableAfter, totalRedeemable + mintFee - mintAmount + 1 ether);
     }
 
     function testRedeemUnderlying(uint256 mintAmount) public {
-        vm.assume(mintAmount > 1e18 / MINTER_FEE_RATE && mintAmount <= 100 ether);
+        vm.assume(mintAmount > uToken.MIN_MINT_AMOUNT() && mintAmount <= 100 ether);
 
         vm.startPrank(ALICE);
 
         daiMock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
 
-        uint256 minterFee = (mintAmount * MINTER_FEE_RATE) / 1e18;
+        uint256 mintFee = (mintAmount * MINT_FEE_RATE) / 1e18;
 
         uint256 uBalance = uToken.balanceOf(ALICE);
         uint256 daiBalance = daiMock.balanceOf(ALICE);
 
-        assertEq(uBalance, mintAmount - minterFee);
+        assertEq(uBalance, mintAmount - mintFee);
 
-        uToken.redeem(0, mintAmount - minterFee);
+        uToken.redeem(0, mintAmount - mintFee);
         uBalance = uToken.balanceOf(ALICE);
         assertEq(0, uBalance);
 
         uint256 daiBalanceAfter = daiMock.balanceOf(ALICE);
-        assertEq(daiBalanceAfter, daiBalance + mintAmount - minterFee);
+        assertEq(daiBalanceAfter, daiBalance + mintAmount - mintFee);
     }
 
     function testExchangeRate() public {

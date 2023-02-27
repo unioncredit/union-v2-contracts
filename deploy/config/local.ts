@@ -20,6 +20,6 @@ export default {
         maxBorrow: parseUnits("25000"),
         minBorrow: parseUnits("100"),
         overdueBlocks: "10", // in blocks
-        minterFeeRate: parseUnits("0.001")
+        mintFeeRate: parseUnits("0.001")
     }
 } as DeployConfig;

@@ -79,7 +79,7 @@ export interface DeployConfig {
         maxBorrow: BigNumberish;
         minBorrow: BigNumberish;
         overdueBlocks: BigNumberish;
-        minterFeeRate: BigNumberish;
+        mintFeeRate: BigNumberish;
     };
     fixedInterestRateModel: {
         interestRatePerBlock: BigNumberish;
@@ -239,7 +239,7 @@ export default async function (
             "UErc20",
             {
                 signature:
-                    "__UToken_init((string name,string symbol,address underlying,uint256 initialExchangeRateMantissa,uint256 reserveFactorMantissa,uint256 originationFee,uint256 originationFeeMax,uint256 debtCeiling,uint256 maxBorrow,uint256 minBorrow,uint256 overdueBlocks,address admin,uint256 minterFeeRate))",
+                    "__UToken_init((string name,string symbol,address underlying,uint256 initialExchangeRateMantissa,uint256 reserveFactorMantissa,uint256 originationFee,uint256 originationFeeMax,uint256 debtCeiling,uint256 maxBorrow,uint256 minBorrow,uint256 overdueBlocks,address admin,uint256 mintFeeRate))",
                 args: [
                     {
                         name: config.uToken.name,
@@ -254,7 +254,7 @@ export default async function (
                         minBorrow: config.uToken.minBorrow,
                         overdueBlocks: config.uToken.overdueBlocks,
                         admin: config.admin,
-                        minterFeeRate: config.uToken.minterFeeRate
+                        mintFeeRate: config.uToken.mintFeeRate
                     }
                 ]
             },

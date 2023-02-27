@@ -40,7 +40,7 @@ export const baseConfig = {
         maxBorrow: parseUnits("25000"),
         minBorrow: parseUnits("100"),
         overdueBlocks: "216000", // in blocks, 30 days.
-        minterFeeRate: parseUnits("0.001")
+        mintFeeRate: parseUnits("0.001")
     },
     fixedInterestRateModel: {
         interestRatePerBlock: "38051750380" // 10% APR, 38051750380 x 7200 (blocks per day) x 365,

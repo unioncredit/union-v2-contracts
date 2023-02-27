@@ -17,7 +17,7 @@ contract TestUTokenBase is TestWrapper {
     uint256 internal constant OVERDUE_BLOCKS = 10;
     uint256 internal constant RESERVE_FACTOR = 0.5 ether;
     uint256 internal constant INIT_EXCHANGE_RATE = 1 ether;
-    uint256 internal constant MINTER_FEE_RATE = 1e15;
+    uint256 internal constant MINT_FEE_RATE = 1e15;
 
     function setUp() public virtual {
         uint256 debtCeiling = 1000 ether;
@@ -43,7 +43,7 @@ contract TestUTokenBase is TestWrapper {
                         minBorrow: MIN_BORROW,
                         overdueBlocks: OVERDUE_BLOCKS,
                         admin: ADMIN,
-                        minterFeeRate: MINTER_FEE_RATE
+                        mintFeeRate: MINT_FEE_RATE
                     })
                 )
             )
