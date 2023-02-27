@@ -215,8 +215,8 @@ contract Comptroller is Controller, IComptroller {
         users[account][token].updatedBlock = block.number;
         users[account][token].inflationIndex = gInflationIndex;
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
-            unionToken.safeTransfer(account, amount);
             users[account][token].accrued = 0;
+            unionToken.safeTransfer(account, amount);
             emit LogWithdrawRewards(account, amount);
 
             return amount;
@@ -272,8 +272,12 @@ contract Comptroller is Controller, IComptroller {
         uint256 pastBlocks = block.number - lastUpdatedBlock;
         uint256 startInflationIndex = userInfo.inflationIndex;
 
-        if (user.effectiveStaked == 0 || totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
+        if (totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
             return 0;
+        }
+
+        if (user.effectiveStaked == 0) {
+            return userInfo.accrued;
         }
 
         uint256 rewardMultiplier = _getRewardsMultiplier(user);
