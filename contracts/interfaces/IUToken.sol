@@ -67,4 +67,6 @@ interface IUToken {
     function repayBorrow(address borrower, uint256 amount) external;
 
     function debtWriteOff(address borrower, uint256 amount) external;
+
+    function setMinterFeeRate(uint256 newRate) external;
 }
