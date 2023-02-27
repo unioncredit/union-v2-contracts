@@ -12,7 +12,7 @@ jobs:
                   submodules: recursive
             - uses: actions/setup-node@v2
               with:
-                  node-version: 14
+                  node-version: 18
 
             - name: Install dependencies
               run: yarn install
@@ -22,11 +22,20 @@ jobs:
               with:
                   version: nightly
 
+            - name: Forge build
+              run: forge build
+
             - name: Run unit tests (forge)
               run: forge test
 
-            - name: Compile hardhat
-              run: yarn hh:compile
+            - name: Run coverage
+              run: forge coverage --report lcov
 
-            - name: Run int tests 
+            - name: Report coverage
+              uses: codecov/codecov-action@v3
+              with:
+                  files: lcov.info
+                  token: ${{ secrets.CODECOV_TOKEN }}
+
+            - name: Run int tests
               run: yarn hh:test
