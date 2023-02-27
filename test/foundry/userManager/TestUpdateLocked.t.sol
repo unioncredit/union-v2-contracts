@@ -1,7 +1,5 @@
 pragma solidity ^0.8.0;
 
-import {console} from "forge-std/console.sol";
-
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v2-contracts/user/UserManager.sol";
@@ -101,28 +99,18 @@ contract TestUpdateLocked is TestUserManagerBase {
 
         (, , vouchLocked, vouchLastUpdated) = userManager.vouchers(ACCOUNT, 0);
         uint256 lockAmountPerBlock = vouchLocked;
-        console.log("vouch locked", vouchLocked);
-        console.log("vouch lastUpdated", vouchLastUpdated);
         assertEq(vouchLastUpdated, currBlock);
         (, , , , , lockedCoinAge) = userManager.stakers(MEMBERS[0]);
-        console.log("staker.lockedCoinAge", lockedCoinAge);
-        console.log("");
         assertEq(lockedCoinAge, lockAmountPerBlock * (currBlock - startBlock));
 
         // lockedCoinAge should only increase by the locked amount per block
         for (uint256 i = 0; i < 3; ++i) {
             vm.roll(++currBlock);
-
             // update locked amount as borrower only repays the interest
             userManager.updateLocked(ACCOUNT, 0, true);
-
             (, , , vouchLastUpdated) = userManager.vouchers(ACCOUNT, 0);
-            console.log("vouch lastUpdated", vouchLastUpdated);
             assertEq(vouchLastUpdated, currBlock);
-
             (, , , , , lockedCoinAge) = userManager.stakers(MEMBERS[0]);
-            console.log("staker.lockedCoinAge", lockedCoinAge);
-            console.log("");
             assertEq(lockedCoinAge, lockAmountPerBlock * (currBlock - startBlock));
         }
 
