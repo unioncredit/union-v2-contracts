@@ -175,10 +175,9 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     function withdrawAll(
         address tokenAddress,
         address recipient
-    ) external override onlyAssetManager checkTokenSupported(tokenAddress) returns (bool) {
+    ) external override onlyAssetManager checkTokenSupported(tokenAddress) {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.safeTransfer(recipient, token.balanceOf(address(this)));
-        return true;
     }
 
     // solhint-disable-next-line no-empty-blocks
