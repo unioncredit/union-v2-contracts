@@ -19,7 +19,7 @@ contract UserManagerMock {
     uint256 public totalFrozenAmount;
 
     constructor() {
-        newMemberFee = 10**18; // Set the default membership fee
+        newMemberFee = 10 ** 18; // Set the default membership fee
     }
 
     function batchUpdateTotalFrozen(address[] calldata account, bool[] calldata isOverdue) external {}
@@ -87,22 +87,14 @@ contract UserManagerMock {
 
     function withdrawRewards() external {}
 
-    function updateLocked(
-        address borrower,
-        uint96 amount,
-        bool lock
-    ) external {}
+    function updateLocked(address borrower, uint256 amount, bool lock) external {}
 
     //Only supports sumOfTrust
-    function debtWriteOff(
-        address staker,
-        address borrower,
-        uint96 amount
-    ) public {}
+    function debtWriteOff(address staker, address borrower, uint256 amount) public {}
 
     function onWithdrawRewards(address staker, uint256 pastBlocks) public returns (uint256, uint256) {}
 
-    function onRepayBorrow(address borrower) public {}
+    function onRepayBorrow(address borrower, uint256 pastBlocks) public {}
 
     function getVoucherCount(address borrower) external view returns (uint256) {}
 

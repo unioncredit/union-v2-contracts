@@ -10,5 +10,7 @@ remappings = [
   '@openzeppelin/contracts-upgradeable=node_modules/@openzeppelin/contracts-upgradeable',
   'union-v2-contracts=contracts'
 ]
-
+optimizer = true
+optimizer_runs = 200
+#via_ir = true
 # See more config options https://github.com/gakonst/foundry/tree/master/config
