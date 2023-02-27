@@ -27,24 +27,26 @@ contract TestDepositWithdraw is TestAssetManagerBase {
         marketRegistryMock.setUToken(address(daiMock), b);
     }
 
-    function testCannotSetWithdrawSequenceNotParity(IMoneyMarketAdapter[] calldata newSeq) public {
+    function testCannotSetWithdrawSequenceNotParity(address[] calldata newSeq) public {
         vm.assume(newSeq.length != 2);
         vm.prank(ADMIN);
         vm.expectRevert(AssetManager.NotParity.selector);
         assetManager.setWithdrawSequence(newSeq);
     }
 
-    function testCannotSetWithdrawSequenceUseErrorAddress(IMoneyMarketAdapter[] calldata newSeq) public {
-        vm.assume(newSeq.length == 2);
+    function testCannotSetWithdrawSequenceUseErrorAddress(address[] calldata newSeq) public {
+        address[] memory newSeq = new address[](2);
+        newSeq[0] = address(2);
+        newSeq[1] = address(3);
         vm.prank(ADMIN);
         vm.expectRevert(AssetManager.ParamsError.selector);
         assetManager.setWithdrawSequence(newSeq);
     }
 
     function testSetWithdrawSequence() public {
-        IMoneyMarketAdapter[] memory newSeq = new IMoneyMarketAdapter[](2);
-        newSeq[0] = IMoneyMarketAdapter(address(adapterMock2));
-        newSeq[1] = IMoneyMarketAdapter(address(adapterMock));
+        address[] memory newSeq = new address[](2);
+        newSeq[0] = address(adapterMock2);
+        newSeq[1] = address(adapterMock);
         vm.prank(ADMIN);
         assetManager.setWithdrawSequence(newSeq);
         assertEq(address(assetManager.withdrawSeq(0)), address(newSeq[0]));
@@ -62,9 +64,9 @@ contract TestDepositWithdraw is TestAssetManagerBase {
         assetManager.withdraw(address(daiMock), address(123), amount);
         assertEq(daiMock.balanceOf(address(adapterMock)), 0);
 
-        IMoneyMarketAdapter[] memory newSeq = new IMoneyMarketAdapter[](2);
-        newSeq[0] = IMoneyMarketAdapter(address(adapterMock2));
-        newSeq[1] = IMoneyMarketAdapter(address(adapterMock));
+        address[] memory newSeq = new address[](2);
+        newSeq[0] = address(adapterMock2);
+        newSeq[1] = address(adapterMock);
         vm.prank(ADMIN);
         assetManager.setWithdrawSequence(newSeq);
 

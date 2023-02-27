@@ -138,12 +138,14 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @dev Set withdraw sequence
      *  @param newSeq priority sequence of money market indices to be used while withdrawing
      */
-    function setWithdrawSequence(IMoneyMarketAdapter[] calldata newSeq) external override onlyAdmin {
+    function setWithdrawSequence(address[] calldata newSeq) external override onlyAdmin {
         if (newSeq.length != moneyMarkets.length) revert NotParity();
+        IMoneyMarketAdapter[] memory newWithdrawSeq = new IMoneyMarketAdapter[](moneyMarkets.length);
         for (uint i = 0; i < newSeq.length; i++) {
+            newWithdrawSeq[i] = IMoneyMarketAdapter(newSeq[i]);
             bool isExist = false;
             for (uint256 j = 0; j < moneyMarkets.length; j++) {
-                if (address(newSeq[i]) == address(moneyMarkets[j])) {
+                if (newSeq[i] == address(moneyMarkets[j])) {
                     isExist = true;
                     break;
                 }
@@ -151,7 +153,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
             if (!isExist) revert ParamsError();
         }
 
-        withdrawSeq = newSeq;
+        withdrawSeq = newWithdrawSeq;
     }
 
     /* -------------------------------------------------------------------

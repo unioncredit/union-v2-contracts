@@ -65,7 +65,7 @@ contract AssetManagerMock is IAssetManager {
 
     function approveAllTokensMax(address) external override {}
 
-    function setWithdrawSequence(IMoneyMarketAdapter[] calldata) external override {}
+    function setWithdrawSequence(address[] calldata) external override {}
 
     function rebalance(address, uint256[] calldata) external override {}
 

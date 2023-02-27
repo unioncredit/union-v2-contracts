@@ -1,8 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import {IMoneyMarketAdapter} from "./IMoneyMarketAdapter.sol";
-
 /**
  *  @title AssetManager Interface
  *  @dev Manage the token balances staked by the users and deposited by admins, and invest tokens to the integrated underlying lending protocols.
@@ -106,7 +104,7 @@ interface IAssetManager {
      *  @dev Set withdraw sequence
      *  @param newSeq priority sequence of money market indices to be used while withdrawing
      */
-    function setWithdrawSequence(IMoneyMarketAdapter[] calldata newSeq) external;
+    function setWithdrawSequence(address[] calldata newSeq) external;
 
     /**
      *  @dev Rebalance the tokens between integrated lending protocols
