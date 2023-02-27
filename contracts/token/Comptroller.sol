@@ -159,48 +159,24 @@ contract Comptroller is Controller, IComptroller {
      */
     function getRewardsMultiplier(address account, address token) external view override returns (uint256) {
         IUserManager userManager = _getUserManager(token);
-        uint256 pastBlocks = block.number - users[account][token].updatedBlock;
-
-        (uint256 effectiveStaked, uint256 effectiveLocked, bool isMember) = userManager.getStakeInfo(
-            account,
-            pastBlocks
-        );
+        (bool isMember, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(account);
         return _getRewardsMultiplier(UserManagerAccountState(effectiveStaked, effectiveLocked, isMember));
     }
 
     /**
-     *  @dev Calculate unclaimed rewards based on blocks
-     *  @param account User address
-     *  @param token Staking token address
-     *  @param futureBlocks Number of blocks in the future
-     *  @return Unclaimed rewards
-     */
-    function calculateRewardsByBlocks(
-        address account,
-        address token,
-        uint256 futureBlocks
-    ) public view override returns (uint256) {
-        IUserManager userManager = _getUserManager(token);
-
-        // Lookup account state from UserManager
-        (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) = _getUserInfoView(
-            userManager,
-            account,
-            token,
-            futureBlocks
-        );
-
-        return _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, userManager.globalTotalStaked(), user);
-    }
-
-    /**
-     *  @dev Calculate currently unclaimed rewards
+     *  @dev Calculate unclaimed rewards
      *  @param account Account address
      *  @param token Staking token address
      *  @return Unclaimed rewards
      */
-    function calculateRewards(address account, address token) external view override returns (uint256) {
-        return calculateRewardsByBlocks(account, token, 0);
+    function calculateRewards(address account, address token) public view override returns (uint256) {
+        IUserManager userManager = _getUserManager(token);
+
+        // Lookup account state from UserManager
+        UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
+        (user.isMember, user.effectiveStaked, user.effectiveLocked, ) = userManager.getStakeInfo(account);
+
+        return _calculateRewardsInternal(account, token, userManager.globalTotalStaked(), user);
     }
 
     /**
@@ -225,17 +201,13 @@ contract Comptroller is Controller, IComptroller {
         IUserManager userManager = _getUserManager(token);
 
         // Lookup account state from UserManager
-        (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) = _getUserInfo(
-            userManager,
-            account,
-            token,
-            0
-        );
+        UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
+        (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.onWithdrawRewards(account);
 
         // Lookup global state from UserManager
         uint256 globalTotalStaked = userManager.globalTotalStaked();
 
-        uint256 amount = _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, globalTotalStaked, user);
+        uint256 amount = _calculateRewardsInternal(account, token, globalTotalStaked, user);
 
         // update the global states
         gInflationIndex = _getInflationIndexNew(globalTotalStaked, block.number - gLastUpdatedBlock);
@@ -278,75 +250,27 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     /**
-     * @dev Get UserManager user specific state (view function does NOT update UserManage state)
-     * @param userManager UserManager contract
-     * @param account Account address
-     * @param token Token address
-     * @param futureBlocks Blocks in the future
-     */
-    function _getUserInfoView(
-        IUserManager userManager,
-        address account,
-        address token,
-        uint256 futureBlocks
-    ) internal view returns (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) {
-        userInfo = users[account][token];
-        uint256 lastUpdatedBlock = userInfo.updatedBlock;
-        if (block.number < lastUpdatedBlock) {
-            lastUpdatedBlock = block.number;
-        }
-
-        pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
-
-        (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.getStakeInfo(account, pastBlocks);
-    }
-
-    /**
-     * @dev Get UserManager user specific state (function does update UserManage state)
-     * @param userManager UserManager contract
-     * @param account Account address
-     * @param token Token address
-     * @param futureBlocks Blocks in the future
-     */
-    function _getUserInfo(
-        IUserManager userManager,
-        address account,
-        address token,
-        uint256 futureBlocks
-    ) internal returns (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) {
-        userInfo = users[account][token];
-        uint256 lastUpdatedBlock = userInfo.updatedBlock;
-        if (block.number < lastUpdatedBlock) {
-            lastUpdatedBlock = block.number;
-        }
-
-        pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
-
-        (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.onWithdrawRewards(
-            account,
-            pastBlocks
-        );
-    }
-
-    /**
      *  @dev Calculate currently unclaimed rewards
      *  @param account Account address
      *  @param token Staking token address
-     *  @param pastBlocks # of blocks past
-     *  @param userInfo User info
      *  @param totalStaked Effective total staked
      *  @param user User account global state
      *  @return Unclaimed rewards
      */
-    function _calculateRewardsByBlocks(
+    function _calculateRewardsInternal(
         address account,
         address token,
-        uint256 pastBlocks,
-        Info memory userInfo,
         uint256 totalStaked,
         UserManagerAccountState memory user
     ) internal view returns (uint256) {
-        uint256 startInflationIndex = users[account][token].inflationIndex;
+        Info memory userInfo = users[account][token];
+        uint256 lastUpdatedBlock = userInfo.updatedBlock;
+        if (block.number < lastUpdatedBlock) {
+            lastUpdatedBlock = block.number;
+        }
+
+        uint256 pastBlocks = block.number - lastUpdatedBlock;
+        uint256 startInflationIndex = userInfo.inflationIndex;
 
         if (user.effectiveStaked == 0 || totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
             return 0;
