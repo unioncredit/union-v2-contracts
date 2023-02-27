@@ -132,6 +132,16 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         vm.stopPrank();
     }
 
+    function testRemoveAdapterWhenRemainingFundsButAdapterNotSupport() public {
+        vm.startPrank(ADMIN);
+        assetManager.addToken(address(daiMock));
+        assetManager.addAdapter(address(adapterMock));
+        daiMock.mint(address(adapterMock), 10000);
+        adapterMock.setSupport(true);
+        assetManager.removeAdapter(address(adapterMock));
+        vm.stopPrank();
+    }
+
     function testGetMoneyMarket(uint256 _rate) public {
         vm.startPrank(ADMIN);
         assetManager.addAdapter(address(adapterMock));

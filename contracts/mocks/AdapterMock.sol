@@ -14,6 +14,7 @@ contract AdapterMock is IMoneyMarketAdapter {
     uint256 public rate;
 
     bool public toRevert;
+    bool public isNotSupport;
 
     /**
      * @dev Mapping of token address to floor balance
@@ -57,8 +58,12 @@ contract AdapterMock is IMoneyMarketAdapter {
         return _getSupply(tokenAddress);
     }
 
-    function supportsToken(address) external pure override returns (bool) {
-        return true;
+    function setSupport(bool _isNotSupport) external {
+        isNotSupport = _isNotSupport;
+    }
+
+    function supportsToken(address) external view override returns (bool) {
+        return !isNotSupport;
     }
 
     function deposit(address tokenAddress) external override returns (bool) {
@@ -71,11 +76,7 @@ contract AdapterMock is IMoneyMarketAdapter {
         return true;
     }
 
-    function withdraw(
-        address tokenAddress,
-        address recipient,
-        uint256 tokenAmount
-    ) external override returns (bool) {
+    function withdraw(address tokenAddress, address recipient, uint256 tokenAmount) external override returns (bool) {
         if (toRevert) return false;
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.safeTransfer(recipient, tokenAmount);

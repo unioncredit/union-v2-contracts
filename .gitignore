@@ -12,3 +12,4 @@ docs
 .env
 .envrc
 dist
+report
