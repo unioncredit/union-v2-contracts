@@ -130,27 +130,27 @@ describe("Staking and unstaking", () => {
         });
         it("withdraw rewards from comptroller", async () => {
             await roll(1);
-            const rewards = await contracts.comptroller.calculateRewardsByBlocks(
+            const rewardsPerBlock = await contracts.comptroller.calculateRewards(
                 deployerAddress,
-                contracts.dai.address,
-                1
+                contracts.dai.address
             );
             const balanceBefore = await contracts.unionToken.balanceOf(deployerAddress);
             await contracts.userManager.withdrawRewards();
             const balanceAfter = await contracts.unionToken.balanceOf(deployerAddress);
-            expect(balanceAfter.sub(balanceBefore)).eq(rewards);
+            // 2 blocks rewards
+            expect(balanceAfter.sub(balanceBefore)).eq(rewardsPerBlock.mul("2"));
         });
         it("withdraw rewards when staking", async () => {
             await roll(1);
-            const rewards = await contracts.comptroller.calculateRewardsByBlocks(
+            const rewardsPerBlock = await contracts.comptroller.calculateRewards(
                 deployerAddress,
-                contracts.dai.address,
-                1
+                contracts.dai.address
             );
             const balanceBefore = await contracts.unionToken.balanceOf(deployerAddress);
             await contracts.userManager.stake(1);
             const balanceAfter = await contracts.unionToken.balanceOf(deployerAddress);
-            expect(balanceAfter.sub(balanceBefore)).eq(rewards);
+            // 2 blocks rewards
+            expect(balanceAfter.sub(balanceBefore)).eq(rewardsPerBlock.mul("2"));
         });
         it("large staker has more rewards than small staker", async () => {
             const [, shrimp, whale] = accounts;
