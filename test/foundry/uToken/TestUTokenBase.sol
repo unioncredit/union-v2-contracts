@@ -28,19 +28,21 @@ contract TestUTokenBase is TestWrapper {
             deployProxy(
                 uTokenLogic,
                 abi.encodeWithSignature(
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
-                    "UTokenMock",
-                    "UTM",
-                    address(daiMock),
-                    INIT_EXCHANGE_RATE,
-                    RESERVE_FACTOR,
-                    ORIGINATION_FEE,
-                    ORIGINATION_FEE_MAX,
-                    debtCeiling,
-                    MAX_BORROW,
-                    MIN_BORROW,
-                    OVERDUE_BLOCKS,
-                    ADMIN
+                    "__UToken_init((string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address))",
+                    UToken.InitParams({
+                        name: "UTokenMock",
+                        symbol: "UTM",
+                        underlying: address(daiMock),
+                        initialExchangeRateMantissa: INIT_EXCHANGE_RATE,
+                        reserveFactorMantissa: RESERVE_FACTOR,
+                        originationFee: ORIGINATION_FEE,
+                        originationFeeMax: ORIGINATION_FEE_MAX,
+                        debtCeiling: debtCeiling,
+                        maxBorrow: MAX_BORROW,
+                        minBorrow: MIN_BORROW,
+                        overdueBlocks: OVERDUE_BLOCKS,
+                        admin: ADMIN
+                    })
                 )
             )
         );
