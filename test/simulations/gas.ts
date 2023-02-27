@@ -209,7 +209,7 @@ describe("Max gas", () => {
 
             spinner.stop();
 
-            const gasUsed = await contracts.userManager.estimateGas.getStakeInfo(stakerAddress, 0);
+            const gasUsed = await contracts.userManager.estimateGas.getStakeInfo(stakerAddress);
             const reportStr = `[*] getStakeInfo:: count: ${ACCOUNT_COUNT} Gas used: ${commify(gasUsed.toString())}`;
             saveReport(reportStr, 3);
             console.log(reportStr);
