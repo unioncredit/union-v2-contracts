@@ -8,7 +8,14 @@ interface IOvmL2CrossDomainMessenger {
 contract OpOwner {
     address private _owner;
     address private _admin;
-    IOvmL2CrossDomainMessenger private immutable ovmL2CrossDomainMessenger;
+    address private _pendingOwner;
+    address private _pendingAdmin;
+
+    IOvmL2CrossDomainMessenger private ovmL2CrossDomainMessenger;
+
+    error SenderNotPendingAdmin();
+    error SenderNotPendingOwner();
+    error AddressNotZero();
 
     event CallExecuted(address target, uint256 value, bytes data);
 
@@ -35,12 +42,34 @@ contract OpOwner {
         return _admin;
     }
 
-    function transferOwnership(address newOwner) public onlyAuth {
-        _owner = newOwner;
+    function pendingOwner() public view returns (address) {
+        return _pendingOwner;
     }
 
-    function transferAdmin(address newAdmin) public onlyAuth {
-        _admin = newAdmin;
+    function pendingAdmin() public view returns (address) {
+        return _pendingAdmin;
+    }
+
+    function setPendingOwner(address newOwner) public onlyAuth {
+        if (newOwner == address(0)) revert AddressNotZero();
+        _pendingOwner = newOwner;
+    }
+
+    function setPendingAdmin(address newAdmin) public onlyAuth {
+        if (newAdmin == address(0)) revert AddressNotZero();
+        _pendingAdmin = newAdmin;
+    }
+
+    function acceptOwner() public {
+        if (_pendingOwner != msg.sender) revert SenderNotPendingOwner();
+        _owner = _pendingOwner;
+        _pendingOwner = address(0);
+    }
+
+    function acceptAdmin() public {
+        if (_pendingAdmin != msg.sender) revert SenderNotPendingAdmin();
+        _admin = _pendingAdmin;
+        _pendingAdmin = address(0);
     }
 
     function execute(address target, uint256 value, bytes calldata data) public payable onlyAuth {
