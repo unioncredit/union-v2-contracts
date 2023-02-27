@@ -46,7 +46,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 minBorrow;
         uint256 overdueBlocks;
         address admin;
-        uint256 minterFeeRate;
+        uint256 mintFeeRate;
     }
 
     /* -------------------------------------------------------------------
@@ -57,6 +57,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      * @dev Wad do you want
      */
     uint256 public constant WAD = 1e18;
+
+    /**
+     *  @dev Minimum mint amount
+     */
+    uint256 public constant MIN_MINT_AMOUNT = 1e18;
 
     /**
      * @dev Maximum borrow rate that can ever be applied (.005% / block)
@@ -161,7 +166,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     /**
      *  @dev fee charged on minting UToken to prevent frontrun attack on repayments
      */
-    uint256 public minterFeeRate;
+    uint256 public mintFeeRate;
 
     /* -------------------------------------------------------------------
       Errors 
@@ -184,7 +189,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     error ReserveFactoryExceedLimit();
     error DepositToAssetManagerFailed();
     error OriginationFeeExceedLimit();
-    error MinterFeeError();
+    error MintFeeError();
 
     /* -------------------------------------------------------------------
       Events 
@@ -246,7 +251,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param oldRate Old rate
      *  @param newRate New rate
      */
-    event LogMinterFeeRateChanged(uint256 oldRate, uint256 newRate);
+    event LogMintFeeRateChanged(uint256 oldRate, uint256 newRate);
 
     /* -------------------------------------------------------------------
       Modifiers 
@@ -285,7 +290,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         overdueBlocks = params.overdueBlocks;
         initialExchangeRateMantissa = params.initialExchangeRateMantissa;
         reserveFactorMantissa = params.reserveFactorMantissa;
-        minterFeeRate = params.minterFeeRate;
+        mintFeeRate = params.mintFeeRate;
 
         accrualBlockNumber = getBlockNumber();
         borrowIndex = WAD;
@@ -383,12 +388,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  Only admin can call this function
      *  @param newRate New minter fee rate
      */
-    function setMinterFeeRate(uint256 newRate) external override onlyAdmin {
-        if (newRate == 0 || newRate >= 1e18) revert MinterFeeError();
-        uint256 oldRate = minterFeeRate;
-        minterFeeRate = newRate;
+    function setMintFeeRate(uint256 newRate) external override onlyAdmin {
+        if (newRate > 1e17) revert MintFeeError();
+        uint256 oldRate = mintFeeRate;
+        mintFeeRate = newRate;
 
-        emit LogMinterFeeRateChanged(oldRate, newRate);
+        emit LogMintFeeRateChanged(oldRate, newRate);
     }
 
     /* -------------------------------------------------------------------
@@ -739,7 +744,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      * @param amountIn The amount of the underlying asset to supply
      */
     function mint(uint256 amountIn) external override whenNotPaused nonReentrant {
-        if (amountIn == 0) revert AmountError();
+        if (amountIn < MIN_MINT_AMOUNT) revert AmountError();
         if (!accrueInterest()) revert AccrueInterestFailed();
         uint256 exchangeRate = exchangeRateStored();
         IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
@@ -747,14 +752,14 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         assetToken.safeTransferFrom(msg.sender, address(this), amountIn);
         uint256 balanceAfter = assetToken.balanceOf(address(this));
         uint256 totalAmount = balanceAfter - balanceBefore;
-        uint256 mintAmount = 0;
         uint256 mintTokens = 0;
-        // Minter fee goes to the reserve
-        uint256 minterFee = (totalAmount * minterFeeRate) / WAD;
-        if (minterFee == 0) revert MinterFeeError(); // minter's deposit cannot be too small
-        totalReserves += minterFee;
+        uint256 mintFee = (totalAmount * mintFeeRate) / WAD;
+        if (mintFee > 0) {
+            // Minter fee goes to the reserve
+            totalReserves += mintFee;
+        }
         // Rest goes to minting UToken
-        mintAmount = totalAmount - minterFee;
+        uint256 mintAmount = totalAmount - mintFee;
         totalRedeemable += mintAmount;
         mintTokens = (mintAmount * WAD) / exchangeRate;
         _mint(msg.sender, mintTokens);
