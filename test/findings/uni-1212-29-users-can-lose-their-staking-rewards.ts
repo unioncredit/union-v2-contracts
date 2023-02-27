@@ -41,7 +41,7 @@ describe("Users can lose their staking rewards ", () => {
         const balanceBefore = await contracts.unionToken.balanceOf(deployerAddress);
         //Take out all stakes
         await contracts.userManager.unstake(stakeAmount);
-        const stakeInfo = await contracts.userManager.getStakeInfo(deployerAddress, 0);
+        const stakeInfo = await contracts.userManager.getStakeInfo(deployerAddress);
         expect(stakeInfo.effectiveStaked).eq(0);
 
         //Because the union balance is insufficient, the tokens are not transferred to the user but accumulated on accrued
