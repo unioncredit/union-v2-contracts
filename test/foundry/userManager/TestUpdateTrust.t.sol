@@ -11,6 +11,24 @@ contract TestUpdateTrust is TestUserManagerBase {
         userManager.stake(100 ether);
     }
 
+    function verifyVouches(address acc) private {
+        uint256 voucheeLen = userManager.getVoucheeCount(acc);
+        uint256 voucherLen = userManager.getVoucherCount(acc);
+
+        // Loop through all the vouchees and get the voucher index of their
+        // staker and then check their staker is correct
+        for (uint256 i = 0; i < voucheeLen; i++) {
+            (address borrower, uint96 voucherIndex) = userManager.vouchees(acc, i);
+            (address staker, uint96 t, uint96 l, uint64 lu) = userManager.vouchers(borrower, voucherIndex);
+            (, uint128 voucheeIdx) = userManager.voucheeIndexes(borrower, acc);
+            (, uint128 voucherIdx) = userManager.voucherIndexes(borrower, acc);
+
+            assertEq(voucheeIdx, i);
+            assertEq(voucherIndex, voucherIdx);
+            assertEq(staker, acc);
+        }
+    }
+
     function testGetCreditLimit(uint96 trustAmount) public {
         vm.assume(trustAmount <= 100 ether);
         vm.startPrank(MEMBER);
@@ -69,15 +87,46 @@ contract TestUpdateTrust is TestUserManagerBase {
 
     function testCancelVouch(uint96 amount) public {
         vm.startPrank(MEMBER);
+
         userManager.updateTrust(ACCOUNT, amount);
+        assertEq(userManager.getVoucheeCount(MEMBER), 1);
+
         (, uint256 vouchIndex) = userManager.voucherIndexes(ACCOUNT, MEMBER);
         (, uint256 vouchAmount, , ) = userManager.vouchers(ACCOUNT, vouchIndex);
         assertEq(vouchAmount, amount);
         userManager.cancelVouch(MEMBER, ACCOUNT);
         (bool isSet, ) = userManager.voucherIndexes(ACCOUNT, MEMBER);
         assert(!isSet);
+        // Verify
+        verifyVouches(MEMBER);
+        verifyVouches(ACCOUNT);
         vm.stopPrank();
     }
+
+    function testCancelVouchMultiple(uint96 amount) public {
+        vm.startPrank(MEMBER);
+
+        address ACC0 = address(123456);
+        address ACC1 = address(234567);
+
+        userManager.updateTrust(ACC0, amount);
+        userManager.updateTrust(ACC1, amount);
+        assertEq(userManager.getVoucheeCount(MEMBER), 2);
+
+        (, uint256 vouchIndex) = userManager.voucherIndexes(ACC0, MEMBER);
+        (, uint256 vouchAmount, , ) = userManager.vouchers(ACC0, vouchIndex);
+        assertEq(vouchAmount, amount);
+        userManager.cancelVouch(MEMBER, ACC0);
+        (bool isSet, ) = userManager.voucherIndexes(ACC0, MEMBER);
+        assert(!isSet);
+        // Verify
+        verifyVouches(MEMBER);
+        verifyVouches(ACC0);
+        verifyVouches(ACC1);
+        vm.stopPrank();
+    }
+
+    // TODO: remove when only 1 vouch
 
     function testSavesVouchIndex() public {
         vm.startPrank(MEMBER);
