@@ -844,6 +844,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             staker.lockedCoinAge +=
                 (block.number - _max(vouch.lastUpdated, staker.lastUpdated)) *
                 uint256(vouch.locked);
+            vouch.lastUpdated = (block.number).toUint64();
             if (lock) {
                 // Look up the staker and determine how much unlock stake they
                 // have available for the borrower to borrow. If there is 0
@@ -857,7 +858,6 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                 innerAmount = _min(remaining, lockAmount);
                 staker.locked += innerAmount;
                 vouch.locked += innerAmount;
-                vouch.lastUpdated = uint64(block.number);
             } else {
                 // Look up how much this vouch has locked. If it is 0 then
                 // continue to the next voucher. Then calculate the amount to
@@ -869,7 +869,6 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                 // Update the stored locked values and last updated block
                 staker.locked -= innerAmount;
                 vouch.locked -= innerAmount;
-                vouch.lastUpdated = uint64(block.number);
             }
 
             remaining -= innerAmount;
