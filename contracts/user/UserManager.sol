@@ -906,14 +906,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         });
 
         // update staked coin age
-        stakerCoinAges.stakedCoinAge += uint256(staker.stakedAmount) * (block.number - uint256(staker.lastUpdated));
+        stakerCoinAges.stakedCoinAge += staker.stakedAmount * (block.number - staker.lastUpdated);
 
         // Loop through all of the stakers vouchees sum their total
         // locked balance and sum their total currDefaultFrozenCoinAge
         uint256 voucheesLength = vouchees[stakerAddress].length;
         uint256 lastRepay = 0;
         uint256 stakerFrozen = 0;
-        uint256 lastUpdate = 0;
         Vouchee memory vouchee;
         Vouch memory vouch;
         uint256 overdueBlocks = uToken.overdueBlocks();
