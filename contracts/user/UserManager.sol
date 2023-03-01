@@ -64,7 +64,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 stakedCoinAge;
         uint256 lockedCoinAge;
         uint256 frozenCoinAge;
-        uint256 sinceStakerLastUpdate;
+        uint256 sinceLastWithdrawRewards;
     }
 
     /* -------------------------------------------------------------------
@@ -170,6 +170,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @dev Stakers mapped to frozen coin age
      */
     mapping(address => uint256) public frozenCoinAge;
+
+    /**
+     * @dev Stakers mapped the block height of latest rewards withdrawal
+     */
+    mapping(address => uint256) public gLastWithdrawRewards;
 
     /* -------------------------------------------------------------------
       Errors 
@@ -897,11 +902,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             stakedCoinAge: staker.stakedCoinAge,
             lockedCoinAge: staker.lockedCoinAge,
             frozenCoinAge: frozenCoinAge[stakerAddress],
-            sinceStakerLastUpdate: block.number - uint256(staker.lastUpdated)
+            sinceLastWithdrawRewards: block.number - gLastWithdrawRewards[stakerAddress]
         });
 
         // update staked coin age
-        stakerCoinAges.stakedCoinAge += uint256(staker.stakedAmount) * stakerCoinAges.sinceStakerLastUpdate;
+        stakerCoinAges.stakedCoinAge += uint256(staker.stakedAmount) * (block.number - uint256(staker.lastUpdated));
 
         // Loop through all of the stakers vouchees sum their total
         // locked balance and sum their total currDefaultFrozenCoinAge
@@ -919,8 +924,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             vouch = vouchers[vouchee.borrower][vouchee.voucherIndex];
 
             // update locked coin age
-            lastUpdate = _max(vouch.lastUpdated, staker.lastUpdated);
-            stakerCoinAges.lockedCoinAge += vouch.locked * (block.number - lastUpdate);
+            stakerCoinAges.lockedCoinAge += vouch.locked * (block.number - _max(vouch.lastUpdated, staker.lastUpdated));
 
             // update frozen coin age
             lastRepay = uToken.getLastRepay(vouchee.borrower);
@@ -933,12 +937,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                 if (block.number - lastRepay > overdueBlocks) // for the debt overdue
                 {
                     stakerFrozen += vouch.locked;
-                    stakerCoinAges.frozenCoinAge += vouch.locked * (block.number - _max(lastRepay, lastUpdate));
+                    stakerCoinAges.frozenCoinAge += vouch.locked * (block.number - _max(lastRepay, staker.lastUpdated));
                 }
             }
         }
 
-        if (stakerCoinAges.sinceStakerLastUpdate == 0) {
+        if (stakerCoinAges.sinceLastWithdrawRewards == 0) {
             return (
                 staker.stakedAmount - stakerFrozen, // effective staked
                 staker.locked - stakerFrozen, // effective locked
@@ -946,10 +950,10 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             );
         } else {
             return (
-                // staker's total effective staked = (staked coinage - frozen coinage) / (# of blocks since last staker update)
-                (stakerCoinAges.stakedCoinAge - stakerCoinAges.frozenCoinAge) / stakerCoinAges.sinceStakerLastUpdate,
-                // effective locked amount = (locked coinage - frozen coinage) / (# of blocks since last staker update)
-                (stakerCoinAges.lockedCoinAge - stakerCoinAges.frozenCoinAge) / stakerCoinAges.sinceStakerLastUpdate,
+                // staker's total effective staked = (staked coinage - frozen coinage) / (# of blocks since last rewards withdrawal)
+                (stakerCoinAges.stakedCoinAge - stakerCoinAges.frozenCoinAge) / stakerCoinAges.sinceLastWithdrawRewards,
+                // effective locked amount = (locked coinage - frozen coinage) / (# of blocks since last rewards withdrawal)
+                (stakerCoinAges.lockedCoinAge - stakerCoinAges.frozenCoinAge) / stakerCoinAges.sinceLastWithdrawRewards,
                 stakerFrozen
             );
         }
@@ -985,6 +989,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         (effectiveStaked, effectiveLocked, memberTotalFrozen) = _getEffectiveAmounts(staker);
         stakers[staker].stakedCoinAge = 0;
         stakers[staker].lastUpdated = (block.number).toUint64();
+        gLastWithdrawRewards[staker] = block.number;
         stakers[staker].lockedCoinAge = 0;
         frozenCoinAge[staker] = 0;
 
