@@ -186,7 +186,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     /**
      *  @dev Redeem token for uToken
      */
-    event LogRedeem(address redeemer, uint256 amountIn, uint256 amountOut, uint256 redeemAmount);
+    event LogRedeem(address redeemer, uint256 amountIn, uint256 amountOut, uint256 uTokenAmount, uint256 redeemAmount);
 
     /**
      *  @dev Token added to the reserves
@@ -751,17 +751,18 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         }
 
         uint256 remaining = IAssetManager(assetManager).withdraw(underlying, msg.sender, underlyingAmount);
-        // If the remaining amount is greater than or equal to the 
+        // If the remaining amount is greater than or equal to the
         // underlyingAmount then we weren't able to withdraw enough
         // to cover this redemption
         if (remaining >= underlyingAmount) revert WithdrawFailed();
 
         uint256 actualAmount = underlyingAmount - remaining;
         uint256 realUtokenAmount = (actualAmount * WAD) / exchangeRate;
+        if (realUtokenAmount == 0) revert AmountZero();
         _burn(msg.sender, realUtokenAmount);
 
         totalRedeemable -= actualAmount;
-        emit LogRedeem(msg.sender, amountIn, amountOut, actualAmount);
+        emit LogRedeem(msg.sender, amountIn, amountOut, realUtokenAmount, actualAmount);
     }
 
     /* -------------------------------------------------------------------
