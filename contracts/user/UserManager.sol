@@ -1107,29 +1107,49 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         stakers[newMember].isMember = true;
     }
 
+    /**
+     * @dev Calculate a staker's frozen coin age
+     * @param currBlockNumber Current block height
+     * @param locked Stakers locked amount
+     * @param lastStakeUpdated Block number when staked coin age is updated
+     * @param overdueBlock Loan over due period in blocks
+     */
     function _calcFrozenCoinAge(
-        uint256 nowBlock,
+        uint256 currBlockNumber,
         uint256 locked,
         uint256 lastStakeUpdated,
         uint256 overdueBlock
     ) private pure returns (uint) {
-        return locked * (nowBlock - _max(lastStakeUpdated, overdueBlock));
+        return locked * (currBlockNumber - _max(lastStakeUpdated, overdueBlock));
     }
 
+    /**
+     * @dev Calculate a staker's locked coin age
+     * @param currBlockNumber Current block height
+     * @param locked Stakers locked amount
+     * @param lastStakeUpdated Block number when staked coin age is updated
+     * @param lastLockedUpdated Block number when locked coin age is updated
+     */
     function _calcLockedCoinAge(
-        uint256 nowBlock,
+        uint256 currBlockNumber,
         uint256 locked,
         uint256 lastStakeUpdated,
         uint256 lastLockedUpdated
     ) private pure returns (uint) {
-        return locked * (nowBlock - _max(lastStakeUpdated, lastLockedUpdated));
+        return locked * (currBlockNumber - _max(lastStakeUpdated, lastLockedUpdated));
     }
 
+    /**
+     * @dev Calculate a staker's staked coin age
+     * @param currBlockNumber Current block height
+     * @param stakedAmount Stakers staked amount
+     * @param lastStakeUpdated Block number when staked coin age is updated
+     */
     function _calcStakedCoinAge(
-        uint256 nowBlock,
+        uint256 currBlockNumber,
         uint256 stakedAmount,
         uint256 lastStakeUpdated
     ) private pure returns (uint) {
-        return stakedAmount * (nowBlock - lastStakeUpdated);
+        return stakedAmount * (currBlockNumber - lastStakeUpdated);
     }
 }
