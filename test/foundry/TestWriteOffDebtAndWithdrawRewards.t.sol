@@ -21,6 +21,7 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
     uint256 public constant effectiveCount = 3;
     uint256 public constant maxVouchers = 500;
     uint256 public constant maxVouchees = 1000;
+    uint96 private constant stakeAmount = 100 ether;
 
     address staker = MEMBER;
     address borrower = ACCOUNT;
@@ -76,7 +77,6 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
 
         vm.stopPrank();
 
-        uint96 stakeAmount = 100 ether;
         daiMock.mint(MEMBER, stakeAmount);
 
         vm.startPrank(staker);
@@ -86,19 +86,23 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
         vm.stopPrank();
     }
 
-    function testDebtWriteOffAndWithdrawRewards(uint96 writeOffAmount, uint96 amount) public {
-        uint256 currBlock = block.number;
+    function nearlyEqual(uint256 a, uint256 b, uint256 eps) private pure returns (bool) {
+        return (a >= b && a - b <= eps) || (b > a && b - a <= eps);
+    }
 
-        uint96 borrowAmount = 20 ether;
+    function testDebtWriteOffAndWithdrawRewards(uint96 borrowAmount) public {
+        vm.assume(borrowAmount > 0 && borrowAmount <= stakeAmount / 2);
+
+        uint256 currBlock = block.number;
+        uint256 claimedRewards = 0;
 
         // 1st borrow
         vm.prank(address(uTokenMock));
         userManager.updateLocked(borrower, borrowAmount, true);
 
-        // 2nd borrow
         vm.roll(++currBlock);
-        userManager.getStakeInfo(staker);
 
+        // 2nd borrow
         vm.mockCall(
             address(uTokenMock),
             abi.encodeWithSelector(UToken.checkIsOverdue.selector, borrower),
@@ -109,22 +113,44 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
         uTokenMock.setOverdueBlocks(0);
         uTokenMock.setLastRepay(currBlock);
 
-        // write off debt
         vm.roll(++currBlock);
 
+        // write off debt
         vm.prank(staker);
         userManager.debtWriteOff(staker, borrower, borrowAmount * 2);
         uTokenMock.setLastRepay(0);
 
-        comptroller.calculateRewards(staker, address(daiMock));
+        // create a snapshot
+        uint256 snapshot = vm.snapshot();
+
+        // withdraw rewards in the same block
+        claimedRewards = comptroller.withdrawRewards(staker, address(daiMock));
 
         vm.roll(++currBlock);
-        comptroller.calculateRewards(staker, address(daiMock));
-        emit log_uint(block.number);
 
         vm.roll(++currBlock);
-        comptroller.withdrawRewards(staker, address(daiMock));
-        comptroller.calculateRewards(staker, address(daiMock));
-        emit log_uint(block.number);
+
+        // record the total rewards from the same block rewards withdraw
+        uint256 rewardsFromSameBlockWithdraw = claimedRewards + comptroller.calculateRewards(staker, address(daiMock));
+
+        // revert back to before claiming the rewards
+        vm.revertTo(snapshot);
+        currBlock = block.number;
+
+        vm.roll(++currBlock);
+
+        // withdraw rewards 1 block after the debtWriteOff() call
+        claimedRewards = comptroller.withdrawRewards(staker, address(daiMock));
+
+        vm.roll(++currBlock);
+
+        // record total rewards
+        uint256 rewardsFromDiffBlockWithdraw = claimedRewards + comptroller.calculateRewards(staker, address(daiMock));
+
+        emit log_named_decimal_uint("Rewards 1", rewardsFromSameBlockWithdraw, 18);
+        emit log_named_decimal_uint("Rewards 2", rewardsFromDiffBlockWithdraw, 18);
+
+        // the amounts of 2 cases should be equal with neglectable differences (100 wei)
+        assertTrue(nearlyEqual(rewardsFromSameBlockWithdraw, rewardsFromDiffBlockWithdraw, 100));
     }
 }
