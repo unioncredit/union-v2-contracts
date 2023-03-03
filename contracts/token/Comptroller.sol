@@ -197,21 +197,7 @@ contract Comptroller is Controller, IComptroller {
      *  @return Amount of rewards
      */
     function withdrawRewards(address account, address token) external override whenNotPaused returns (uint256) {
-        IUserManager userManager = _getUserManager(token);
-
-        // Lookup account state from UserManager
-        UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
-        (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.onWithdrawRewards(account);
-
-        // Lookup global state from UserManager
-        uint256 globalTotalStaked = userManager.globalTotalStaked();
-
-        uint256 amount = _calculateRewardsInternal(account, token, globalTotalStaked, user);
-
-        // update the global states
-        gInflationIndex = _getInflationIndexNew(globalTotalStaked, block.number - gLastUpdatedBlock);
-        gLastUpdatedBlock = block.number;
-        users[account][token].inflationIndex = gInflationIndex;
+        uint256 amount = _accruedRewards(account, token);
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
             users[account][token].accrued = 0;
             unionToken.safeTransfer(account, amount);
@@ -226,6 +212,33 @@ contract Comptroller is Controller, IComptroller {
         }
     }
 
+    function accruedRewards(address account, address token) external override whenNotPaused returns (uint256) {
+        uint256 amount = _accruedRewards(account, token);
+        users[account][token].accrued = amount;
+
+        return amount;
+    }
+
+    function _accruedRewards(address account, address token) private returns (uint256) {
+        IUserManager userManager = _getUserManager(token);
+
+        // Lookup global state from UserManager
+        uint256 globalTotalStaked = userManager.globalTotalStaked();
+
+        // Lookup account state from UserManager
+        UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
+        (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.onWithdrawRewards(account);
+
+        uint256 amount = _calculateRewardsInternal(account, token, globalTotalStaked, user);
+
+        // update the global states
+        gInflationIndex = _getInflationIndexNew(globalTotalStaked, block.number - gLastUpdatedBlock);
+        gLastUpdatedBlock = block.number;
+        users[account][token].inflationIndex = gInflationIndex;
+
+        return amount;
+    }
+
     /**
      *  @dev When total staked change update inflation index
      *  @param totalStaked totalStaked amount
@@ -237,8 +250,8 @@ contract Comptroller is Controller, IComptroller {
     ) external override whenNotPaused onlyUserManager(token) returns (bool) {
         if (totalStaked > 0) {
             gInflationIndex = _getInflationIndexNew(totalStaked, block.number - gLastUpdatedBlock);
+            gLastUpdatedBlock = block.number;
         }
-        gLastUpdatedBlock = block.number;
 
         return true;
     }
@@ -262,10 +275,8 @@ contract Comptroller is Controller, IComptroller {
         UserManagerAccountState memory user
     ) internal view returns (uint256) {
         Info memory userInfo = users[account][token];
-
         uint256 startInflationIndex = userInfo.inflationIndex;
-
-        if (totalStaked == 0 || startInflationIndex == 0) {
+        if (startInflationIndex == 0) {
             return 0;
         }
 
@@ -291,8 +302,7 @@ contract Comptroller is Controller, IComptroller {
      *  @return New inflation index
      */
     function _getInflationIndexNew(uint256 totalStaked_, uint256 blockDelta) internal view returns (uint256) {
-        if (totalStaked_ == 0) return INIT_INFLATION_INDEX;
-        if (blockDelta == 0) return gInflationIndex;
+        if (blockDelta == 0 || totalStaked_ < 1e18) return gInflationIndex;
         return _getInflationIndex(totalStaked_, gInflationIndex, blockDelta);
     }
 

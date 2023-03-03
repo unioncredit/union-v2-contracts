@@ -761,31 +761,9 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 locked = uint256(vouch.locked);
         if (amount > locked) revert ExceedsLocked();
 
+        comptroller.accruedRewards(stakerAddress, stakingToken);
+
         Staker storage staker = stakers[stakerAddress];
-
-        // update stake coin age
-        staker.stakedCoinAge += _calcStakedCoinAge(block.number, staker.stakedAmount, staker.lastUpdated);
-
-        // update locked coin age
-        staker.lockedCoinAge += _calcLockedCoinAge(block.number, locked, staker.lastUpdated, vouch.lastUpdated);
-
-        // update frozen coin age
-        if (
-            (// skip the member never staked
-            staker.lastUpdated != 0 &&
-                // skip the debt all repaid
-                lastRepay != 0)
-        ) {
-            if (block.number - lastRepay > overdueBlocks) // for the debt overdue
-            {
-                frozenCoinAge[stakerAddress] += _calcFrozenCoinAge(
-                    block.number,
-                    locked,
-                    staker.lastUpdated,
-                    lastRepay + overdueBlocks
-                );
-            }
-        }
 
         staker.stakedAmount -= amount.toUint96();
         staker.locked -= amount.toUint96();
@@ -825,9 +803,6 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         // so they can adjust their balances accordingly
         IAssetManager(assetManager).debtWriteOff(stakingToken, amount);
         uToken.debtWriteOff(borrowerAddress, amount);
-
-        comptroller.updateTotalStaked(stakingToken, totalStaked - totalFrozen);
-
         emit LogDebtWriteOff(msg.sender, borrowerAddress, amount);
     }
 
@@ -1072,9 +1047,6 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     function globalTotalStaked() external view returns (uint256 globalTotal) {
         globalTotal = totalStaked - totalFrozen;
-        if (globalTotal < 1e18) {
-            globalTotal = 1e18;
-        }
     }
 
     /* -------------------------------------------------------------------

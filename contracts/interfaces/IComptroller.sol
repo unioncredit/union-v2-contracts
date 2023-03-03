@@ -25,6 +25,8 @@ interface IComptroller {
      */
     function withdrawRewards(address account, address token) external returns (uint256);
 
+    function accruedRewards(address account, address token) external returns (uint256);
+
     function updateTotalStaked(address token, uint256 totalStaked) external returns (bool);
 
     /**
