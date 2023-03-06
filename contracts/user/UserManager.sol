@@ -593,8 +593,10 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             // Delete the voucher index for this borrower => staker pair
             delete voucherIndexes[borrower][staker];
             // Update the last vouchers coresponsing Vouchee item
-            uint128 voucheeIdx = voucherIndexes[borrower][lastVoucher.staker].idx;
-            vouchees[staker][voucheeIdx].voucherIndex = removeVoucherIndex.idx.toUint96();
+            uint128 voucheeIdx = voucheeIndexes[borrower][lastVoucher.staker].idx;
+            vouchees[lastVoucher.staker][voucheeIdx].voucherIndex = removeVoucherIndex.idx.toUint96();
+            // Update the voucher indexes of the moved pair to the new voucher index
+            voucherIndexes[borrower][lastVoucher.staker].idx = removeVoucherIndex.idx;
         }
 
         // Update the vouchee entry for this borrower => staker pair
