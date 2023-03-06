@@ -197,7 +197,7 @@ contract Comptroller is Controller, IComptroller {
      *  @return Amount of rewards
      */
     function withdrawRewards(address account, address token) external override whenNotPaused returns (uint256) {
-        uint256 amount = _accruedRewards(account, token);
+        uint256 amount = _accrueRewards(account, token);
         if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
             users[account][token].accrued = 0;
             unionToken.safeTransfer(account, amount);
@@ -212,14 +212,12 @@ contract Comptroller is Controller, IComptroller {
         }
     }
 
-    function accruedRewards(address account, address token) external override whenNotPaused returns (uint256) {
-        uint256 amount = _accruedRewards(account, token);
+    function accrueRewards(address account, address token) external override whenNotPaused {
+        uint256 amount = _accrueRewards(account, token);
         users[account][token].accrued = amount;
-
-        return amount;
     }
 
-    function _accruedRewards(address account, address token) private returns (uint256) {
+    function _accrueRewards(address account, address token) private returns (uint256) {
         IUserManager userManager = _getUserManager(token);
 
         // Lookup global state from UserManager

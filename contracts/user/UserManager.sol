@@ -761,7 +761,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 locked = uint256(vouch.locked);
         if (amount > locked) revert ExceedsLocked();
 
-        comptroller.accruedRewards(stakerAddress, stakingToken);
+        comptroller.accrueRewards(stakerAddress, stakingToken);
 
         Staker storage staker = stakers[stakerAddress];
 
