@@ -22,6 +22,12 @@ contract ComptrollerMock is IComptroller {
         return 0;
     }
 
+    function accrueRewards(address account, address) external override {
+        if (userManager != address(0)) {
+            IUserManager(userManager).onWithdrawRewards(account);
+        }
+    }
+
     function updateTotalStaked(address, uint256) external pure override returns (bool) {
         return false;
     }
