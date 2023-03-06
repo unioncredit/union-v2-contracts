@@ -299,7 +299,7 @@ export default async function (
         aaveV3Adapter = AaveV3Adapter__factory.connect(config.addresses.adapters?.aaveV3Adapter, signer);
     } else {
         // Only deploy the aaveV3Adapter if the lendingPool and aave market address are in the config
-        if (config.addresses.aave?.lendingPool && config.addresses.aave?.market) {
+        if ((config.addresses.aave?.lendingPool && config.addresses.aave?.market) != ethers.constants.AddressZero) {
             const {proxy} = await deployProxy<AaveV3Adapter>(
                 new AaveV3Adapter__factory(signer),
                 "AaveV3Adapter",
