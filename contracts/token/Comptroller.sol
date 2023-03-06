@@ -198,7 +198,7 @@ contract Comptroller is Controller, IComptroller {
      */
     function withdrawRewards(address account, address token) external override whenNotPaused returns (uint256) {
         uint256 amount = _accrueRewards(account, token);
-        if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
+        if (amount > 0 && unionToken.balanceOf(address(this)) >= amount) {
             users[account][token].accrued = 0;
             unionToken.safeTransfer(account, amount);
             emit LogWithdrawRewards(account, amount);
