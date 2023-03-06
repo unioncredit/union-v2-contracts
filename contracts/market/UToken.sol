@@ -634,7 +634,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             if (pastBlocks > overdueBlocks) {
                 // For borrowers that are paying back overdue balances we need to update their
                 // frozen balance and the global total frozen balance on the UserManager
-                IUserManager(userManager).onRepayBorrow(borrower, pastBlocks);
+                IUserManager(userManager).onRepayBorrow(borrower, getLastRepay(borrower) + overdueBlocks);
             }
 
             if (getBorrowed(borrower) == 0) {
