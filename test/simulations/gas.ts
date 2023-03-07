@@ -47,6 +47,7 @@ describe("Max gas", () => {
         spinner.stop();
 
         await contracts.uToken.setMaxBorrow(ethers.constants.MaxUint256);
+        await contracts.uToken.setMinBorrow(0);
 
         spinner = ora("Setting up accounts").start();
 
