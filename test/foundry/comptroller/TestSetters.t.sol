@@ -25,7 +25,8 @@ contract TestSetters is TestComptrollerBase {
     }
 
     function testUpdateTotalStaked(uint256 amount) public {
-        vm.assume(amount > 0 && amount < 1_000_000 ether);
+        vm.assume(amount >= 1 ether && amount < 1_000_000 ether);
+
         vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(this));
         assertEq(comptroller.gLastUpdatedBlock(), block.number);

@@ -33,7 +33,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      * @dev Withdraw Seuqence
      * @dev Priority sequence of money market indices for processing withdraws
      */
-    uint256[] public withdrawSeq;
+    IMoneyMarketAdapter[] public withdrawSeq;
 
     /**
      * @dev Record admin or userManager balance
@@ -100,6 +100,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     error InsufficientBalance();
     error TokenExists();
     error RemainingFunds();
+    error ParamsError();
 
     /* -------------------------------------------------------------------
       Constructor/Initializer 
@@ -137,9 +138,22 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @dev Set withdraw sequence
      *  @param newSeq priority sequence of money market indices to be used while withdrawing
      */
-    function setWithdrawSequence(uint256[] calldata newSeq) external override onlyAdmin {
+    function setWithdrawSequence(address[] calldata newSeq) external override onlyAdmin {
         if (newSeq.length != moneyMarkets.length) revert NotParity();
-        withdrawSeq = newSeq;
+        IMoneyMarketAdapter[] memory newWithdrawSeq = new IMoneyMarketAdapter[](moneyMarkets.length);
+        for (uint i = 0; i < newSeq.length; i++) {
+            newWithdrawSeq[i] = IMoneyMarketAdapter(newSeq[i]);
+            bool isExist = false;
+            for (uint256 j = 0; j < moneyMarkets.length; j++) {
+                if (newSeq[i] == address(moneyMarkets[j])) {
+                    isExist = true;
+                    break;
+                }
+            }
+            if (!isExist) revert ParamsError();
+        }
+
+        withdrawSeq = newWithdrawSeq;
     }
 
     /* -------------------------------------------------------------------
@@ -339,7 +353,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
             uint256 withdrawSeqLength = withdrawSeq.length;
             // iterate markets according to defined sequence and withdraw
             for (uint256 i = 0; i < withdrawSeqLength && remaining > 0; i++) {
-                IMoneyMarketAdapter moneyMarket = moneyMarkets[withdrawSeq[i]];
+                IMoneyMarketAdapter moneyMarket = withdrawSeq[i];
                 if (!moneyMarket.supportsToken(token)) continue;
 
                 uint256 supply = moneyMarket.getSupply(token);
@@ -426,7 +440,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
 
         if (!isExist) {
             moneyMarkets.push(IMoneyMarketAdapter(adapterAddress));
-            withdrawSeq.push(moneyMarkets.length - 1);
+            withdrawSeq.push(IMoneyMarketAdapter(adapterAddress));
         }
 
         approveAllTokensMax(adapterAddress);
@@ -439,8 +453,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     function removeAdapter(address adapterAddress) external override onlyAdmin {
         bool isExist = false;
         uint256 index = 0;
-        uint256 moneyMarketsLength = moneyMarkets.length;
-        for (uint256 i = 0; i < moneyMarketsLength; i++) {
+        uint256 indexSeq = 0;
+        for (uint256 i = 0; i < moneyMarkets.length; i++) {
             if (adapterAddress == address(moneyMarkets[i])) {
                 isExist = true;
                 index = i;
@@ -449,15 +463,30 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
         }
 
         if (isExist) {
+            //Cannot be deleted when funds are available
             for (uint256 i = 0; i < supportedTokensList.length; i++) {
                 address token = supportedTokensList[i];
                 if (moneyMarkets[index].supportsToken(token) && moneyMarkets[index].getSupply(token) >= 10000)
                     revert RemainingFunds(); //ignore the dust
             }
-            moneyMarkets[index] = moneyMarkets[moneyMarketsLength - 1];
+
+            for (uint256 i = 0; i < withdrawSeq.length; i++) {
+                if (adapterAddress == address(withdrawSeq[i])) {
+                    indexSeq = i;
+                    break;
+                }
+            }
+
+            //Keep the array sorted and delete
+            for (uint i = index; i < moneyMarkets.length - 1; i++) {
+                moneyMarkets[i] = moneyMarkets[i + 1];
+            }
             moneyMarkets.pop();
 
-            withdrawSeq[index] = withdrawSeq[withdrawSeq.length - 1];
+            //Keep the array sorted and delete
+            for (uint i = indexSeq; i < withdrawSeq.length - 1; i++) {
+                withdrawSeq[i] = withdrawSeq[i + 1];
+            }
             withdrawSeq.pop();
 
             _removeTokenApprovals(adapterAddress);
