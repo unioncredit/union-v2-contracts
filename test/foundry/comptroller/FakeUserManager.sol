@@ -47,8 +47,5 @@ contract FakeUserManager {
 
     function globalTotalStaked() external view returns (uint256 globalTotal) {
         globalTotal = totalStaked - totalFrozen;
-        if (globalTotal < 1e18) {
-            globalTotal = 1e18;
-        }
     }
 }
