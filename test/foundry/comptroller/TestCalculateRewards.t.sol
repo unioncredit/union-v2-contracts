@@ -21,6 +21,22 @@ contract TestCalculateRewards is TestComptrollerBase {
         assertEq(true, um.checkIsMember(address(this)));
         uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
         assertEq(multiplier, comptroller.memberRatio());
+
+        //member no stake
+        FakeUserManager um2 = new FakeUserManager(0, 0, 0, 0, 0, true);
+        vm.prank(ADMIN);
+        marketRegistryMock.setUserManager(address(daiMock), address(um2));
+        assertEq(true, um2.checkIsMember(address(this)));
+        multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
+        assertEq(multiplier, comptroller.memberRatio());
+
+        //no member
+        FakeUserManager um3 = new FakeUserManager(0, 0, 0, 0, 0, false);
+        vm.prank(ADMIN);
+        marketRegistryMock.setUserManager(address(daiMock), address(um3));
+        assertEq(false, um3.checkIsMember(address(this)));
+        multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
+        assertEq(multiplier, comptroller.nonMemberRatio());
     }
 
     function testCalculateRewards() public {
@@ -31,6 +47,15 @@ contract TestCalculateRewards is TestComptrollerBase {
         vm.roll(1001);
         uint256 rewards = comptroller.calculateRewards(address(this), address(daiMock));
         assertEq(rewards, 900000000000000000000);
+
+        //no stake
+        FakeUserManager um2 = new FakeUserManager(0, 0, 0, 0, 0, true);
+        vm.prank(ADMIN);
+        marketRegistryMock.setUserManager(address(daiMock), address(um2));
+        comptroller.withdrawRewards(address(this), address(daiMock));
+        vm.roll(1001);
+        rewards = comptroller.calculateRewards(address(this), address(daiMock));
+        assertEq(rewards, 0);
     }
 
     function testInflationPerBlock0() public {
