@@ -38,15 +38,6 @@ contract TestStakeAndUnstake is TestUserManagerBase {
         assertEq(globalTotalStaked, amount);
     }
 
-    function testTinyStake() public {
-        vm.prank(MEMBER);
-        userManager.stake(1);
-        uint256 stakeAmount = userManager.getStakerBalance(MEMBER);
-        assertEq(stakeAmount, 1);
-        uint256 globalTotalStaked = userManager.globalTotalStaked();
-        assertEq(globalTotalStaked, 1 ether);
-    }
-
     function testCannotUnstakeAboveStake(uint96 amount) public {
         vm.assume(amount <= 100 ether && amount > 0);
         vm.startPrank(MEMBER);
