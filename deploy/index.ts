@@ -1,4 +1,4 @@
-import {BigNumberish, Signer} from "ethers";
+import {BigNumberish, Signer, ethers} from "ethers";
 
 import {
     AssetManager__factory,
@@ -238,20 +238,22 @@ export default async function (
             "UErc20",
             {
                 signature:
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
+                    "__UToken_init((string name,string symbol,address underlying,uint256 initialExchangeRateMantissa,uint256 reserveFactorMantissa,uint256 originationFee,uint256 originationFeeMax,uint256 debtCeiling,uint256 maxBorrow,uint256 minBorrow,uint256 overdueBlocks,address admin))",
                 args: [
-                    config.uToken.name,
-                    config.uToken.symbol,
-                    dai.address,
-                    config.uToken.initialExchangeRateMantissa,
-                    config.uToken.reserveFactorMantissa,
-                    config.uToken.originationFee,
-                    config.uToken.originationFeeMax,
-                    config.uToken.debtCeiling,
-                    config.uToken.maxBorrow,
-                    config.uToken.minBorrow,
-                    config.uToken.overdueBlocks,
-                    config.admin
+                    {
+                        name: config.uToken.name,
+                        symbol: config.uToken.symbol,
+                        underlying: dai.address,
+                        initialExchangeRateMantissa: config.uToken.initialExchangeRateMantissa,
+                        reserveFactorMantissa: config.uToken.reserveFactorMantissa,
+                        originationFee: config.uToken.originationFee,
+                        originationFeeMax: config.uToken.originationFeeMax,
+                        debtCeiling: config.uToken.debtCeiling,
+                        maxBorrow: config.uToken.maxBorrow,
+                        minBorrow: config.uToken.minBorrow,
+                        overdueBlocks: config.uToken.overdueBlocks,
+                        admin: config.admin
+                    }
                 ]
             },
             debug
@@ -297,7 +299,7 @@ export default async function (
         aaveV3Adapter = AaveV3Adapter__factory.connect(config.addresses.adapters?.aaveV3Adapter, signer);
     } else {
         // Only deploy the aaveV3Adapter if the lendingPool and aave market address are in the config
-        if (config.addresses.aave?.lendingPool && config.addresses.aave?.market) {
+        if ((config.addresses.aave?.lendingPool && config.addresses.aave?.market) != ethers.constants.AddressZero) {
             const {proxy} = await deployProxy<AaveV3Adapter>(
                 new AaveV3Adapter__factory(signer),
                 "AaveV3Adapter",

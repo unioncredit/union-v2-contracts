@@ -104,7 +104,7 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         vm.startPrank(ADMIN);
         assetManager.addAdapter(adapter);
         assertEq(address(assetManager.moneyMarkets(0)), adapter);
-        assertEq(assetManager.withdrawSeq(0), 0);
+        assertEq(address(assetManager.withdrawSeq(0)), adapter);
         assetManager.removeAdapter(adapter);
         vm.expectRevert();
         assetManager.moneyMarkets(0);
@@ -129,6 +129,16 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         daiMock.mint(address(pureToken), 10000);
         vm.expectRevert(AssetManager.RemainingFunds.selector);
         assetManager.removeAdapter(address(pureToken));
+        vm.stopPrank();
+    }
+
+    function testRemoveAdapterWhenRemainingFundsButAdapterNotSupport() public {
+        vm.startPrank(ADMIN);
+        assetManager.addToken(address(daiMock));
+        assetManager.addAdapter(address(adapterMock));
+        daiMock.mint(address(adapterMock), 10000);
+        adapterMock.setSupport(true);
+        assetManager.removeAdapter(address(adapterMock));
         vm.stopPrank();
     }
 

@@ -83,4 +83,37 @@ contract TestUpdateLocked is TestUserManagerBase {
         userManager.updateLocked(ACCOUNT, lockAmount, true);
         vm.stopPrank();
     }
+
+    function testUpdateLockedCoinAge() public {
+        uint256 startBlock = block.number;
+        uint256 currBlock = startBlock;
+        uint96 vouchLocked = 0;
+        uint64 vouchLastUpdated = 0;
+        uint256 lockedCoinAge = 0;
+
+        _prankMarket();
+        uint96 lockAmount = (stakeAmount * MEMBERS.length).toUint96();
+
+        // update locked amount to be as borrower used full credit
+        userManager.updateLocked(ACCOUNT, lockAmount, true);
+
+        (, , vouchLocked, vouchLastUpdated) = userManager.vouchers(ACCOUNT, 0);
+        uint256 lockAmountPerBlock = vouchLocked;
+        assertEq(vouchLastUpdated, currBlock);
+        (, , , , , lockedCoinAge) = userManager.stakers(MEMBERS[0]);
+        assertEq(lockedCoinAge, lockAmountPerBlock * (currBlock - startBlock));
+
+        // lockedCoinAge should only increase by the locked amount per block
+        for (uint256 i = 0; i < 3; ++i) {
+            vm.roll(++currBlock);
+            // update locked amount as borrower only repays the interest
+            userManager.updateLocked(ACCOUNT, 0, true);
+            (, , , vouchLastUpdated) = userManager.vouchers(ACCOUNT, 0);
+            assertEq(vouchLastUpdated, currBlock);
+            (, , , , , lockedCoinAge) = userManager.stakers(MEMBERS[0]);
+            assertEq(lockedCoinAge, lockAmountPerBlock * (currBlock - startBlock));
+        }
+
+        vm.stopPrank();
+    }
 }

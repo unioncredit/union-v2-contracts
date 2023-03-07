@@ -26,7 +26,6 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     struct Info {
-        uint256 updatedBlock; //last withdraw rewards block
         uint256 inflationIndex; //last withdraw rewards inflationIndex
         uint256 accrued; //the unionToken accrued but not yet transferred to each user
     }
@@ -159,48 +158,24 @@ contract Comptroller is Controller, IComptroller {
      */
     function getRewardsMultiplier(address account, address token) external view override returns (uint256) {
         IUserManager userManager = _getUserManager(token);
-        uint256 pastBlocks = block.number - users[account][token].updatedBlock;
-
-        (uint256 effectiveStaked, uint256 effectiveLocked, bool isMember) = userManager.getStakeInfo(
-            account,
-            pastBlocks
-        );
+        (bool isMember, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(account);
         return _getRewardsMultiplier(UserManagerAccountState(effectiveStaked, effectiveLocked, isMember));
     }
 
     /**
-     *  @dev Calculate unclaimed rewards based on blocks
-     *  @param account User address
-     *  @param token Staking token address
-     *  @param futureBlocks Number of blocks in the future
-     *  @return Unclaimed rewards
-     */
-    function calculateRewardsByBlocks(
-        address account,
-        address token,
-        uint256 futureBlocks
-    ) public view override returns (uint256) {
-        IUserManager userManager = _getUserManager(token);
-
-        // Lookup account state from UserManager
-        (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) = _getUserInfoView(
-            userManager,
-            account,
-            token,
-            futureBlocks
-        );
-
-        return _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, userManager.globalTotalStaked(), user);
-    }
-
-    /**
-     *  @dev Calculate currently unclaimed rewards
+     *  @dev Calculate unclaimed rewards
      *  @param account Account address
      *  @param token Staking token address
      *  @return Unclaimed rewards
      */
-    function calculateRewards(address account, address token) external view override returns (uint256) {
-        return calculateRewardsByBlocks(account, token, 0);
+    function calculateRewards(address account, address token) public view override returns (uint256) {
+        IUserManager userManager = _getUserManager(token);
+
+        // Lookup account state from UserManager
+        UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
+        (user.isMember, user.effectiveStaked, user.effectiveLocked, ) = userManager.getStakeInfo(account);
+
+        return _calculateRewardsInternal(account, token, userManager.globalTotalStaked(), user);
     }
 
     /**
@@ -222,29 +197,10 @@ contract Comptroller is Controller, IComptroller {
      *  @return Amount of rewards
      */
     function withdrawRewards(address account, address token) external override whenNotPaused returns (uint256) {
-        IUserManager userManager = _getUserManager(token);
-
-        // Lookup account state from UserManager
-        (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) = _getUserInfo(
-            userManager,
-            account,
-            token,
-            0
-        );
-
-        // Lookup global state from UserManager
-        uint256 globalTotalStaked = userManager.globalTotalStaked();
-
-        uint256 amount = _calculateRewardsByBlocks(account, token, pastBlocks, userInfo, globalTotalStaked, user);
-
-        // update the global states
-        gInflationIndex = _getInflationIndexNew(globalTotalStaked, block.number - gLastUpdatedBlock);
-        gLastUpdatedBlock = block.number;
-        users[account][token].updatedBlock = block.number;
-        users[account][token].inflationIndex = gInflationIndex;
-        if (unionToken.balanceOf(address(this)) >= amount && amount > 0) {
-            unionToken.safeTransfer(account, amount);
+        uint256 amount = _accrueRewards(account, token);
+        if (amount > 0 && unionToken.balanceOf(address(this)) >= amount) {
             users[account][token].accrued = 0;
+            unionToken.safeTransfer(account, amount);
             emit LogWithdrawRewards(account, amount);
 
             return amount;
@@ -254,6 +210,31 @@ contract Comptroller is Controller, IComptroller {
 
             return 0;
         }
+    }
+
+    function accrueRewards(address account, address token) external override whenNotPaused {
+        uint256 amount = _accrueRewards(account, token);
+        users[account][token].accrued = amount;
+    }
+
+    function _accrueRewards(address account, address token) private returns (uint256) {
+        IUserManager userManager = _getUserManager(token);
+
+        // Lookup global state from UserManager
+        uint256 globalTotalStaked = userManager.globalTotalStaked();
+
+        // Lookup account state from UserManager
+        UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
+        (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.onWithdrawRewards(account);
+
+        uint256 amount = _calculateRewardsInternal(account, token, globalTotalStaked, user);
+
+        // update the global states
+        gInflationIndex = _getInflationIndexNew(globalTotalStaked, block.number - gLastUpdatedBlock);
+        gLastUpdatedBlock = block.number;
+        users[account][token].inflationIndex = gInflationIndex;
+
+        return amount;
     }
 
     /**
@@ -267,8 +248,8 @@ contract Comptroller is Controller, IComptroller {
     ) external override whenNotPaused onlyUserManager(token) returns (bool) {
         if (totalStaked > 0) {
             gInflationIndex = _getInflationIndexNew(totalStaked, block.number - gLastUpdatedBlock);
+            gLastUpdatedBlock = block.number;
         }
-        gLastUpdatedBlock = block.number;
 
         return true;
     }
@@ -278,83 +259,32 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     /**
-     * @dev Get UserManager user specific state (view function does NOT update UserManage state)
-     * @param userManager UserManager contract
-     * @param account Account address
-     * @param token Token address
-     * @param futureBlocks Blocks in the future
-     */
-    function _getUserInfoView(
-        IUserManager userManager,
-        address account,
-        address token,
-        uint256 futureBlocks
-    ) internal view returns (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) {
-        userInfo = users[account][token];
-        uint256 lastUpdatedBlock = userInfo.updatedBlock;
-        if (block.number < lastUpdatedBlock) {
-            lastUpdatedBlock = block.number;
-        }
-
-        pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
-
-        (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.getStakeInfo(account, pastBlocks);
-    }
-
-    /**
-     * @dev Get UserManager user specific state (function does update UserManage state)
-     * @param userManager UserManager contract
-     * @param account Account address
-     * @param token Token address
-     * @param futureBlocks Blocks in the future
-     */
-    function _getUserInfo(
-        IUserManager userManager,
-        address account,
-        address token,
-        uint256 futureBlocks
-    ) internal returns (UserManagerAccountState memory user, Info memory userInfo, uint256 pastBlocks) {
-        userInfo = users[account][token];
-        uint256 lastUpdatedBlock = userInfo.updatedBlock;
-        if (block.number < lastUpdatedBlock) {
-            lastUpdatedBlock = block.number;
-        }
-
-        pastBlocks = block.number - lastUpdatedBlock + futureBlocks;
-
-        (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.onWithdrawRewards(
-            account,
-            pastBlocks
-        );
-    }
-
-    /**
      *  @dev Calculate currently unclaimed rewards
      *  @param account Account address
      *  @param token Staking token address
-     *  @param pastBlocks # of blocks past
-     *  @param userInfo User info
      *  @param totalStaked Effective total staked
      *  @param user User account global state
      *  @return Unclaimed rewards
      */
-    function _calculateRewardsByBlocks(
+    function _calculateRewardsInternal(
         address account,
         address token,
-        uint256 pastBlocks,
-        Info memory userInfo,
         uint256 totalStaked,
         UserManagerAccountState memory user
     ) internal view returns (uint256) {
-        uint256 startInflationIndex = users[account][token].inflationIndex;
-
-        if (user.effectiveStaked == 0 || totalStaked == 0 || startInflationIndex == 0 || pastBlocks == 0) {
+        Info memory userInfo = users[account][token];
+        uint256 startInflationIndex = userInfo.inflationIndex;
+        if (startInflationIndex == 0) {
             return 0;
+        }
+
+        if (user.effectiveStaked == 0) {
+            return userInfo.accrued;
         }
 
         uint256 rewardMultiplier = _getRewardsMultiplier(user);
 
-        uint256 curInflationIndex = _getInflationIndexNew(totalStaked, pastBlocks);
+        uint256 curInflationIndex = _getInflationIndexNew(totalStaked, block.number - gLastUpdatedBlock);
 
         if (curInflationIndex < startInflationIndex) revert InflationIndexTooSmall();
 
@@ -370,8 +300,7 @@ contract Comptroller is Controller, IComptroller {
      *  @return New inflation index
      */
     function _getInflationIndexNew(uint256 totalStaked_, uint256 blockDelta) internal view returns (uint256) {
-        if (totalStaked_ == 0) return INIT_INFLATION_INDEX;
-        if (blockDelta == 0) return gInflationIndex;
+        if (blockDelta == 0 || totalStaked_ < 1e18) return gInflationIndex;
         return _getInflationIndex(totalStaked_, gInflationIndex, blockDelta);
     }
 

@@ -25,16 +25,16 @@ contract TestSetters is TestComptrollerBase {
     }
 
     function testUpdateTotalStaked(uint256 amount) public {
-        vm.assume(amount != 0 && amount < 1_000_000 ether);
+        vm.assume(amount >= 1 ether && amount < 1_000_000 ether);
+
         vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(this));
-        uint256 previousBlock = block.number;
         assertEq(comptroller.gLastUpdatedBlock(), block.number);
         assertEq(comptroller.gInflationIndex(), comptroller.INIT_INFLATION_INDEX());
 
         vm.roll(100);
+
         comptroller.updateTotalStaked(address(daiMock), amount);
-        assert(previousBlock != block.number);
         assertEq(comptroller.gLastUpdatedBlock(), block.number);
         assert(comptroller.gInflationIndex() != comptroller.INIT_INFLATION_INDEX());
     }

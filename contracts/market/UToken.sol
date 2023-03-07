@@ -33,6 +33,21 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 lastRepay; //Calculate if it is overdue
     }
 
+    struct InitParams {
+        string name;
+        string symbol;
+        address underlying;
+        uint256 initialExchangeRateMantissa;
+        uint256 reserveFactorMantissa;
+        uint256 originationFee;
+        uint256 originationFeeMax;
+        uint256 debtCeiling;
+        uint256 maxBorrow;
+        uint256 minBorrow;
+        uint256 overdueBlocks;
+        address admin;
+    }
+
     /* -------------------------------------------------------------------
       Storage 
     ------------------------------------------------------------------- */
@@ -186,7 +201,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     /**
      *  @dev Redeem token for uToken
      */
-    event LogRedeem(address redeemer, uint256 amountIn, uint256 amountOut, uint256 redeemAmount);
+    event LogRedeem(address redeemer, uint256 amountIn, uint256 amountOut, uint256 uTokenAmount, uint256 redeemAmount);
 
     /**
      *  @dev Token added to the reserves
@@ -240,35 +255,22 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
-    function __UToken_init(
-        string memory name_,
-        string memory symbol_,
-        address underlying_,
-        uint256 initialExchangeRateMantissa_,
-        uint256 reserveFactorMantissa_,
-        uint256 originationFee_,
-        uint256 originationFeeMax_,
-        uint256 debtCeiling_,
-        uint256 maxBorrow_,
-        uint256 minBorrow_,
-        uint256 overdueBlocks_,
-        address admin_
-    ) public initializer {
-        if (initialExchangeRateMantissa_ == 0) revert InitExchangeRateNotZero();
-        if (reserveFactorMantissa_ > RESERVE_FACTORY_MAX_MANTISSA) revert ReserveFactoryExceedLimit();
-        Controller.__Controller_init(admin_);
-        ERC20Upgradeable.__ERC20_init(name_, symbol_);
-        ERC20PermitUpgradeable.__ERC20Permit_init(name_);
+    function __UToken_init(InitParams memory params) public initializer {
+        if (params.initialExchangeRateMantissa == 0) revert InitExchangeRateNotZero();
+        if (params.reserveFactorMantissa > RESERVE_FACTORY_MAX_MANTISSA) revert ReserveFactoryExceedLimit();
+        Controller.__Controller_init(params.admin);
+        ERC20Upgradeable.__ERC20_init(params.name, params.symbol);
+        ERC20PermitUpgradeable.__ERC20Permit_init(params.name);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
-        underlying = underlying_;
-        originationFee = originationFee_;
-        originationFeeMax = originationFeeMax_;
-        debtCeiling = debtCeiling_;
-        maxBorrow = maxBorrow_;
-        minBorrow = minBorrow_;
-        overdueBlocks = overdueBlocks_;
-        initialExchangeRateMantissa = initialExchangeRateMantissa_;
-        reserveFactorMantissa = reserveFactorMantissa_;
+        underlying = params.underlying;
+        originationFee = params.originationFee;
+        originationFeeMax = params.originationFeeMax;
+        debtCeiling = params.debtCeiling;
+        maxBorrow = params.maxBorrow;
+        minBorrow = params.minBorrow;
+        overdueBlocks = params.overdueBlocks;
+        initialExchangeRateMantissa = params.initialExchangeRateMantissa;
+        reserveFactorMantissa = params.reserveFactorMantissa;
         accrualBlockNumber = getBlockNumber();
         borrowIndex = WAD;
     }
@@ -525,7 +527,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     function borrow(address to, uint256 amount) external override onlyMember(msg.sender) whenNotPaused nonReentrant {
         IAssetManager assetManagerContract = IAssetManager(assetManager);
         if (amount < minBorrow) revert AmountLessMinBorrow();
-        if (amount > getRemainingDebtCeiling()) revert AmountExceedGlobalMax();
 
         // Calculate the origination fee
         uint256 fee = calculatingFee(amount);
@@ -550,6 +551,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         fee = calculatingFee(actualAmount);
         uint256 accountBorrowsNew = borrowedAmount + actualAmount + fee;
         uint256 totalBorrowsNew = totalBorrows + actualAmount + fee;
+        if (totalBorrowsNew > debtCeiling) revert AmountExceedGlobalMax();
 
         // Update internal balances
         accountBorrows[msg.sender].principal += actualAmount + fee;
@@ -565,7 +567,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // Call update locked on the userManager to lock this borrowers stakers. This function
         // will revert if the account does not have enough vouchers to cover the borrow amount. ie
         // the borrower is trying to borrow more than is able to be underwritten
-        IUserManager(userManager).updateLocked(msg.sender, (actualAmount + fee).toUint96(), true);
+        IUserManager(userManager).updateLocked(msg.sender, actualAmount + fee, true);
 
         emit LogBorrow(msg.sender, to, actualAmount, fee);
     }
@@ -608,9 +610,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 toRedeemableAmount;
 
         if (repayAmount >= interest) {
-            // If the repayment amount is greater than the interest (min payment)
-            bool isOverdue = checkIsOverdue(borrower);
-
             // Interest is split between the reserves and the uToken minters based on
             // the reserveFactorMantissa When set to WAD all the interest is paid to teh reserves.
             // any interest that isn't sent to the reserves is added to the redeemable amount
@@ -629,12 +628,13 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             // Call update locked on the userManager to lock this borrowers stakers. This function
             // will revert if the account does not have enough vouchers to cover the repay amount. ie
             // the borrower is trying to repay more than is locked (owed)
-            IUserManager(userManager).updateLocked(borrower, (repayAmount - interest).toUint96(), false);
+            IUserManager(userManager).updateLocked(borrower, repayAmount - interest, false);
 
-            if (isOverdue) {
+            uint256 pastBlocks = getBlockNumber() - getLastRepay(borrower);
+            if (pastBlocks > overdueBlocks) {
                 // For borrowers that are paying back overdue balances we need to update their
                 // frozen balance and the global total frozen balance on the UserManager
-                IUserManager(userManager).onRepayBorrow(borrower);
+                IUserManager(userManager).onRepayBorrow(borrower, getLastRepay(borrower) + overdueBlocks);
             }
 
             if (getBorrowed(borrower) == 0) {
@@ -741,33 +741,28 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         uint256 exchangeRate = exchangeRateStored();
 
-        // Amount of the uToken to burn
-        uint256 uTokenAmount;
-
         // Amount of the underlying token to redeem
-        uint256 underlyingAmount;
+        uint256 underlyingAmount = amountOut;
 
         if (amountIn > 0) {
             // We calculate the exchange rate and the amount of underlying to be redeemed:
-            // uTokenAmount = amountIn
             // underlyingAmount = amountIn x exchangeRateCurrent
-            uTokenAmount = amountIn;
             underlyingAmount = (amountIn * exchangeRate) / WAD;
-        } else {
-            // We get the current exchange rate and calculate the amount to be redeemed:
-            // uTokenAmount = amountOut / exchangeRate
-            // underlyingAmount = amountOut
-            uTokenAmount = (amountOut * WAD) / exchangeRate;
-            underlyingAmount = amountOut;
         }
 
         uint256 remaining = IAssetManager(assetManager).withdraw(underlying, msg.sender, underlyingAmount);
-        if (remaining > underlyingAmount) revert WithdrawFailed();
+        // If the remaining amount is greater than or equal to the
+        // underlyingAmount then we weren't able to withdraw enough
+        // to cover this redemption
+        if (remaining >= underlyingAmount) revert WithdrawFailed();
+
         uint256 actualAmount = underlyingAmount - remaining;
-        totalRedeemable -= actualAmount;
         uint256 realUtokenAmount = (actualAmount * WAD) / exchangeRate;
+        if (realUtokenAmount == 0) revert AmountZero();
         _burn(msg.sender, realUtokenAmount);
-        emit LogRedeem(msg.sender, amountIn, amountOut, actualAmount);
+
+        totalRedeemable -= actualAmount;
+        emit LogRedeem(msg.sender, amountIn, amountOut, realUtokenAmount, actualAmount);
     }
 
     /* -------------------------------------------------------------------
