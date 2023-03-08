@@ -30,8 +30,9 @@ describe("Users can lose their staking rewards ", () => {
         const AdapterMock: ContractFactory = new AdapterMock__factory(deployer);
         adapter = await AdapterMock.deploy();
         await contracts.assetManager.addAdapter(adapter.address);
+        const firstAdapter = await contracts.assetManager.moneyMarkets(0);
         //priority deposit mock adapter
-        await contracts.assetManager.setWithdrawSequence([2, 0, 1]);
+        await contracts.assetManager.setWithdrawSequence([adapter.address, firstAdapter]);
     });
     it("withraw reward when unstake all", async () => {
         const stakeAmount = parseUnits("100");
