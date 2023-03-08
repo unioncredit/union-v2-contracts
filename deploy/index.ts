@@ -6,10 +6,6 @@ import {
     Comptroller__factory,
     UserManagerERC20,
     UserManagerERC20__factory,
-    UToken,
-    UToken__factory,
-    UDai,
-    UDai__factory,
     UErc20,
     UErc20__factory,
     AssetManager,
@@ -26,7 +22,9 @@ import {
     AaveV3Adapter,
     AaveV3Adapter__factory,
     IDai__factory,
-    IDai
+    IDai,
+    VouchFaucet,
+    VouchFaucet__factory
 } from "../typechain-types";
 import {deployProxy, deployContract} from "./helpers";
 
@@ -102,13 +100,15 @@ export interface Contracts {
         pureToken: PureTokenAdapter;
         aaveV3Adapter?: AaveV3Adapter;
     };
+    vouchFaucet?: VouchFaucet;
 }
 
 export default async function (
     config: DeployConfig,
     signer: Signer,
     debug = false,
-    waitForBlocks: number | undefined = undefined
+    waitForBlocks: number | undefined = undefined,
+    isTestnet: boolean = false
 ): Promise<Contracts> {
     // deploy market registry
     let marketRegistry: MarketRegistry;
@@ -210,6 +210,18 @@ export default async function (
         userManager = UserManagerERC20__factory.connect(proxy.address, signer);
         const tx = await marketRegistry.setUserManager(dai.address, userManager.address);
         await tx.wait(waitForBlocks);
+    }
+
+    // deploy vouch faucet if we are deploying to a testnet
+    let vouchFaucet: VouchFaucet | undefined = undefined;
+    if (isTestnet) {
+        vouchFaucet = await deployContract<VouchFaucet>(
+            new VouchFaucet__factory(signer),
+            "VouchFaucet",
+            [userManager.address],
+            debug,
+            waitForBlocks
+        );
     }
 
     // deploy fixedInterestRateModel
@@ -343,6 +355,7 @@ export default async function (
         comptroller,
         assetManager,
         dai,
-        adapters: {pureToken, aaveV3Adapter}
+        adapters: {pureToken, aaveV3Adapter},
+        vouchFaucet
     };
 }
