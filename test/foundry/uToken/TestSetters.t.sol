@@ -148,4 +148,13 @@ contract TestSetters is TestUTokenBase {
         uint256 newReserveFactorMantissa = uToken.reserveFactorMantissa();
         assertEq(newReserveFactorMantissa, reserveFactorMantissa);
     }
+
+    function testSetMintFeeRate(uint256 mintFeeRate) public {
+        vm.assume(mintFeeRate <= 1e17);
+        vm.startPrank(ADMIN);
+        uToken.setMintFeeRate(mintFeeRate);
+        vm.stopPrank();
+        uint256 newMintFeeRate = uToken.mintFeeRate();
+        assertEq(newMintFeeRate, mintFeeRate);
+    }
 }
