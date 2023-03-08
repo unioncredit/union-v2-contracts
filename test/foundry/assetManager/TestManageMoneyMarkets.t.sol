@@ -100,16 +100,29 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         assetManager.addAdapter(adapter);
     }
 
-    function testRemoveAdapter(address adapter) public {
+    function testRemoveAdapter(address[] memory adapters) public {
+        vm.assume(adapters.length >= 3 && adapters.length <= 10);
         vm.startPrank(ADMIN);
-        assetManager.addAdapter(adapter);
-        assertEq(address(assetManager.moneyMarkets(0)), adapter);
-        assertEq(address(assetManager.withdrawSeq(0)), adapter);
-        assetManager.removeAdapter(adapter);
+        //one adapter
+        assetManager.addAdapter(adapters[0]);
+        assertEq(address(assetManager.moneyMarkets(0)), adapters[0]);
+        assertEq(address(assetManager.withdrawSeq(0)), adapters[0]);
+        assetManager.removeAdapter(adapters[0]);
         vm.expectRevert();
         assetManager.moneyMarkets(0);
         vm.expectRevert();
         assetManager.withdrawSeq(0);
+
+        //mutil adapter
+        for (uint i = 0; i < adapters.length; i++) {
+            assetManager.addAdapter(adapters[i]);
+            assertEq(address(assetManager.moneyMarkets(i)), adapters[i]);
+        }
+        uint removeIndex = adapters.length / 2;
+        address removeAdapter = adapters[removeIndex];
+        address nextAdapter = adapters[removeIndex + 1];
+        assetManager.removeAdapter(removeAdapter);
+        assertEq(address(assetManager.moneyMarkets(removeIndex)), nextAdapter);
         vm.stopPrank();
     }
 
