@@ -1,14 +1,19 @@
-name: slither analyzer
-
-on: [pull_request]
-
+name: Slither Analysis
+on: [push]
 jobs:
-    slither:
-        name: Run slither
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v3
-            - uses: crytic/slither-action@v0.3.0
-              with:
-                  node-version: 16
-                  target: "."
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Slither
+        uses: crytic/slither-action@v0.3.0
+        id: slither
+        with:
+          sarif: results.sarif
+          fail-on: none
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.slither.outputs.sarif }}
