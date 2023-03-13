@@ -108,6 +108,14 @@ contract TestPureTokenAdapter is TestWrapper {
         pureToken.withdraw(address(daiMock), recipient, amount);
     }
 
+    function testCannotWithdrawNotEnoughBalance(uint256 amount) public {
+        vm.assume(amount > 0);
+        address recipient = address(123);
+        vm.prank(pureToken.assetManager());
+        bool res = pureToken.withdraw(address(daiMock), recipient, amount);
+        assertEq(res, false);
+    }
+
     function testWithdrawAll(uint256 amount) public {
         address recipient = address(123);
         daiMock.mint(address(pureToken), amount);

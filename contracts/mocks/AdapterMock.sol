@@ -83,11 +83,9 @@ contract AdapterMock is IMoneyMarketAdapter {
         return true;
     }
 
-    function withdrawAll(address tokenAddress, address recipient) external override returns (bool) {
-        if (toRevert) return false;
+    function withdrawAll(address tokenAddress, address recipient) external override {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.safeTransfer(recipient, token.balanceOf(address(this)));
-        return true;
     }
 
     function claimRewards(address, address) external override {}
