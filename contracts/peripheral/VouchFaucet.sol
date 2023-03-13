@@ -108,7 +108,7 @@ contract VouchFaucet is Ownable {
     }
 
     /// @notice Exit. Unstake the max unstakable from the userManager
-    function exit() external {
+    function exit() external onlyOwner {
         (, uint96 stakeAmount, uint96 locked, , , ) = IUserManager(USER_MANAGER).stakers(address(this));
         uint256 maxUnstake = uint256(stakeAmount - locked);
         IUserManager(USER_MANAGER).unstake(uint96(maxUnstake));
