@@ -102,10 +102,10 @@ contract UserManagerMock {
 
     function withdrawRewards() external {}
 
-    function updateLocked(address borrower, uint96 amount, bool lock) external {}
+    function updateLocked(address borrower, uint256 amount, bool lock) external {}
 
     //Only supports sumOfTrust
-    function debtWriteOff(address staker, address borrower, uint96 amount) public {}
+    function debtWriteOff(address staker, address borrower, uint256 amount) public {}
 
     function onWithdrawRewards(address staker, uint256 pastBlocks) public returns (uint256, uint256) {}
 
