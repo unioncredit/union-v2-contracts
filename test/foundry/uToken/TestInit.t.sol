@@ -27,7 +27,8 @@ contract TestInit is TestUTokenBase {
                 maxBorrow: MAX_BORROW,
                 minBorrow: MIN_BORROW,
                 overdueBlocks: OVERDUE_BLOCKS,
-                admin: ADMIN
+                admin: ADMIN,
+                mintFeeRate: MINT_FEE_RATE
             })
         );
 
@@ -43,5 +44,6 @@ contract TestInit is TestUTokenBase {
         assertEq(uToken.minBorrow(), MIN_BORROW);
         assertEq(uToken.overdueBlocks(), OVERDUE_BLOCKS);
         assertEq(uToken.admin(), ADMIN);
+        assertEq(uToken.mintFeeRate(), MINT_FEE_RATE);
     }
 }

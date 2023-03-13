@@ -100,8 +100,17 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         assetManager.addAdapter(adapter);
     }
 
-    function testRemoveAdapter(address[] memory adapters) public {
-        vm.assume(adapters.length >= 3 && adapters.length <= 10);
+    function testRemoveAdapter() public {
+        address[] memory adapters = new address[](9);
+        adapters[0] = address(10);
+        adapters[1] = address(11);
+        adapters[2] = address(12);
+        adapters[3] = address(13);
+        adapters[4] = address(14);
+        adapters[5] = address(15);
+        adapters[6] = address(16);
+        adapters[7] = address(17);
+        adapters[8] = address(18);
         vm.startPrank(ADMIN);
         //one adapter
         assetManager.addAdapter(adapters[0]);
