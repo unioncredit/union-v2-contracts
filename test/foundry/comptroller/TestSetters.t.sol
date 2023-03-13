@@ -5,6 +5,21 @@ import {Controller} from "union-v2-contracts/Controller.sol";
 import {Comptroller} from "union-v2-contracts/token/Comptroller.sol";
 
 contract TestSetters is TestComptrollerBase {
+    function testInit() public {
+        address logic = address(new Comptroller());
+
+        Comptroller comp = Comptroller(deployProxy(logic, ""));
+        comp.__Comptroller_init(ADMIN, address(unionTokenMock), address(marketRegistryMock), halfDecayPoint);
+        uint cHalfDecayPoint = comp.halfDecayPoint();
+        assertEq(cHalfDecayPoint, halfDecayPoint);
+        bool isAdmin = comp.isAdmin(ADMIN);
+        assertEq(isAdmin, true);
+        address cMarketRegistry = address(comp.marketRegistry());
+        assertEq(cMarketRegistry, address(marketRegistryMock));
+        address cUnionToken = address(comp.unionToken());
+        assertEq(cUnionToken, address(unionTokenMock));
+    }
+
     function testSetHalfDecayPoint(uint256 amount) public {
         vm.assume(amount != 0);
         vm.prank(ADMIN);

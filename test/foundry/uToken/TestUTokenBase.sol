@@ -17,6 +17,7 @@ contract TestUTokenBase is TestWrapper {
     uint256 internal constant OVERDUE_BLOCKS = 10;
     uint256 internal constant RESERVE_FACTOR = 0.5 ether;
     uint256 internal constant INIT_EXCHANGE_RATE = 1 ether;
+    uint256 internal constant MINT_FEE_RATE = 1e15;
 
     function setUp() public virtual {
         uint256 debtCeiling = 1000 ether;
@@ -28,7 +29,7 @@ contract TestUTokenBase is TestWrapper {
             deployProxy(
                 uTokenLogic,
                 abi.encodeWithSignature(
-                    "__UToken_init((string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address))",
+                    "__UToken_init((string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address,uint256))",
                     UToken.InitParams({
                         name: "UTokenMock",
                         symbol: "UTM",
@@ -41,7 +42,8 @@ contract TestUTokenBase is TestWrapper {
                         maxBorrow: MAX_BORROW,
                         minBorrow: MIN_BORROW,
                         overdueBlocks: OVERDUE_BLOCKS,
-                        admin: ADMIN
+                        admin: ADMIN,
+                        mintFeeRate: MINT_FEE_RATE
                     })
                 )
             )
