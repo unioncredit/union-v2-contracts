@@ -222,8 +222,9 @@ task("deploy:op", "Deploy Union V2 on Optimism")
         }
 
         if (config?.addresses?.opAdminAddress) {
-            const tx = await deployment.opOwner.transferAdmin(config.addresses.opAdminAddress);
+            const tx = await deployment.opOwner.setPendingAdmin(config.addresses.opAdminAddress);
             await tx.wait(waitForBlocks);
+            //TODO: Requires opAdminAddress to execute acceptAdmin
         }
 
         console.log("[*] Complete");
