@@ -12,6 +12,8 @@ interface IUserManager {
 
     function vouchers(address borrower, uint256 index) external view returns (address, uint96, uint96, uint64);
 
+    function stakingToken() external view returns (address);
+
     function vouchees(address staker, uint256 index) external view returns (address, uint96);
 
     function voucherIndexes(address borrower, address staker) external view returns (bool, uint128);

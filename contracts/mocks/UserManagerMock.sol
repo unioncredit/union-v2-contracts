@@ -17,9 +17,18 @@ contract UserManagerMock {
     uint256 public stakerBalance;
     uint256 public totalLockedStake;
     uint256 public totalFrozenAmount;
+    address public stakingToken;
 
-    constructor() {
+    mapping(address => uint256) public balances;
+    mapping(address => mapping(address => uint256)) public trust;
+
+    constructor(address _stakingToken) {
+        stakingToken = _stakingToken;
         newMemberFee = 10 ** 18; // Set the default membership fee
+    }
+
+    function stakers(address addr) public view returns (bool, uint96, uint96, uint64, uint256, uint256) {
+        return (true, uint96(balances[addr]), uint96(0), uint64(0), uint256(0), uint256(0));
     }
 
     function batchUpdateTotalFrozen(address[] calldata account, bool[] calldata isOverdue) external {}
@@ -66,7 +75,9 @@ contract UserManagerMock {
 
     function addMember(address account) public {}
 
-    function updateTrust(address borrower_, uint96 trustAmount) external {}
+    function updateTrust(address borrower_, uint96 trustAmount) external {
+        trust[msg.sender][borrower_] = trustAmount;
+    }
 
     function cancelVouch(address staker, address borrower) external {}
 
@@ -81,9 +92,13 @@ contract UserManagerMock {
 
     function registerMember(address newMember) public {}
 
-    function stake(uint96 amount) public {}
+    function stake(uint96 amount) public {
+        balances[msg.sender] += amount;
+    }
 
-    function unstake(uint96 amount) external {}
+    function unstake(uint96 amount) external {
+        balances[msg.sender] -= amount;
+    }
 
     function withdrawRewards() external {}
 
