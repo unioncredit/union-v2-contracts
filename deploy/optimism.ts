@@ -285,7 +285,7 @@ export default async function (
                         maxBorrow: config.uToken.maxBorrow,
                         minBorrow: config.uToken.minBorrow,
                         overdueBlocks: config.uToken.overdueBlocks,
-                        admin: config.admin,
+                        admin: opOwner.address,
                         mintFeeRate: config.uToken.mintFeeRate
                     }
                 ]
@@ -301,23 +301,27 @@ export default async function (
             `function setAssetManager(address) external`,
             `function setInterestRateModel(address) external`
         ]);
-
+        console.log("userManager setUToken");
         let encoded = iface.encodeFunctionData("setUToken(address)", [uToken.address]);
         let tx = await opOwner.execute(userManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
+        console.log("marketRegistry setUToken");
         encoded = iface.encodeFunctionData("setUToken(address,address)", [dai.address, uToken.address]);
         tx = await opOwner.execute(marketRegistry.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
+        console.log("uToken setUserManager");
         encoded = iface.encodeFunctionData("setUserManager(address)", [userManager.address]);
         tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
+        console.log("uToken setAssetManager");
         encoded = iface.encodeFunctionData("setAssetManager(address)", [assetManager.address]);
         tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
+        console.log("uToken setInterestRateModel");
         encoded = iface.encodeFunctionData("setInterestRateModel(address)", [fixedInterestRateModel.address]);
         tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
@@ -370,15 +374,18 @@ export default async function (
 
         // Add pure token adapter to assetManager
         let encoded = iface.encodeFunctionData("addToken(address)", [dai.address]);
+        console.log("assetManager addToken");
         let tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
         encoded = iface.encodeFunctionData("addAdapter(address)", [pureToken.address]);
+        console.log("assetManager addAdapter pureToken");
         tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
         if (aaveV3Adapter?.address) {
             encoded = iface.encodeFunctionData("addAdapter(address)", [aaveV3Adapter.address]);
+            console.log("assetManager addAdapter aaveV3Adapter");
             tx = await opOwner.execute(assetManager.address, 0, encoded);
             await tx.wait(waitForBlocks);
         }
