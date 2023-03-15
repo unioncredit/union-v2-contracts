@@ -74,15 +74,18 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         vm.startPrank(ADMIN);
         assetManager.addToken(address(daiMock));
         assetManager.addAdapter(address(pureToken));
+        //mock adapter remaining funds
         daiMock.mint(address(pureToken), 10000);
+        uint256 supportedTokensCountOld = assetManager.supportedTokensCount();
+        //mock token not support
         vm.mockCall(
             address(pureToken),
             abi.encodeWithSelector(PureTokenAdapter.supportsToken.selector, daiMock),
             abi.encode(false)
         );
         assetManager.removeToken(address(daiMock));
-        vm.expectRevert();
-        assetManager.supportedTokensList(0);
+        uint256 supportedTokensCount = assetManager.supportedTokensCount();
+        assertEq(supportedTokensCount, supportedTokensCountOld - 1);
         vm.stopPrank();
     }
 
