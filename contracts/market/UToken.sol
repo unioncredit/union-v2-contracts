@@ -659,17 +659,17 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
 
-            // Call update locked on the userManager to lock this borrowers stakers. This function
-            // will revert if the account does not have enough vouchers to cover the repay amount. ie
-            // the borrower is trying to repay more than is locked (owed)
-            IUserManager(userManager).updateLocked(borrower, repayAmount - interest, false);
-
             uint256 pastBlocks = getBlockNumber() - getLastRepay(borrower);
             if (pastBlocks > overdueBlocks) {
                 // For borrowers that are paying back overdue balances we need to update their
                 // frozen balance and the global total frozen balance on the UserManager
                 IUserManager(userManager).onRepayBorrow(borrower, getLastRepay(borrower) + overdueBlocks);
             }
+
+            // Call update locked on the userManager to lock this borrowers stakers. This function
+            // will revert if the account does not have enough vouchers to cover the repay amount. ie
+            // the borrower is trying to repay more than is locked (owed)
+            IUserManager(userManager).updateLocked(borrower, repayAmount - interest, false);
 
             if (getBorrowed(borrower) == 0) {
                 // If the principal is now 0 we can reset the last repaid block to 0.
