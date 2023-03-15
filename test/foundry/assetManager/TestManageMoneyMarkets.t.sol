@@ -70,6 +70,22 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         vm.stopPrank();
     }
 
+    function testRemoveTokenWhenRemainingFundsButTokenNotSupport() public {
+        vm.startPrank(ADMIN);
+        assetManager.addToken(address(daiMock));
+        assetManager.addAdapter(address(pureToken));
+        daiMock.mint(address(pureToken), 10000);
+        vm.mockCall(
+            address(pureToken),
+            abi.encodeWithSelector(PureTokenAdapter.supportsToken.selector, daiMock),
+            abi.encode(false)
+        );
+        assetManager.removeToken(address(daiMock));
+        vm.expectRevert();
+        assetManager.supportedTokensList(0);
+        vm.stopPrank();
+    }
+
     function testCannotRemoveTokenNonAdmin(address token) public {
         vm.prank(ADMIN);
         assetManager.addToken(token);

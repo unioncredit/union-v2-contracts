@@ -416,7 +416,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
 
         if (isExist) {
             for (uint256 i = 0; i < moneyMarkets.length; i++) {
-                if (moneyMarkets[i].getSupply(tokenAddress) >= 10000) revert RemainingFunds(); //ignore the dust
+                if (moneyMarkets[i].supportsToken(tokenAddress) && moneyMarkets[i].getSupply(tokenAddress) >= 10000) revert RemainingFunds(); //ignore the dust
             }
 
             supportedTokensList[index] = supportedTokensList[supportedTokensLength - 1];
