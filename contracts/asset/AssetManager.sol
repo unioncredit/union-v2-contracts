@@ -416,7 +416,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
 
         if (isExist) {
             for (uint256 i = 0; i < moneyMarkets.length; i++) {
-                if (moneyMarkets[i].supportsToken(tokenAddress) && moneyMarkets[i].getSupply(tokenAddress) >= 10000) revert RemainingFunds(); //ignore the dust
+                if (moneyMarkets[i].supportsToken(tokenAddress) && moneyMarkets[i].getSupply(tokenAddress) >= 10000)
+                    revert RemainingFunds(); //ignore the dust
             }
 
             supportedTokensList[index] = supportedTokensList[supportedTokensLength - 1];
@@ -464,7 +465,8 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
 
         if (isExist) {
             //Cannot be deleted when funds are available
-            for (uint256 i = 0; i < supportedTokensList.length; i++) {
+            uint256 supportedTokensLength = supportedTokensList.length;
+            for (uint256 i = 0; i < supportedTokensLength; i++) {
                 address token = supportedTokensList[i];
                 if (moneyMarkets[index].supportsToken(token) && moneyMarkets[index].getSupply(token) >= 10000)
                     revert RemainingFunds(); //ignore the dust
