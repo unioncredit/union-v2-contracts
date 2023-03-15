@@ -99,8 +99,8 @@ contract TestRepayBorrowWhenOverdue is TestWrapper {
         vm.stopPrank();
     }
 
-    function testRepayBorrowWhenOverdue() public {
-        uint256 borrowAmount = 50 ether;
+    function testRepayBorrowWhenOverdue(uint256 borrowAmount) public {
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
 
         vm.startPrank(borrower);
         uToken.borrow(borrower, borrowAmount);
@@ -120,7 +120,7 @@ contract TestRepayBorrowWhenOverdue is TestWrapper {
         assertTrue(!uToken.checkIsOverdue(borrower));
         assertEq(0, uToken.borrowBalanceView(borrower));
 
-        uint256 exceptFrozenCoinAge = locked * 10; //Default time 1 block
-        assertEq(userManager.frozenCoinAge(staker), exceptFrozenCoinAge);
+        uint256 expectFrozenCoinAge = locked * 10; //Default time 1 block
+        assertEq(userManager.frozenCoinAge(staker), expectFrozenCoinAge);
     }
 }
