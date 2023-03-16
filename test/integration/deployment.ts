@@ -16,7 +16,7 @@ describe("Test deployment configs", () => {
     let config: Omit<DeployConfig, "admin">;
 
     before(async function () {
-        if(isForked()) await fork();
+        if (isForked()) await fork();
 
         deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
@@ -84,7 +84,7 @@ describe("Test deployment configs", () => {
 
     context("checking PureTokenAdapter deployment config", () => {
         it("has the correct assetManager address", async () => {
-            const assetManager = await contracts.adapters.pureToken.assetManager();
+            const assetManager = await contracts.adapters.pureTokenAdapter.assetManager();
             expect(assetManager).eq(contracts.assetManager.address);
         });
     });

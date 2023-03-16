@@ -7,12 +7,12 @@ import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestManageMoneyMarkets is TestAssetManagerBase {
     uint256 public daiAmount = 1_000_000 ether;
-    PureTokenAdapter public pureToken;
+    PureTokenAdapter public pureTokenAdapter;
 
     function setUp() public override {
         super.setUp();
         address logic = address(new PureTokenAdapter());
-        pureToken = PureTokenAdapter(
+        pureTokenAdapter = PureTokenAdapter(
             deployProxy(
                 logic,
                 abi.encodeWithSignature("__PureTokenAdapter_init(address,address)", [ADMIN, address(assetManagerMock)])
@@ -63,8 +63,8 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     function testCannotRemoveTokenWhenRemainingFunds() public {
         vm.startPrank(ADMIN);
         assetManager.addToken(address(daiMock));
-        assetManager.addAdapter(address(pureToken));
-        daiMock.mint(address(pureToken), 10000);
+        assetManager.addAdapter(address(pureTokenAdapter));
+        daiMock.mint(address(pureTokenAdapter), 10000);
         vm.expectRevert(AssetManager.RemainingFunds.selector);
         assetManager.removeToken(address(daiMock));
         vm.stopPrank();
@@ -73,13 +73,13 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     function testRemoveTokenWhenRemainingFundsButTokenNotSupport() public {
         vm.startPrank(ADMIN);
         assetManager.addToken(address(daiMock));
-        assetManager.addAdapter(address(pureToken));
+        assetManager.addAdapter(address(pureTokenAdapter));
         //mock adapter remaining funds
-        daiMock.mint(address(pureToken), 10000);
+        daiMock.mint(address(pureTokenAdapter), 10000);
         uint256 supportedTokensCountOld = assetManager.supportedTokensCount();
         //mock token not support
         vm.mockCall(
-            address(pureToken),
+            address(pureTokenAdapter),
             abi.encodeWithSelector(PureTokenAdapter.supportsToken.selector, daiMock),
             abi.encode(false)
         );
@@ -166,10 +166,10 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     function testCannotRemoveAdapterWhenRemainingFunds() public {
         vm.startPrank(ADMIN);
         assetManager.addToken(address(daiMock));
-        assetManager.addAdapter(address(pureToken));
-        daiMock.mint(address(pureToken), 10000);
+        assetManager.addAdapter(address(pureTokenAdapter));
+        daiMock.mint(address(pureTokenAdapter), 10000);
         vm.expectRevert(AssetManager.RemainingFunds.selector);
-        assetManager.removeAdapter(address(pureToken));
+        assetManager.removeAdapter(address(pureTokenAdapter));
         vm.stopPrank();
     }
 

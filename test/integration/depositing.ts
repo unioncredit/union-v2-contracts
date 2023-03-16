@@ -46,15 +46,15 @@ describe("Depositing and withdrawing", () => {
         await getDai(contracts.dai, deployer, stakeAmount);
         await contracts.dai.connect(deployer).approve(contracts.userManager.address, ethers.constants.MaxUint256);
 
-        await contracts.adapters.pureToken.setFloor(contracts.dai.address, parseUnits("10"));
-        let bal = await contracts.dai.balanceOf(contracts.adapters.pureToken.address);
+        await contracts.adapters.pureTokenAdapter.setFloor(contracts.dai.address, parseUnits("10"));
+        let bal = await contracts.dai.balanceOf(contracts.adapters.pureTokenAdapter.address);
         expect(bal).eq(0);
         await contracts.userManager.stake(stakeAmount);
-        bal = await contracts.dai.balanceOf(contracts.adapters.pureToken.address);
+        bal = await contracts.dai.balanceOf(contracts.adapters.pureTokenAdapter.address);
         expect(bal).eq(stakeAmount);
 
         await contracts.userManager.unstake(stakeAmount);
-        bal = await contracts.dai.balanceOf(contracts.adapters.pureToken.address);
+        bal = await contracts.dai.balanceOf(contracts.adapters.pureTokenAdapter.address);
         expect(bal).eq(0);
     });
 });

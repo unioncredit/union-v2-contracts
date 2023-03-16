@@ -113,7 +113,7 @@ export interface OpContracts {
     dai: IDai | FaucetERC20_ERC20Permit;
     marketRegistry: MarketRegistry;
     adapters: {
-        pureToken: PureTokenAdapter;
+        pureTokenAdapter: PureTokenAdapter;
         aaveV3Adapter?: AaveV3Adapter;
     };
 }
@@ -336,9 +336,9 @@ export default async function (
     }
 
     // deploy pure token
-    let pureToken: PureTokenAdapter;
+    let pureTokenAdapter: PureTokenAdapter;
     if (config.addresses.adapters?.pureTokenAdapter) {
-        pureToken = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
+        pureTokenAdapter = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
     } else {
         const {proxy} = await deployProxy<PureTokenAdapter>(
             new PureTokenAdapter__factory(signer),
@@ -349,7 +349,8 @@ export default async function (
             },
             debug
         );
-        pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
+        pureTokenAdapter = PureTokenAdapter__factory.connect(proxy.address, signer);
+
         const iface = new Interface([
             `function setFloor(address,uint256) external`,
             `function setCeiling(address,uint256) external`
@@ -442,6 +443,6 @@ export default async function (
         comptroller,
         assetManager,
         dai,
-        adapters: {pureToken, aaveV3Adapter}
+        adapters: {pureTokenAdapter, aaveV3Adapter}
     };
 }
