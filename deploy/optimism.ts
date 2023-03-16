@@ -92,6 +92,14 @@ export interface DeployConfig {
     comptroller: {
         halfDecayPoint: BigNumberish;
     };
+    pureAdapter: {
+        floor: BigNumberish;
+        ceiling: BigNumberish;
+    };
+    aaveAdapter: {
+        floor: BigNumberish;
+        ceiling: BigNumberish;
+    };
 }
 
 export interface OpContracts {
@@ -342,6 +350,19 @@ export default async function (
             debug
         );
         pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
+        const iface = new Interface([
+            `function setFloor(address,uint256) external`,
+            `function setCeiling(address,uint256) external`
+        ]);
+        console.log("pureTokenAdapter setFloor");
+        let encoded = iface.encodeFunctionData("setFloor(address,uint256)", [dai.address, config.pureAdapter.floor]);
+        let tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+        await tx.wait(waitForBlocks);
+
+        console.log("pureTokenAdapter setCeiling");
+        encoded = iface.encodeFunctionData("setCeiling(address,uint256)", [dai.address, config.pureAdapter.ceiling]);
+        tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy aave v3 adapter
@@ -366,6 +387,26 @@ export default async function (
                 debug
             );
             aaveV3Adapter = AaveV3Adapter__factory.connect(proxy.address, signer);
+
+            const iface = new Interface([
+                `function setFloor(address,uint256) external`,
+                `function setCeiling(address,uint256) external`
+            ]);
+            console.log("aaveV3Adapter setFloor");
+            let encoded = iface.encodeFunctionData("setFloor(address,uint256)", [
+                dai.address,
+                config.aaveAdapter.floor
+            ]);
+            let tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+            await tx.wait(waitForBlocks);
+
+            console.log("aaveV3Adapter setCeiling");
+            encoded = iface.encodeFunctionData("setCeiling(address,uint256)", [
+                dai.address,
+                config.aaveAdapter.ceiling
+            ]);
+            tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+            await tx.wait(waitForBlocks);
         }
     }
 
@@ -378,8 +419,8 @@ export default async function (
         let tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        encoded = iface.encodeFunctionData("addAdapter(address)", [pureToken.address]);
-        console.log("assetManager addAdapter pureToken");
+        encoded = iface.encodeFunctionData("addAdapter(address)", [pureTokenAdapter.address]);
+        console.log("assetManager addAdapter pureTokenAdapter");
         tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
