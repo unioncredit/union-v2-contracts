@@ -1,2 +1,2 @@
 export * from "./deploy";
-export * from "./bridging";
+export * from "./op-bridge";
