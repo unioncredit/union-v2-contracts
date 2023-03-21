@@ -1,6 +1,29 @@
+import {parseUnits} from "ethers/lib/utils";
 import {DeployConfig} from "../index";
 
 export default {
+    userManager: {
+        maxOverdue: "14256000", // 11 x overdueBlocks + overdueBlocks
+        effectiveCount: "1",
+        maxVouchers: "400",
+        maxVouchees: "1000"
+    },
+    uToken: {
+        name: "uDAI",
+        symbol: "uDAI",
+        initialExchangeRateMantissa: parseUnits("1"),
+        reserveFactorMantissa: parseUnits("1"),
+        originationFee: parseUnits("0.005"),
+        originationFeeMax: parseUnits("0.5"),
+        debtCeiling: parseUnits("250000"),
+        maxBorrow: parseUnits("25000"),
+        minBorrow: parseUnits("100"),
+        overdueBlocks: "1296000", // in blocks, 30 days.
+        mintFeeRate: parseUnits("0")
+    },
+    fixedInterestRateModel: {
+        interestRatePerBlock: "6341958397" // 10% APR, 38051750380 x 43200 (blocks per day) x 365,
+    },
     addresses: {
         unionToken: "0x23B0483E07196c425d771240E81A9c2f1E113D3A",
         dai: "0xD9662ae38fB577a3F6843b6b8EB5af3410889f3A", // DAI used by aave on goerli-optimism
