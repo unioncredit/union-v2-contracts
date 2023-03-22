@@ -97,7 +97,7 @@ export interface Contracts {
     marketRegistry: MarketRegistry;
     unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
-        pureToken: PureTokenAdapter;
+        pureTokenAdapter: PureTokenAdapter;
         aaveV3Adapter?: AaveV3Adapter;
     };
     vouchFaucet?: VouchFaucet;
@@ -291,9 +291,9 @@ export default async function (
     }
 
     // deploy pure token
-    let pureToken: PureTokenAdapter;
+    let pureTokenAdapter: PureTokenAdapter;
     if (config.addresses.adapters?.pureTokenAdapter) {
-        pureToken = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
+        pureTokenAdapter = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
     } else {
         const {proxy} = await deployProxy<PureTokenAdapter>(
             new PureTokenAdapter__factory(signer),
@@ -304,7 +304,7 @@ export default async function (
             },
             debug
         );
-        pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
+        pureTokenAdapter = PureTokenAdapter__factory.connect(proxy.address, signer);
     }
 
     // deploy aave v3 adapter
@@ -337,7 +337,7 @@ export default async function (
         let tx = await assetManager.addToken(dai.address);
         await tx.wait(waitForBlocks);
 
-        tx = await assetManager.addAdapter(pureToken.address);
+        tx = await assetManager.addAdapter(pureTokenAdapter.address);
         await tx.wait(waitForBlocks);
 
         if (aaveV3Adapter?.address) {
@@ -355,7 +355,7 @@ export default async function (
         comptroller,
         assetManager,
         dai,
-        adapters: {pureToken, aaveV3Adapter},
+        adapters: {pureTokenAdapter, aaveV3Adapter},
         vouchFaucet
     };
 }

@@ -47,6 +47,14 @@ export const baseConfig = {
     },
     comptroller: {
         halfDecayPoint: "500000"
+    },
+    pureAdapter: {
+        floor: parseUnits("50000"),
+        ceiling: parseUnits("1000000000")
+    },
+    aaveAdapter: {
+        floor: parseUnits("25000"),
+        ceiling: parseUnits("100000")
     }
 } as DeployConfig;
 
