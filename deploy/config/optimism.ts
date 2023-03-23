@@ -22,7 +22,7 @@ export default {
         mintFeeRate: parseUnits("0")
     },
     fixedInterestRateModel: {
-        interestRatePerBlock: "6341958397" // 10% APR, 38051750380 x 43200 (blocks per day) x 365,
+        interestRatePerBlock: "6341958397" // 10% APR, 6341958397 x 43200 (blocks per day) x 365,
     },
     addresses: {
         unionToken: "0x5Dfe42eEA70a3e6f93EE54eD9C321aF07A85535C",
