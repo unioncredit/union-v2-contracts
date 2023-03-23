@@ -9,7 +9,7 @@ contract TestSetters is TestComptrollerBase {
         address logic = address(new Comptroller());
 
         Comptroller comp = Comptroller(deployProxy(logic, ""));
-        comp.__Comptroller_init(ADMIN, address(unionTokenMock), address(marketRegistryMock), halfDecayPoint);
+        comp.__Comptroller_init(ADMIN, address(unionTokenMock), address(marketRegistryMock), halfDecayPoint, blockTime);
         uint cHalfDecayPoint = comp.halfDecayPoint();
         assertEq(cHalfDecayPoint, halfDecayPoint);
         bool isAdmin = comp.isAdmin(ADMIN);
@@ -18,6 +18,8 @@ contract TestSetters is TestComptrollerBase {
         assertEq(cMarketRegistry, address(marketRegistryMock));
         address cUnionToken = address(comp.unionToken());
         assertEq(cUnionToken, address(unionTokenMock));
+        uint cRewardScaleFactor = comp.rewardScaleFactor();
+        assertEq(cRewardScaleFactor, comp.MAX_BLOCK_TIME() / blockTime);
     }
 
     function testSetHalfDecayPoint(uint256 amount) public {

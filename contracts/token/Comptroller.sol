@@ -56,6 +56,11 @@ contract Comptroller is Controller, IComptroller {
     uint256 public constant memberRatio = 10 ** 18;
 
     /**
+     * @dev 12 seconds block time based on Ethereum mainnet
+     */
+    uint256 public constant MAX_BLOCK_TIME = 12000;
+
+    /**
      * @dev Half decay point to reduce rewards at
      */
     uint256 public halfDecayPoint;
@@ -81,6 +86,11 @@ contract Comptroller is Controller, IComptroller {
     IMarketRegistry public marketRegistry;
 
     /**
+     * @dev Per block rewards scale factor.
+     */
+    uint256 public rewardScaleFactor;
+
+    /**
      * @dev Map account to token to Info
      */
     mapping(address => mapping(address => Info)) public users;
@@ -96,6 +106,13 @@ contract Comptroller is Controller, IComptroller {
      */
     event LogWithdrawRewards(address indexed account, uint256 amount);
 
+    /**
+     *  @dev Set reward scale factor
+     *  @param oldScaleFactor Previous block reward scale factor
+     *  @param newScaleFactor New block reward scale factor
+     */
+    event LogSetRewardScaleFactor(uint256 oldScaleFactor, uint256 newScaleFactor);
+
     /* -------------------------------------------------------------------
       Errors
     ------------------------------------------------------------------- */
@@ -104,25 +121,37 @@ contract Comptroller is Controller, IComptroller {
     error NotZero();
     error FrozenCoinAge();
     error InflationIndexTooSmall();
+    error ErrParams();
 
     /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
+    /**
+     *  @dev Comptroller initializer, can only be called once
+     *  @param _admin Admin/Owner address
+     *  @param _unionToken Union token address
+     *  @param _marketRegistry Market registry address
+     *  @param _halfDecayPoint Half decay point
+     *  @param _blockTime Block time in milliseconds
+     */
     function __Comptroller_init(
-        address admin,
-        address unionToken_,
-        address marketRegistry_,
-        uint256 _halfDecayPoint
+        address _admin,
+        address _unionToken,
+        address _marketRegistry,
+        uint256 _halfDecayPoint,
+        uint256 _blockTime
     ) public initializer {
-        Controller.__Controller_init(admin);
+        Controller.__Controller_init(_admin);
 
         gInflationIndex = INIT_INFLATION_INDEX;
         gLastUpdatedBlock = block.number;
 
-        unionToken = IERC20Upgradeable(unionToken_);
-        marketRegistry = IMarketRegistry(marketRegistry_);
+        unionToken = IERC20Upgradeable(_unionToken);
+        marketRegistry = IMarketRegistry(_marketRegistry);
         halfDecayPoint = _halfDecayPoint;
+        if (_blockTime == 0 || _blockTime > MAX_BLOCK_TIME) revert ErrParams();
+        rewardScaleFactor = MAX_BLOCK_TIME / _blockTime;
     }
 
     /* -------------------------------------------------------------------
@@ -141,9 +170,20 @@ contract Comptroller is Controller, IComptroller {
     /**
      * @dev Set the half decay point
      */
-    function setHalfDecayPoint(uint256 point) public onlyAdmin {
+    function setHalfDecayPoint(uint256 point) external onlyAdmin {
         if (point == 0) revert NotZero();
         halfDecayPoint = point;
+    }
+
+    /**
+     * @dev Set block reward scale factor
+     * @param _blockTime Block time in milliseconds
+     */
+    function setRewardScaleFactor(uint256 _blockTime) external onlyAdmin {
+        if (_blockTime == 0 || _blockTime > MAX_BLOCK_TIME) revert ErrParams();
+        uint256 oldScaleFactor = rewardScaleFactor;
+        rewardScaleFactor = MAX_BLOCK_TIME / _blockTime;
+        emit LogSetRewardScaleFactor(oldScaleFactor, rewardScaleFactor);
     }
 
     /* -------------------------------------------------------------------
@@ -318,7 +358,7 @@ contract Comptroller is Controller, IComptroller {
      */
     function _inflationPerBlock(uint256 effectiveTotalStake) internal view returns (uint256) {
         uint256 index = effectiveTotalStake / halfDecayPoint;
-        return _lookup(index);
+        return _lookup(index) / rewardScaleFactor;
     }
 
     function _lookup(uint256 index) internal pure returns (uint256) {

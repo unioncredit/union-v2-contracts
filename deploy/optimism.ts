@@ -192,8 +192,14 @@ export default async function (
             new Comptroller__factory(signer),
             "Comptroller",
             {
-                signature: "__Comptroller_init(address,address,address,uint256)",
-                args: [opOwner.address, opUnion.address, marketRegistry.address, config.comptroller.halfDecayPoint]
+                signature: "__Comptroller_init(address,address,address,uint256,uint256)",
+                args: [
+                    opOwner.address,
+                    opUnion.address,
+                    marketRegistry.address,
+                    config.comptroller.halfDecayPoint,
+                    config.comptroller.blockTime
+                ]
             },
             debug
         );

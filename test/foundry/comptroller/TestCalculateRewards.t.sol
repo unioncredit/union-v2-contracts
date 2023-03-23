@@ -58,43 +58,28 @@ contract TestCalculateRewards is TestComptrollerBase {
         assertEq(rewards, 0);
     }
 
-    function testInflationPerBlock0() public {
+    function testInflationPerBlock(uint256 blockTime) public {
+        uint256 maxBlockTime = comptroller.MAX_BLOCK_TIME();
+        vm.assume(blockTime > 0 && blockTime <= maxBlockTime);
+
+        uint256 scaleFactor = maxBlockTime / blockTime;
+        emit log_uint(scaleFactor);
+
+        vm.prank(ADMIN);
+        comptroller.setRewardScaleFactor(blockTime);
+
         uint256 inflation = comptroller.inflationPerBlock(1 ether);
-        assertEq(inflation, 1000000000000000000);
-    }
+        assertEq(inflation, 1 ether / scaleFactor);
 
-    function testInflationPerBlock1() public {
-        uint256 inflation = comptroller.inflationPerBlock(100 ether);
-        assertEq(inflation, 900000000000000000);
-    }
+        for (uint256 i = 0; i < 5; i++) {
+            inflation = comptroller.inflationPerBlock(10 ** i * 100 ether);
+            assertEq(inflation, ((9 - i) * 0.1 ether) / scaleFactor);
+        }
 
-    function testInflationPerBlock2() public {
-        uint256 inflation = comptroller.inflationPerBlock(1000 ether);
-        assertEq(inflation, 800000000000000000);
-    }
+        inflation = comptroller.inflationPerBlock(5_000_000 ether);
+        assertEq(inflation, 0.25 ether / scaleFactor);
 
-    function testInflationPerBlock3() public {
-        uint256 inflation = comptroller.inflationPerBlock(10000 ether);
-        assertEq(inflation, 700000000000000000);
-    }
-
-    function testInflationPerBlock4() public {
-        uint256 inflation = comptroller.inflationPerBlock(100000 ether);
-        assertEq(inflation, 600000000000000000);
-    }
-
-    function testInflationPerBlock5() public {
-        uint256 inflation = comptroller.inflationPerBlock(1000000 ether);
-        assertEq(inflation, 500000000000000000);
-    }
-
-    function testInflationPerBlock6() public {
-        uint256 inflation = comptroller.inflationPerBlock(5_000_000 ether);
-        assertEq(inflation, 250000000000000000);
-    }
-
-    function testInflationPerBlock7() public {
-        uint256 inflation = comptroller.inflationPerBlock(type(uint256).max);
-        assertEq(inflation, 1000000000000);
+        inflation = comptroller.inflationPerBlock(type(uint256).max);
+        assertEq(inflation, 1000000000000 / scaleFactor);
     }
 }

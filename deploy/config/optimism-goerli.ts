@@ -1,6 +1,10 @@
 import {DeployConfig} from "../index";
 
 export default {
+    comptroller: {
+        halfDecayPoint: "500000",
+        blockTime: "2000"
+    },
     addresses: {
         unionToken: "0x23B0483E07196c425d771240E81A9c2f1E113D3A",
         dai: "0xD9662ae38fB577a3F6843b6b8EB5af3410889f3A", // DAI used by aave on goerli-optimism

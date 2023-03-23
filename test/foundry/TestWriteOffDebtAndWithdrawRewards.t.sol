@@ -38,11 +38,12 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
             deployProxy(
                 comptrollerLogic,
                 abi.encodeWithSignature(
-                    "__Comptroller_init(address,address,address,uint256)",
+                    "__Comptroller_init(address,address,address,uint256,uint256)",
                     ADMIN,
                     unionTokenMock,
                     marketRegistryMock,
-                    1000000
+                    1000000,
+                    12000
                 )
             )
         );

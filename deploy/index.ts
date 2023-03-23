@@ -84,6 +84,7 @@ export interface DeployConfig {
     };
     comptroller: {
         halfDecayPoint: BigNumberish;
+        blockTime: BigNumberish;
     };
 }
 
@@ -159,8 +160,14 @@ export default async function (
         comptroller = Comptroller__factory.connect(config.addresses.comptroller, signer);
     } else {
         const {proxy} = await deployProxy<Comptroller>(new Comptroller__factory(signer), "Comptroller", {
-            signature: "__Comptroller_init(address,address,address,uint256)",
-            args: [config.admin, unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint]
+            signature: "__Comptroller_init(address,address,address,uint256,uint256)",
+            args: [
+                config.admin,
+                unionToken.address,
+                marketRegistry.address,
+                config.comptroller.halfDecayPoint,
+                config.comptroller.blockTime
+            ]
         });
         comptroller = Comptroller__factory.connect(proxy.address, signer);
     }

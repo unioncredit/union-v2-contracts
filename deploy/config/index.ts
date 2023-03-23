@@ -46,7 +46,8 @@ export const baseConfig = {
         interestRatePerBlock: "38051750380" // 10% APR, 38051750380 x 7200 (blocks per day) x 365,
     },
     comptroller: {
-        halfDecayPoint: "500000"
+        halfDecayPoint: "500000",
+        blockTime: "12000"
     },
     pureAdapter: {
         floor: parseUnits("50000"),
