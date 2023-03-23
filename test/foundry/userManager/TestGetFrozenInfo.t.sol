@@ -12,6 +12,8 @@ contract TestGetFrozenInfo is TestUserManagerBase {
         userManager.addMember(address(this));
         vm.stopPrank();
 
+        comptrollerMock.setUserManager(address(userManager));
+
         userManager.stake(stakeAmount);
         userManager.updateTrust(ACCOUNT, stakeAmount);
     }
@@ -19,30 +21,23 @@ contract TestGetFrozenInfo is TestUserManagerBase {
     function testGetStakeInfo() public {
         uint96 lockAmount = 10 ether;
         uint256 creditLimit = userManager.getCreditLimit(ACCOUNT);
+
+        uint256 globalStakedBefore = userManager.globalTotalStaked();
+        uint256 totalFrozenBefore = userManager.totalFrozen();
+
         vm.assume(lockAmount <= creditLimit);
-        vm.roll(block.number + 10);
+        vm.roll(11); // 10 more blocks
         vm.startPrank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
         vm.stopPrank();
-        vm.roll(block.number + 10);
-        (uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this), 0);
+        vm.roll(21); // another 10 blocks
+        (, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this));
         assertEq(effectiveStaked, stakeAmount);
+        // lockAmount/2 because only locked for half of the duration
         assertEq(effectiveLocked, lockAmount / 2);
-    }
 
-    function testGetStakeInfoPastBlocks(uint96 lockAmount) public {
-        uint256 creditLimit = userManager.getCreditLimit(ACCOUNT);
-        vm.assume(lockAmount <= creditLimit);
-
-        vm.startPrank(address(userManager.uToken()));
-        userManager.updateLocked(ACCOUNT, lockAmount, true);
-        uTokenMock.setOverdueBlocks(0);
-        uTokenMock.setLastRepay(block.number);
-        vm.stopPrank();
-
-        vm.roll(block.number + 10);
-        (, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this), block.number + 1);
-
-        assertEq(effectiveLocked, 0);
+        uint256 globalStakedAfter = userManager.globalTotalStaked();
+        uint256 totalFrozenAfter = userManager.totalFrozen();
+        assertEq(globalStakedBefore - globalStakedAfter, totalFrozenAfter - totalFrozenBefore);
     }
 }

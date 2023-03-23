@@ -7,12 +7,12 @@ import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestManageMoneyMarkets is TestAssetManagerBase {
     uint256 public daiAmount = 1_000_000 ether;
-    PureTokenAdapter public pureToken;
+    PureTokenAdapter public pureTokenAdapter;
 
     function setUp() public override {
         super.setUp();
         address logic = address(new PureTokenAdapter());
-        pureToken = PureTokenAdapter(
+        pureTokenAdapter = PureTokenAdapter(
             deployProxy(
                 logic,
                 abi.encodeWithSignature("__PureTokenAdapter_init(address,address)", [ADMIN, address(assetManagerMock)])
@@ -63,10 +63,29 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     function testCannotRemoveTokenWhenRemainingFunds() public {
         vm.startPrank(ADMIN);
         assetManager.addToken(address(daiMock));
-        assetManager.addAdapter(address(pureToken));
-        daiMock.mint(address(pureToken), 10000);
+        assetManager.addAdapter(address(pureTokenAdapter));
+        daiMock.mint(address(pureTokenAdapter), 10000);
         vm.expectRevert(AssetManager.RemainingFunds.selector);
         assetManager.removeToken(address(daiMock));
+        vm.stopPrank();
+    }
+
+    function testRemoveTokenWhenRemainingFundsButTokenNotSupport() public {
+        vm.startPrank(ADMIN);
+        assetManager.addToken(address(daiMock));
+        assetManager.addAdapter(address(pureTokenAdapter));
+        //mock adapter remaining funds
+        daiMock.mint(address(pureTokenAdapter), 10000);
+        uint256 supportedTokensCountOld = assetManager.supportedTokensCount();
+        //mock token not support
+        vm.mockCall(
+            address(pureTokenAdapter),
+            abi.encodeWithSelector(PureTokenAdapter.supportsToken.selector, daiMock),
+            abi.encode(false)
+        );
+        assetManager.removeToken(address(daiMock));
+        uint256 supportedTokensCount = assetManager.supportedTokensCount();
+        assertEq(supportedTokensCount, supportedTokensCountOld - 1);
         vm.stopPrank();
     }
 
@@ -100,16 +119,38 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         assetManager.addAdapter(adapter);
     }
 
-    function testRemoveAdapter(address adapter) public {
+    function testRemoveAdapter() public {
+        address[] memory adapters = new address[](9);
+        adapters[0] = address(10);
+        adapters[1] = address(11);
+        adapters[2] = address(12);
+        adapters[3] = address(13);
+        adapters[4] = address(14);
+        adapters[5] = address(15);
+        adapters[6] = address(16);
+        adapters[7] = address(17);
+        adapters[8] = address(18);
         vm.startPrank(ADMIN);
-        assetManager.addAdapter(adapter);
-        assertEq(address(assetManager.moneyMarkets(0)), adapter);
-        assertEq(assetManager.withdrawSeq(0), 0);
-        assetManager.removeAdapter(adapter);
+        //one adapter
+        assetManager.addAdapter(adapters[0]);
+        assertEq(address(assetManager.moneyMarkets(0)), adapters[0]);
+        assertEq(address(assetManager.withdrawSeq(0)), adapters[0]);
+        assetManager.removeAdapter(adapters[0]);
         vm.expectRevert();
         assetManager.moneyMarkets(0);
         vm.expectRevert();
         assetManager.withdrawSeq(0);
+
+        //mutil adapter
+        for (uint i = 0; i < adapters.length; i++) {
+            assetManager.addAdapter(adapters[i]);
+            assertEq(address(assetManager.moneyMarkets(i)), adapters[i]);
+        }
+        uint removeIndex = adapters.length / 2;
+        address removeAdapter = adapters[removeIndex];
+        address nextAdapter = adapters[removeIndex + 1];
+        assetManager.removeAdapter(removeAdapter);
+        assertEq(address(assetManager.moneyMarkets(removeIndex)), nextAdapter);
         vm.stopPrank();
     }
 
@@ -125,10 +166,20 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     function testCannotRemoveAdapterWhenRemainingFunds() public {
         vm.startPrank(ADMIN);
         assetManager.addToken(address(daiMock));
-        assetManager.addAdapter(address(pureToken));
-        daiMock.mint(address(pureToken), 10000);
+        assetManager.addAdapter(address(pureTokenAdapter));
+        daiMock.mint(address(pureTokenAdapter), 10000);
         vm.expectRevert(AssetManager.RemainingFunds.selector);
-        assetManager.removeAdapter(address(pureToken));
+        assetManager.removeAdapter(address(pureTokenAdapter));
+        vm.stopPrank();
+    }
+
+    function testRemoveAdapterWhenRemainingFundsButAdapterNotSupport() public {
+        vm.startPrank(ADMIN);
+        assetManager.addToken(address(daiMock));
+        assetManager.addAdapter(address(adapterMock));
+        daiMock.mint(address(adapterMock), 10000);
+        adapterMock.setSupport(true);
+        assetManager.removeAdapter(address(adapterMock));
         vm.stopPrank();
     }
 

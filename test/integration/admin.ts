@@ -151,19 +151,21 @@ describe("Owner/Admin permissions", () => {
     context("PureTokenAdapter", () => {
         before(beforeContext);
         it("setAssetManager cannot be called by non owner", async () => {
-            const resp = contracts.adapters.pureToken.connect(nonAdmin).setAssetManager(deployerAddress);
+            const resp = contracts.adapters.pureTokenAdapter.connect(nonAdmin).setAssetManager(deployerAddress);
             await expect(resp).to.be.revertedWith(error.SenderNotAdmin);
         });
         it("setFloor cannot be called by non owner", async () => {
-            const resp = contracts.adapters.pureToken.connect(nonAdmin).setFloor(deployerAddress, 0);
+            const resp = contracts.adapters.pureTokenAdapter.connect(nonAdmin).setFloor(deployerAddress, 0);
             await expect(resp).to.be.revertedWith(error.SenderNotAdmin);
         });
         it("setCeiling cannot be called by non owner", async () => {
-            const resp = contracts.adapters.pureToken.connect(nonAdmin).setCeiling(deployerAddress, 0);
+            const resp = contracts.adapters.pureTokenAdapter.connect(nonAdmin).setCeiling(deployerAddress, 0);
             await expect(resp).to.be.revertedWith(error.SenderNotAdmin);
         });
         it("claimRewards cannot be called by non owner", async () => {
-            const resp = contracts.adapters.pureToken.connect(nonAdmin).claimRewards(deployerAddress, deployerAddress);
+            const resp = contracts.adapters.pureTokenAdapter
+                .connect(nonAdmin)
+                .claimRewards(deployerAddress, deployerAddress);
             await expect(resp).to.be.revertedWith(error.SenderNotAdmin);
         });
     });

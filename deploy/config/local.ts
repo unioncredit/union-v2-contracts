@@ -19,6 +19,7 @@ export default {
         debtCeiling: parseUnits("250000"),
         maxBorrow: parseUnits("25000"),
         minBorrow: parseUnits("100"),
-        overdueBlocks: "10" // in blocks
+        overdueBlocks: "10", // in blocks
+        mintFeeRate: parseUnits("0.001")
     }
 } as DeployConfig;

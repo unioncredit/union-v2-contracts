@@ -1,4 +1,4 @@
-import {BigNumberish, Signer} from "ethers";
+import {BigNumberish, Signer, ethers} from "ethers";
 import {formatUnits, Interface} from "ethers/lib/utils";
 import {
     AssetManager__factory,
@@ -84,12 +84,21 @@ export interface DeployConfig {
         maxBorrow: BigNumberish;
         minBorrow: BigNumberish;
         overdueBlocks: BigNumberish;
+        mintFeeRate: BigNumberish;
     };
     fixedInterestRateModel: {
         interestRatePerBlock: BigNumberish;
     };
     comptroller: {
         halfDecayPoint: BigNumberish;
+    };
+    pureAdapter: {
+        floor: BigNumberish;
+        ceiling: BigNumberish;
+    };
+    aaveAdapter: {
+        floor: BigNumberish;
+        ceiling: BigNumberish;
     };
 }
 
@@ -104,7 +113,7 @@ export interface OpContracts {
     dai: IDai | FaucetERC20_ERC20Permit;
     marketRegistry: MarketRegistry;
     adapters: {
-        pureToken: PureTokenAdapter;
+        pureTokenAdapter: PureTokenAdapter;
         aaveV3Adapter?: AaveV3Adapter;
     };
 }
@@ -270,20 +279,23 @@ export default async function (
             "UErc20",
             {
                 signature:
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
+                    "__UToken_init((string name,string symbol,address underlying,uint256 initialExchangeRateMantissa,uint256 reserveFactorMantissa,uint256 originationFee,uint256 originationFeeMax,uint256 debtCeiling,uint256 maxBorrow,uint256 minBorrow,uint256 overdueBlocks,address admin,uint256 mintFeeRate))",
                 args: [
-                    config.uToken.name,
-                    config.uToken.symbol,
-                    dai.address,
-                    config.uToken.initialExchangeRateMantissa,
-                    config.uToken.reserveFactorMantissa,
-                    config.uToken.originationFee,
-                    config.uToken.originationFeeMax,
-                    config.uToken.debtCeiling,
-                    config.uToken.maxBorrow,
-                    config.uToken.minBorrow,
-                    config.uToken.overdueBlocks,
-                    opOwner.address
+                    {
+                        name: config.uToken.name,
+                        symbol: config.uToken.symbol,
+                        underlying: dai.address,
+                        initialExchangeRateMantissa: config.uToken.initialExchangeRateMantissa,
+                        reserveFactorMantissa: config.uToken.reserveFactorMantissa,
+                        originationFee: config.uToken.originationFee,
+                        originationFeeMax: config.uToken.originationFeeMax,
+                        debtCeiling: config.uToken.debtCeiling,
+                        maxBorrow: config.uToken.maxBorrow,
+                        minBorrow: config.uToken.minBorrow,
+                        overdueBlocks: config.uToken.overdueBlocks,
+                        admin: opOwner.address,
+                        mintFeeRate: config.uToken.mintFeeRate
+                    }
                 ]
             },
             debug
@@ -297,32 +309,36 @@ export default async function (
             `function setAssetManager(address) external`,
             `function setInterestRateModel(address) external`
         ]);
-
+        console.log("userManager setUToken");
         let encoded = iface.encodeFunctionData("setUToken(address)", [uToken.address]);
         let tx = await opOwner.execute(userManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
+        console.log("marketRegistry setUToken");
         encoded = iface.encodeFunctionData("setUToken(address,address)", [dai.address, uToken.address]);
         tx = await opOwner.execute(marketRegistry.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
+        console.log("uToken setUserManager");
         encoded = iface.encodeFunctionData("setUserManager(address)", [userManager.address]);
         tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
+        console.log("uToken setAssetManager");
         encoded = iface.encodeFunctionData("setAssetManager(address)", [assetManager.address]);
         tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
+        console.log("uToken setInterestRateModel");
         encoded = iface.encodeFunctionData("setInterestRateModel(address)", [fixedInterestRateModel.address]);
         tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
     }
 
     // deploy pure token
-    let pureToken: PureTokenAdapter;
+    let pureTokenAdapter: PureTokenAdapter;
     if (config.addresses.adapters?.pureTokenAdapter) {
-        pureToken = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
+        pureTokenAdapter = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
     } else {
         const {proxy} = await deployProxy<PureTokenAdapter>(
             new PureTokenAdapter__factory(signer),
@@ -333,7 +349,21 @@ export default async function (
             },
             debug
         );
-        pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
+        pureTokenAdapter = PureTokenAdapter__factory.connect(proxy.address, signer);
+
+        const iface = new Interface([
+            `function setFloor(address,uint256) external`,
+            `function setCeiling(address,uint256) external`
+        ]);
+        console.log("pureTokenAdapter setFloor");
+        let encoded = iface.encodeFunctionData("setFloor(address,uint256)", [dai.address, config.pureAdapter.floor]);
+        let tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+        await tx.wait(waitForBlocks);
+
+        console.log("pureTokenAdapter setCeiling");
+        encoded = iface.encodeFunctionData("setCeiling(address,uint256)", [dai.address, config.pureAdapter.ceiling]);
+        tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy aave v3 adapter
@@ -358,6 +388,26 @@ export default async function (
                 debug
             );
             aaveV3Adapter = AaveV3Adapter__factory.connect(proxy.address, signer);
+
+            const iface = new Interface([
+                `function setFloor(address,uint256) external`,
+                `function setCeiling(address,uint256) external`
+            ]);
+            console.log("aaveV3Adapter setFloor");
+            let encoded = iface.encodeFunctionData("setFloor(address,uint256)", [
+                dai.address,
+                config.aaveAdapter.floor
+            ]);
+            let tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+            await tx.wait(waitForBlocks);
+
+            console.log("aaveV3Adapter setCeiling");
+            encoded = iface.encodeFunctionData("setCeiling(address,uint256)", [
+                dai.address,
+                config.aaveAdapter.ceiling
+            ]);
+            tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+            await tx.wait(waitForBlocks);
         }
     }
 
@@ -366,15 +416,18 @@ export default async function (
 
         // Add pure token adapter to assetManager
         let encoded = iface.encodeFunctionData("addToken(address)", [dai.address]);
+        console.log("assetManager addToken");
         let tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
-        encoded = iface.encodeFunctionData("addAdapter(address)", [pureToken.address]);
+        encoded = iface.encodeFunctionData("addAdapter(address)", [pureTokenAdapter.address]);
+        console.log("assetManager addAdapter pureTokenAdapter");
         tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
         if (aaveV3Adapter?.address) {
             encoded = iface.encodeFunctionData("addAdapter(address)", [aaveV3Adapter.address]);
+            console.log("assetManager addAdapter aaveV3Adapter");
             tx = await opOwner.execute(assetManager.address, 0, encoded);
             await tx.wait(waitForBlocks);
         }
@@ -390,6 +443,6 @@ export default async function (
         comptroller,
         assetManager,
         dai,
-        adapters: {pureToken, aaveV3Adapter}
+        adapters: {pureTokenAdapter, aaveV3Adapter}
     };
 }

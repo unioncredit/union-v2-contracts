@@ -49,19 +49,14 @@ contract CompoundAdapterMock is Initializable, IMoneyMarketAdapter {
         return true;
     }
 
-    function withdraw(
-        address tokenAddress,
-        address recipient,
-        uint256 tokenAmount
-    ) external returns (bool) {
+    function withdraw(address tokenAddress, address recipient, uint256 tokenAmount) external returns (bool) {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.transfer(recipient, tokenAmount);
         return true;
     }
 
-    function withdrawAll(address tokenAddress, address recipient) external returns (bool) {
+    function withdrawAll(address tokenAddress, address recipient) external {
         IERC20Upgradeable token = IERC20Upgradeable(tokenAddress);
         token.transfer(recipient, token.balanceOf(address(this)));
-        return true;
     }
 }

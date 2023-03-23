@@ -5,6 +5,21 @@ import {Controller} from "union-v2-contracts/Controller.sol";
 import {Comptroller} from "union-v2-contracts/token/Comptroller.sol";
 
 contract TestSetters is TestComptrollerBase {
+    function testInit() public {
+        address logic = address(new Comptroller());
+
+        Comptroller comp = Comptroller(deployProxy(logic, ""));
+        comp.__Comptroller_init(ADMIN, address(unionTokenMock), address(marketRegistryMock), halfDecayPoint);
+        uint cHalfDecayPoint = comp.halfDecayPoint();
+        assertEq(cHalfDecayPoint, halfDecayPoint);
+        bool isAdmin = comp.isAdmin(ADMIN);
+        assertEq(isAdmin, true);
+        address cMarketRegistry = address(comp.marketRegistry());
+        assertEq(cMarketRegistry, address(marketRegistryMock));
+        address cUnionToken = address(comp.unionToken());
+        assertEq(cUnionToken, address(unionTokenMock));
+    }
+
     function testSetHalfDecayPoint(uint256 amount) public {
         vm.assume(amount != 0);
         vm.prank(ADMIN);
@@ -25,16 +40,16 @@ contract TestSetters is TestComptrollerBase {
     }
 
     function testUpdateTotalStaked(uint256 amount) public {
-        vm.assume(amount != 0 && amount < 1_000_000 ether);
+        vm.assume(amount >= 1 ether && amount < 1_000_000 ether);
+
         vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(this));
-        uint256 previousBlock = block.number;
         assertEq(comptroller.gLastUpdatedBlock(), block.number);
         assertEq(comptroller.gInflationIndex(), comptroller.INIT_INFLATION_INDEX());
 
         vm.roll(100);
+
         comptroller.updateTotalStaked(address(daiMock), amount);
-        assert(previousBlock != block.number);
         assertEq(comptroller.gLastUpdatedBlock(), block.number);
         assert(comptroller.gInflationIndex() != comptroller.INIT_INFLATION_INDEX());
     }

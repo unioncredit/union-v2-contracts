@@ -31,7 +31,7 @@ const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {
         assetManager: contracts.assetManager.address,
         dai: contracts.dai.address,
         adapters: {
-            pureToken: contracts.adapters.pureToken?.address || ethers.constants.AddressZero,
+            pureTokenAdapter: contracts.adapters.pureTokenAdapter?.address || ethers.constants.AddressZero,
             aaveV3Adapter: contracts.adapters.aaveV3Adapter?.address || ethers.constants.AddressZero
         }
     };
@@ -49,7 +49,7 @@ const deploymentOpToAddresses = (contracts: OpContracts): {[key: string]: string
         assetManager: contracts.assetManager.address,
         dai: contracts.dai.address,
         adapters: {
-            pureToken: contracts.adapters.pureToken?.address || ethers.constants.AddressZero,
+            pureTokenAdapter: contracts.adapters.pureTokenAdapter?.address || ethers.constants.AddressZero,
             aaveV3Adapter: contracts.adapters.aaveV3Adapter?.address || ethers.constants.AddressZero
         }
     };
@@ -222,8 +222,9 @@ task("deploy:op", "Deploy Union V2 on Optimism")
         }
 
         if (config?.addresses?.opAdminAddress) {
-            const tx = await deployment.opOwner.transferAdmin(config.addresses.opAdminAddress);
+            const tx = await deployment.opOwner.setPendingAdmin(config.addresses.opAdminAddress);
             await tx.wait(waitForBlocks);
+            //TODO: Requires opAdminAddress to execute acceptAdmin
         }
 
         console.log("[*] Complete");

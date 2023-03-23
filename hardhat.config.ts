@@ -20,7 +20,7 @@ export default {
             url: process.env.NODE_URL || ""
         },
         "optimism-goerli": {
-            url: process.env.NODE_URL || ""
+            url: process.env.NODE_URL || "https://goerli.optimism.io"
         }
     },
     solidity: {

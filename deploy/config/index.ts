@@ -39,13 +39,22 @@ export const baseConfig = {
         debtCeiling: parseUnits("250000"),
         maxBorrow: parseUnits("25000"),
         minBorrow: parseUnits("100"),
-        overdueBlocks: "216000" // in blocks, 30 days.
+        overdueBlocks: "216000", // in blocks, 30 days.
+        mintFeeRate: parseUnits("0.001")
     },
     fixedInterestRateModel: {
         interestRatePerBlock: "38051750380" // 10% APR, 38051750380 x 7200 (blocks per day) x 365,
     },
     comptroller: {
         halfDecayPoint: "500000"
+    },
+    pureAdapter: {
+        floor: parseUnits("50000"),
+        ceiling: parseUnits("1000000000")
+    },
+    aaveAdapter: {
+        floor: parseUnits("25000"),
+        ceiling: parseUnits("100000")
     }
 } as DeployConfig;
 

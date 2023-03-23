@@ -8,27 +8,11 @@ pragma solidity 0.8.16;
 interface IUserManager {
     function memberFrozen(address staker) external view returns (uint256);
 
-    function stakers(address staker)
-        external
-        view
-        returns (
-            bool,
-            uint96,
-            uint96,
-            uint64,
-            uint256,
-            uint256
-        );
+    function stakers(address staker) external view returns (bool, uint96, uint96, uint64, uint256, uint256);
 
-    function vouchers(address borrower, uint256 index)
-        external
-        view
-        returns (
-            address,
-            uint96,
-            uint96,
-            uint64
-        );
+    function vouchers(address borrower, uint256 index) external view returns (address, uint96, uint96, uint64);
+
+    function stakingToken() external view returns (address);
 
     function vouchees(address staker, uint256 index) external view returns (address, uint96);
 
@@ -65,11 +49,7 @@ interface IUserManager {
 
     function withdrawRewards() external;
 
-    function debtWriteOff(
-        address staker,
-        address borrower,
-        uint96 amount
-    ) external;
+    function debtWriteOff(address staker, address borrower, uint256 amount) external;
 
     /**
      *  @dev Check if the account is a valid member
@@ -128,39 +108,27 @@ interface IUserManager {
     /**
      *  @dev Get the staker's effective staked and locked amount
      *  @param staker Staker address
-     *  @param pastBlocks Number of blocks since last rewards withdrawal
-     *  @return  user's effective staked amount
-     *           user's effective locked amount
+     *  @return is member
+     *          effective staked amount
+     *          effective locked amount
+     *          frozen amount
      */
-    function getStakeInfo(address staker, uint256 pastBlocks)
-        external
-        view
-        returns (
-            uint256,
-            uint256,
-            bool
-        );
+    function getStakeInfo(address staker) external view returns (bool, uint256, uint256, uint256);
 
     /**
      * @dev Update the frozen info by the comptroller
      * @param staker Staker address
-     * @param pastBlocks The past blocks
      * @return  effectStaked user's total stake - frozen
      *          effectLocked user's locked amount - frozen
      */
-    function onWithdrawRewards(address staker, uint256 pastBlocks)
-        external
-        returns (
-            uint256,
-            uint256,
-            bool
-        );
+    function onWithdrawRewards(address staker) external returns (uint256, uint256, bool);
 
     /**
      * @dev Update the frozen info by the utoken repay
      * @param borrower Borrower address
+     * @param pastBlocks blocks since last repay
      */
-    function onRepayBorrow(address borrower) external;
+    function onRepayBorrow(address borrower, uint256 pastBlocks) external;
 
     /**
      *  @dev Update userManager locked info
@@ -168,11 +136,7 @@ interface IUserManager {
      *  @param amount Borrow or repay amount(Including previously accrued interest)
      *  @param isBorrow True is borrow, false is repay
      */
-    function updateLocked(
-        address borrower,
-        uint96 amount,
-        bool isBorrow
-    ) external;
+    function updateLocked(address borrower, uint256 amount, bool isBorrow) external;
 
     /**
      *  @dev Get the user's deposited stake amount

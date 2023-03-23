@@ -19,9 +19,12 @@ contract TestBorrowRepay is TestUTokenBase {
     function testBorrowFeeAndInterest(uint256 borrowAmount) public {
         vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
 
+        uint256 debtCeilingBefore = uToken.getRemainingDebtCeiling();
         vm.startPrank(ALICE);
         uToken.borrow(ALICE, borrowAmount);
         vm.stopPrank();
+        uint256 debtCeilingAfter = uToken.getRemainingDebtCeiling();
+        assertEq(debtCeilingBefore - debtCeilingAfter, borrowAmount + (borrowAmount * ORIGINATION_FEE) / 1e18);
 
         uint256 borrowed = uToken.borrowBalanceView(ALICE);
         // borrowed amount should only include origination fee

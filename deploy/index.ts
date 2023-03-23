@@ -1,4 +1,4 @@
-import {BigNumberish, Signer} from "ethers";
+import {BigNumberish, Signer, ethers} from "ethers";
 
 import {
     AssetManager__factory,
@@ -6,10 +6,6 @@ import {
     Comptroller__factory,
     UserManagerERC20,
     UserManagerERC20__factory,
-    UToken,
-    UToken__factory,
-    UDai,
-    UDai__factory,
     UErc20,
     UErc20__factory,
     AssetManager,
@@ -26,7 +22,9 @@ import {
     AaveV3Adapter,
     AaveV3Adapter__factory,
     IDai__factory,
-    IDai
+    IDai,
+    VouchFaucet,
+    VouchFaucet__factory
 } from "../typechain-types";
 import {deployProxy, deployContract} from "./helpers";
 
@@ -79,6 +77,7 @@ export interface DeployConfig {
         maxBorrow: BigNumberish;
         minBorrow: BigNumberish;
         overdueBlocks: BigNumberish;
+        mintFeeRate: BigNumberish;
     };
     fixedInterestRateModel: {
         interestRatePerBlock: BigNumberish;
@@ -98,16 +97,18 @@ export interface Contracts {
     marketRegistry: MarketRegistry;
     unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
-        pureToken: PureTokenAdapter;
+        pureTokenAdapter: PureTokenAdapter;
         aaveV3Adapter?: AaveV3Adapter;
     };
+    vouchFaucet?: VouchFaucet;
 }
 
 export default async function (
     config: DeployConfig,
     signer: Signer,
     debug = false,
-    waitForBlocks: number | undefined = undefined
+    waitForBlocks: number | undefined = undefined,
+    isTestnet: boolean = false
 ): Promise<Contracts> {
     // deploy market registry
     let marketRegistry: MarketRegistry;
@@ -211,6 +212,18 @@ export default async function (
         await tx.wait(waitForBlocks);
     }
 
+    // deploy vouch faucet if we are deploying to a testnet
+    let vouchFaucet: VouchFaucet | undefined = undefined;
+    if (isTestnet) {
+        vouchFaucet = await deployContract<VouchFaucet>(
+            new VouchFaucet__factory(signer),
+            "VouchFaucet",
+            [userManager.address],
+            debug,
+            waitForBlocks
+        );
+    }
+
     // deploy fixedInterestRateModel
     let fixedInterestRateModel: FixedInterestRateModel;
     if (config.addresses.fixedRateInterestModel) {
@@ -238,20 +251,23 @@ export default async function (
             "UErc20",
             {
                 signature:
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
+                    "__UToken_init((string name,string symbol,address underlying,uint256 initialExchangeRateMantissa,uint256 reserveFactorMantissa,uint256 originationFee,uint256 originationFeeMax,uint256 debtCeiling,uint256 maxBorrow,uint256 minBorrow,uint256 overdueBlocks,address admin,uint256 mintFeeRate))",
                 args: [
-                    config.uToken.name,
-                    config.uToken.symbol,
-                    dai.address,
-                    config.uToken.initialExchangeRateMantissa,
-                    config.uToken.reserveFactorMantissa,
-                    config.uToken.originationFee,
-                    config.uToken.originationFeeMax,
-                    config.uToken.debtCeiling,
-                    config.uToken.maxBorrow,
-                    config.uToken.minBorrow,
-                    config.uToken.overdueBlocks,
-                    config.admin
+                    {
+                        name: config.uToken.name,
+                        symbol: config.uToken.symbol,
+                        underlying: dai.address,
+                        initialExchangeRateMantissa: config.uToken.initialExchangeRateMantissa,
+                        reserveFactorMantissa: config.uToken.reserveFactorMantissa,
+                        originationFee: config.uToken.originationFee,
+                        originationFeeMax: config.uToken.originationFeeMax,
+                        debtCeiling: config.uToken.debtCeiling,
+                        maxBorrow: config.uToken.maxBorrow,
+                        minBorrow: config.uToken.minBorrow,
+                        overdueBlocks: config.uToken.overdueBlocks,
+                        admin: config.admin,
+                        mintFeeRate: config.uToken.mintFeeRate
+                    }
                 ]
             },
             debug
@@ -275,9 +291,9 @@ export default async function (
     }
 
     // deploy pure token
-    let pureToken: PureTokenAdapter;
+    let pureTokenAdapter: PureTokenAdapter;
     if (config.addresses.adapters?.pureTokenAdapter) {
-        pureToken = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
+        pureTokenAdapter = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
     } else {
         const {proxy} = await deployProxy<PureTokenAdapter>(
             new PureTokenAdapter__factory(signer),
@@ -288,7 +304,7 @@ export default async function (
             },
             debug
         );
-        pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
+        pureTokenAdapter = PureTokenAdapter__factory.connect(proxy.address, signer);
     }
 
     // deploy aave v3 adapter
@@ -297,7 +313,7 @@ export default async function (
         aaveV3Adapter = AaveV3Adapter__factory.connect(config.addresses.adapters?.aaveV3Adapter, signer);
     } else {
         // Only deploy the aaveV3Adapter if the lendingPool and aave market address are in the config
-        if (config.addresses.aave?.lendingPool && config.addresses.aave?.market) {
+        if ((config.addresses.aave?.lendingPool && config.addresses.aave?.market) != ethers.constants.AddressZero) {
             const {proxy} = await deployProxy<AaveV3Adapter>(
                 new AaveV3Adapter__factory(signer),
                 "AaveV3Adapter",
@@ -321,7 +337,7 @@ export default async function (
         let tx = await assetManager.addToken(dai.address);
         await tx.wait(waitForBlocks);
 
-        tx = await assetManager.addAdapter(pureToken.address);
+        tx = await assetManager.addAdapter(pureTokenAdapter.address);
         await tx.wait(waitForBlocks);
 
         if (aaveV3Adapter?.address) {
@@ -339,6 +355,7 @@ export default async function (
         comptroller,
         assetManager,
         dai,
-        adapters: {pureToken, aaveV3Adapter}
+        adapters: {pureTokenAdapter, aaveV3Adapter},
+        vouchFaucet
     };
 }

@@ -1,63 +1,8 @@
 pragma solidity ^0.8.0;
 
+import {console} from "forge-std/console.sol";
 import {TestComptrollerBase} from "./TestComptrollerBase.sol";
-
-contract FakeUserManager {
-    uint256 public totalStaked;
-
-    uint256 public stakerBalance;
-    uint256 public totalLockedStake;
-    uint256 public frozenCoinAge;
-    uint256 public totalFrozen;
-    bool public isMember;
-
-    constructor(
-        uint256 _totalStaked,
-        uint256 _stakerBalance,
-        uint256 _totalLockedStake,
-        uint256 _frozenCoinAge,
-        uint256 _totalFrozen,
-        bool _isMember
-    ) {
-        totalStaked = _totalStaked;
-        stakerBalance = _stakerBalance;
-        totalLockedStake = _totalLockedStake;
-        frozenCoinAge = _frozenCoinAge;
-        totalFrozen = _totalFrozen;
-        isMember = _isMember;
-    }
-
-    function getStakerBalance(address) public view returns (uint256) {
-        return stakerBalance;
-    }
-
-    function getTotalLockedStake(address) public view returns (uint256) {
-        return totalLockedStake;
-    }
-
-    function _calculateCoinAge(address, uint256) public view returns (uint256, uint256, uint256) {
-        return (totalStaked, totalLockedStake, totalFrozen);
-    }
-
-    function getStakeInfo(address, uint256) public view returns (uint256, uint256, bool) {
-        return (totalStaked, totalLockedStake, isMember);
-    }
-
-    function onWithdrawRewards(address, uint256) public view returns (uint256, uint256, bool) {
-        return (frozenCoinAge, totalFrozen, isMember);
-    }
-
-    function checkIsMember(address) public view returns (bool) {
-        return isMember;
-    }
-
-    function globalTotalStaked() external view returns (uint256 globalTotal) {
-        globalTotal = totalStaked - totalFrozen;
-        if (globalTotal < 1e18) {
-            globalTotal = 1e18;
-        }
-    }
-}
+import {FakeUserManager} from "./FakeUserManager.sol";
 
 // TODO: test internal function individually too
 contract TestCalculateRewards is TestComptrollerBase {
@@ -76,16 +21,41 @@ contract TestCalculateRewards is TestComptrollerBase {
         assertEq(true, um.checkIsMember(address(this)));
         uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
         assertEq(multiplier, comptroller.memberRatio());
+
+        //member no stake
+        FakeUserManager um2 = new FakeUserManager(0, 0, 0, 0, 0, true);
+        vm.prank(ADMIN);
+        marketRegistryMock.setUserManager(address(daiMock), address(um2));
+        assertEq(true, um2.checkIsMember(address(this)));
+        multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
+        assertEq(multiplier, comptroller.memberRatio());
+
+        //no member
+        FakeUserManager um3 = new FakeUserManager(0, 0, 0, 0, 0, false);
+        vm.prank(ADMIN);
+        marketRegistryMock.setUserManager(address(daiMock), address(um3));
+        assertEq(false, um3.checkIsMember(address(this)));
+        multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
+        assertEq(multiplier, comptroller.nonMemberRatio());
     }
 
-    function testCalculateRewardsByBlocks() public {
+    function testCalculateRewards() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
         vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
-        vm.prank(address(um));
         comptroller.withdrawRewards(address(this), address(daiMock));
-        uint256 rewards = comptroller.calculateRewardsByBlocks(address(this), address(daiMock), 1000);
+        vm.roll(1001);
+        uint256 rewards = comptroller.calculateRewards(address(this), address(daiMock));
         assertEq(rewards, 900000000000000000000);
+
+        //no stake
+        FakeUserManager um2 = new FakeUserManager(0, 0, 0, 0, 0, true);
+        vm.prank(ADMIN);
+        marketRegistryMock.setUserManager(address(daiMock), address(um2));
+        comptroller.withdrawRewards(address(this), address(daiMock));
+        vm.roll(1001);
+        rewards = comptroller.calculateRewards(address(this), address(daiMock));
+        assertEq(rewards, 0);
     }
 
     function testInflationPerBlock0() public {
