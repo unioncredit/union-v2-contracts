@@ -398,7 +398,7 @@ export default async function (
                 dai.address,
                 config.aaveAdapter.floor
             ]);
-            let tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+            let tx = await opOwner.execute(aaveV3Adapter.address, 0, encoded);
             await tx.wait(waitForBlocks);
 
             console.log("aaveV3Adapter setCeiling");
@@ -406,7 +406,7 @@ export default async function (
                 dai.address,
                 config.aaveAdapter.ceiling
             ]);
-            tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+            tx = await opOwner.execute(aaveV3Adapter.address, 0, encoded);
             await tx.wait(waitForBlocks);
         }
     }
