@@ -390,15 +390,19 @@ export default async function (
             aaveV3Adapter = AaveV3Adapter__factory.connect(proxy.address, signer);
 
             const iface = new Interface([
+                `function mapTokenToAToken(address) external`,
                 `function setFloor(address,uint256) external`,
                 `function setCeiling(address,uint256) external`
             ]);
-            console.log("aaveV3Adapter setFloor");
-            let encoded = iface.encodeFunctionData("setFloor(address,uint256)", [
-                dai.address,
-                config.aaveAdapter.floor
-            ]);
+
+            console.log("aaveV3Adapter mapTokenToAToken");
+            let encoded = iface.encodeFunctionData("mapTokenToAToken(address)", [dai.address]);
             let tx = await opOwner.execute(aaveV3Adapter.address, 0, encoded);
+            await tx.wait(waitForBlocks);
+
+            console.log("aaveV3Adapter setFloor");
+            encoded = iface.encodeFunctionData("setFloor(address,uint256)", [dai.address, config.aaveAdapter.floor]);
+            tx = await opOwner.execute(aaveV3Adapter.address, 0, encoded);
             await tx.wait(waitForBlocks);
 
             console.log("aaveV3Adapter setCeiling");
