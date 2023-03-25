@@ -1,5 +1,10 @@
 # Union Contracts V2
 
+## Background
+Union is a member-owned trust backed credit network built on the EVM where members can underwrite lines of credit to other member addresses.  
+The contracts operates as a DAO and enables any address to accumulate a credit line on-chain in a permission-less, crypto-native way. 
+The protocol itself is not an underwriter of risk, but rather a mechanism to lower the cost of coordinating trust into available credit.
+
 Built using [foundry](https://book.getfoundry.sh/) and [hardhat](https://hardhat.org/)
 
 ## Deployments
