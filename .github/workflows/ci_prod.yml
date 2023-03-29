@@ -1,0 +1,58 @@
+name: test and analyze master branch
+
+on:
+    push:
+        branches: [master]
+    pull_request:
+        branches: [master]
+
+jobs:
+    buildAndTest:
+        name: Build and test
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  submodules: recursive
+            - uses: actions/setup-node@v2
+              with:
+                  node-version: 16
+
+            - name: Install dependencies
+              run: yarn install
+
+            - name: Install Foundry
+              uses: foundry-rs/foundry-toolchain@v1
+              with:
+                  version: nightly
+
+            - name: Forge build
+              run: forge build
+
+            - name: Run unit tests (forge)
+              run: forge test
+
+            - name: Run coverage
+              run: forge coverage --report lcov
+
+            - name: Report coverage
+              uses: codecov/codecov-action@v3
+              with:
+                  files: lcov.info
+                  token: ${{ secrets.CODECOV_TOKEN }}
+
+            - name: Run int tests
+              run: yarn hh:test
+
+            - name: Run Slither
+              uses: crytic/slither-action@v0.3.0
+              id: slither
+              with:
+                  node-version: 16
+                  sarif: results.sarif
+                  fail-on: none
+
+            - name: Upload SARIF file
+              uses: github/codeql-action/upload-sarif@v2
+              with:
+                  sarif_file: ${{ steps.slither.outputs.sarif }}
