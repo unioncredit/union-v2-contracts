@@ -142,14 +142,14 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     // solhint-disable-next-line no-empty-blocks
     function deposit(address tokenAddress) external view override checkTokenSupported(tokenAddress) returns (bool) {
         return true;
-        // Don't have to do anything because AssetManager already transfered tokens here
+        // Don't have to do anything because AssetManager already transferred tokens here
     }
 
     /**
      * @dev Withdraw tokens from this adapter
      * @dev Only callable by the AssetManager
      * @param tokenAddress Token to withdraw
-     * @param recipient Recieved by
+     * @param recipient Received by
      * @param tokenAmount Amount of tokens to withdraw
      */
     function withdraw(
@@ -190,8 +190,8 @@ contract PureTokenAdapter is Controller, IMoneyMarketAdapter {
     ------------------------------------------------------------------- */
 
     function _supportsToken(address tokenAddress) internal view returns (bool) {
-        // Check if balanceOf reverst as a simple check to see if the token is ERC20 compatible
-        // this is obviosly not a flawless check but it is good enough for the intention here
+        // Check if balanceOf reverts as a simple check to see if the token is ERC20 compatible
+        // this is obviously not a flawless check but it is good enough for the intention here
         return tokenAddress != address(0) && IERC20Upgradeable(tokenAddress).balanceOf(address(this)) >= 0;
     }
 

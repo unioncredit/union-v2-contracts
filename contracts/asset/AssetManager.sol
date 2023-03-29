@@ -30,7 +30,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     address public marketRegistry;
 
     /**
-     * @dev Withdraw Seuqence
+     * @dev Withdraw Sequence
      * @dev Priority sequence of money market indices for processing withdraws
      */
     IMoneyMarketAdapter[] public withdrawSeq;
@@ -508,7 +508,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     }
 
     /**
-     *  @dev For a give moeny market set allowance for all underlying tokens
+     *  @dev For a give money market set allowance for all underlying tokens
      *  @param adapterAddress Address of adaptor for money market
      */
     function approveAllTokensMax(address adapterAddress) public override onlyAdmin {
@@ -615,7 +615,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
     }
 
     /**
-     *  @dev For a give moeny market set allowance for all underlying tokens
+     *  @dev For a give money market set allowance for all underlying tokens
      *  @param adapterAddress Address of adaptor for money market
      */
     function _removeTokenApprovals(address adapterAddress) private {

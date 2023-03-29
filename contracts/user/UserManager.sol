@@ -27,7 +27,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     ------------------------------------------------------------------- */
 
     struct Vouch {
-        // staker recieveing the vouch
+        // staker receiving the vouch
         address staker;
         // trust amount
         uint96 trust;
@@ -587,7 +587,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         if (vouch.locked > 0) revert LockedStakeNonZero();
 
         // Remove borrower from vouchers array by moving the last item into the position
-        // of the index being removed and then poping the last item off the array
+        // of the index being removed and then popping the last item off the array
         {
             // Cache the last voucher
             Vouch memory lastVoucher = vouchers[borrower][vouchers[borrower].length - 1];
@@ -597,7 +597,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             vouchers[borrower].pop();
             // Delete the voucher index for this borrower => staker pair
             delete voucherIndexes[borrower][staker];
-            // Update the last vouchers coresponsing Vouchee item
+            // Update the last vouchers corresponding Vouchee item
             uint128 voucheeIdx = voucheeIndexes[borrower][lastVoucher.staker].idx;
             vouchees[lastVoucher.staker][voucheeIdx].voucherIndex = removeVoucherIndex.idx.toUint96();
             // Update the voucher indexes of the moved pair to the new voucher index

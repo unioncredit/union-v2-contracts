@@ -20,7 +20,7 @@ contract OpUNION is L2StandardERC20, ERC20Permit, Whitelistable {
      * minting and burning.
      * @param from Sender's address
      * @param to Receiver's address
-     * @param amount Amount to transer
+     * @param amount Amount to transfer
      */
     function _beforeTokenTransfer(
         address from,
@@ -39,7 +39,7 @@ contract OpUNION is L2StandardERC20, ERC20Permit, Whitelistable {
      * minting and burning.
      * @param from Sender's address
      * @param to Receiver's address
-     * @param amount Amount to transer
+     * @param amount Amount to transfer
      */
     function _afterTokenTransfer(
         address from,

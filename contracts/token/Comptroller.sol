@@ -151,7 +151,7 @@ contract Comptroller is Controller, IComptroller {
     ------------------------------------------------------------------- */
 
     /**
-     *  @dev Get the reward multipier based on the account status
+     *  @dev Get the reward multiplier based on the account status
      *  @param account Account address
      *  @param token ERC20 token address
      *  @return Multiplier number (in wei)

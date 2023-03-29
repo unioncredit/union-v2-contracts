@@ -813,7 +813,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     ------------------------------------------------------------------- */
 
     /**
-     * @dev Add tokens to the reseve
+     * @dev Add tokens to the reserve
      * @param addAmount amount of tokens to add
      */
     function addReserves(uint256 addAmount) external override whenNotPaused nonReentrant {
