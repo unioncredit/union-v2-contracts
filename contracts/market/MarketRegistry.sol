@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.18;
 
 import {Controller} from "../Controller.sol";
 import {IMarketRegistry} from "../interfaces/IMarketRegistry.sol";

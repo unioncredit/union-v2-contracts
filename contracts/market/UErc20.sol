@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.18;
 
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
 import {UToken} from "./UToken.sol";
@@ -29,7 +29,7 @@ contract UErc20 is UToken {
         bytes32 s
     ) external whenNotPaused {
         IERC20Permit erc20Token = IERC20Permit(underlying);
-        
+
         if (!accrueInterest()) revert AccrueInterestFailed();
         uint256 interest = calculatingInterest(borrower);
 

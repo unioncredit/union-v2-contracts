@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.18;
 
 import {IUserManager} from "../interfaces/IUserManager.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";

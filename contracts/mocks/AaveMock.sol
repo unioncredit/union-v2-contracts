@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
@@ -18,7 +18,9 @@ contract AaveMock {
         aToken = _aToken;
     }
 
-    function getReserveData(address)
+    function getReserveData(
+        address
+    )
         external
         view
         returns (
@@ -39,21 +41,12 @@ contract AaveMock {
         return (0, 0, 0, rate, 0, 0, 0, aToken, address(0), address(0), address(0), 0);
     }
 
-    function deposit(
-        address asset,
-        uint256 amount,
-        address onBehalfOf,
-        uint16
-    ) external {
+    function deposit(address asset, uint256 amount, address onBehalfOf, uint16) external {
         IErc20(asset).transferFrom(onBehalfOf, address(this), amount);
         IErc20(aToken).mint(msg.sender, amount);
     }
 
-    function withdraw(
-        address asset,
-        uint256 amount,
-        address to
-    ) external {
+    function withdraw(address asset, uint256 amount, address to) external {
         uint256 userBalance = IErc20(aToken).balanceOf(msg.sender);
         uint256 amountToWithdraw = amount;
         if (amount == type(uint256).max) {

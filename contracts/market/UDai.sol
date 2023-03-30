@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.18;
 
 import {IDai} from "../interfaces/IDai.sol";
 import {IUDai} from "../interfaces/IUDai.sol";
@@ -38,5 +38,4 @@ contract UDai is UToken, IUDai {
         uint256 interest = calculatingInterest(borrower);
         _repayBorrowFresh(msg.sender, borrower, interest, interest);
     }
-
 }

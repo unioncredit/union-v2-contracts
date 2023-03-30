@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20VotesComp.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -26,7 +26,7 @@ contract UnionTokenMock is ERC20VotesComp, ERC20Burnable {
     /// @notice The timestamp after which minting may occur
     uint256 public mintingAllowedAfter;
 
-    uint256 public constant INIT_CIRCULATING = 100000000 * 10**18;
+    uint256 public constant INIT_CIRCULATING = 100000000 * 10 ** 18;
 
     /// @notice Cap on the percentage of totalSupply that can be minted at each mint
     uint256 public constant mintCap = 4;
@@ -53,19 +53,11 @@ contract UnionTokenMock is ERC20VotesComp, ERC20Burnable {
         super._burn(account, amount);
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
         super._beforeTokenTransfer(from, to, amount);
     }
 
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override(ERC20, ERC20Votes) {
+    function _afterTokenTransfer(address from, address to, uint256 amount) internal override(ERC20, ERC20Votes) {
         super._afterTokenTransfer(from, to, amount);
     }
 }

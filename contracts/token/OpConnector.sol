@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -16,12 +16,7 @@ contract OpConnector is Ownable {
 
     event LogDeposit(address indexed caller, address destination, uint256 amount);
 
-    constructor(
-        address _l1Token,
-        address _l2Token,
-        address _target,
-        address _l1BridgeAddr
-    ) {
+    constructor(address _l1Token, address _l2Token, address _target, address _l1BridgeAddr) {
         l1Token = _l1Token;
         l2Token = _l2Token;
         target = _target;

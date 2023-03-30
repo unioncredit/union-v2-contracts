@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.18;
 
 import {IComptroller} from "../interfaces/IComptroller.sol";
 import {IUserManager} from "../interfaces/IUserManager.sol";

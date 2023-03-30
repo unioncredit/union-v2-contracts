@@ -14,3 +14,11 @@ optimizer = true
 optimizer_runs = 200
 #via_ir = true
 # See more config options https://github.com/gakonst/foundry/tree/master/config
+
+[profile.default.model_checker]
+engine="chc"
+timeout=10_000
+targets=["assert","constantCondition","divByZero","outOfBounds","overflow","underflow",]
+
+[profile.default.model_checker.contracts]
+"contracts/user/UserManager.sol"=["UserManager"]

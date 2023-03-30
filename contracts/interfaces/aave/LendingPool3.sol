@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.18;
 
 interface LendingPool3 {
     // Structs from https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/types/DataTypes.sol
@@ -60,18 +60,9 @@ interface LendingPool3 {
         uint128 isolationModeTotalDebt;
     }
 
-    function supply(
-        address asset,
-        uint256 amount,
-        address onBehalfOf,
-        uint16 referralCode
-    ) external;
+    function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
 
-    function withdraw(
-        address asset,
-        uint256 amount,
-        address to
-    ) external returns (uint256);
+    function withdraw(address asset, uint256 amount, address to) external returns (uint256);
 
     function getReserveData(address asset) external view returns (ReserveData memory);
 }

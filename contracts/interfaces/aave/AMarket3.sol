@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity 0.8.18;
 
 interface AMarket3 {
     function claimAllRewards(address[] calldata assets, address to) external returns (uint256);
