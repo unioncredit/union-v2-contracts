@@ -25,6 +25,7 @@ export default {
         interestRatePerBlock: "6341958397" // 10% APR, 38051750380 x 43200 (blocks per day) x 365,
     },
     addresses: {
+        guardian: "0x7a0C61EdD8b5c0c5C1437AEb571d7DDbF8022Be4",
         unionToken: "0x23B0483E07196c425d771240E81A9c2f1E113D3A",
         dai: "0xD9662ae38fB577a3F6843b6b8EB5af3410889f3A", // DAI used by aave on goerli-optimism
         aave: {

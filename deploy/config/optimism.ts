@@ -25,6 +25,7 @@ export default {
         interestRatePerBlock: "6341958397" // 10% APR, 6341958397 x 43200 (blocks per day) x 365,
     },
     addresses: {
+        guardian: "",
         unionToken: "0x5Dfe42eEA70a3e6f93EE54eD9C321aF07A85535C",
         dai: "0x6b175474e89094c44da98b954eedeac495271d0f",
         aave: {

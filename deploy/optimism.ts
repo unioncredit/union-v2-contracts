@@ -62,6 +62,7 @@ export interface Addresses {
     timelock?: string;
     opAdminAddress?: string;
     opUnion?: string;
+    guardian?: string;
 }
 
 export interface DeployConfig {
@@ -181,6 +182,12 @@ export default async function (
             debug
         );
         marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
+
+        const iface = new Interface([`function setGuardian(address) external`]);
+        console.log("marketRegistry setGuardian");
+        let encoded = iface.encodeFunctionData("setGuardian(address)", [config.addresses.guardian]);
+        let tx = await opOwner.execute(marketRegistry.address, 0, encoded);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy comptroller
@@ -198,6 +205,12 @@ export default async function (
             debug
         );
         comptroller = Comptroller__factory.connect(proxy.address, signer);
+
+        const iface = new Interface([`function setGuardian(address) external`]);
+        console.log("comptroller setGuardian");
+        let encoded = iface.encodeFunctionData("setGuardian(address)", [config.addresses.guardian]);
+        let tx = await opOwner.execute(comptroller.address, 0, encoded);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy asset manager
@@ -215,6 +228,12 @@ export default async function (
             debug
         );
         assetManager = AssetManager__factory.connect(proxy.address, signer);
+
+        const iface = new Interface([`function setGuardian(address) external`]);
+        console.log("assetManager setGuardian");
+        let encoded = iface.encodeFunctionData("setGuardian(address)", [config.addresses.guardian]);
+        let tx = await opOwner.execute(assetManager.address, 0, encoded);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy user manager
@@ -244,9 +263,16 @@ export default async function (
         );
         userManager = UserManagerOp__factory.connect(proxy.address, signer);
 
-        const iface = new Interface([`function setUserManager(address,address) external`]);
-        const encoded = iface.encodeFunctionData("setUserManager(address,address)", [dai.address, userManager.address]);
-        const tx = await opOwner.execute(marketRegistry.address, 0, encoded);
+        const iface = new Interface([
+            `function setUserManager(address,address) external`,
+            `function setGuardian(address) external`
+        ]);
+        let encoded = iface.encodeFunctionData("setUserManager(address,address)", [dai.address, userManager.address]);
+        let tx = await opOwner.execute(marketRegistry.address, 0, encoded);
+        await tx.wait(waitForBlocks);
+
+        encoded = iface.encodeFunctionData("setGuardian(address)", [config.addresses.guardian]);
+        tx = await opOwner.execute(userManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
     }
 
@@ -307,7 +333,8 @@ export default async function (
             `function setUToken(address,address) external`,
             `function setUserManager(address) external`,
             `function setAssetManager(address) external`,
-            `function setInterestRateModel(address) external`
+            `function setInterestRateModel(address) external`,
+            `function setGuardian(address) external`
         ]);
         console.log("userManager setUToken");
         let encoded = iface.encodeFunctionData("setUToken(address)", [uToken.address]);
@@ -333,6 +360,11 @@ export default async function (
         encoded = iface.encodeFunctionData("setInterestRateModel(address)", [fixedInterestRateModel.address]);
         tx = await opOwner.execute(uToken.address, 0, encoded);
         await tx.wait(waitForBlocks);
+
+        console.log("uToken setGuardian");
+        encoded = iface.encodeFunctionData("setGuardian(address)", [config.addresses.guardian]);
+        tx = await opOwner.execute(uToken.address, 0, encoded);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy pure token
@@ -353,7 +385,8 @@ export default async function (
 
         const iface = new Interface([
             `function setFloor(address,uint256) external`,
-            `function setCeiling(address,uint256) external`
+            `function setCeiling(address,uint256) external`,
+            `function setGuardian(address) external`
         ]);
         console.log("pureTokenAdapter setFloor");
         let encoded = iface.encodeFunctionData("setFloor(address,uint256)", [dai.address, config.pureAdapter.floor]);
@@ -362,6 +395,11 @@ export default async function (
 
         console.log("pureTokenAdapter setCeiling");
         encoded = iface.encodeFunctionData("setCeiling(address,uint256)", [dai.address, config.pureAdapter.ceiling]);
+        tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
+        await tx.wait(waitForBlocks);
+
+        console.log("pureTokenAdapter setGuardian");
+        encoded = iface.encodeFunctionData("setGuardian(address)", [config.addresses.guardian]);
         tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
         await tx.wait(waitForBlocks);
     }
@@ -392,7 +430,8 @@ export default async function (
             const iface = new Interface([
                 `function mapTokenToAToken(address) external`,
                 `function setFloor(address,uint256) external`,
-                `function setCeiling(address,uint256) external`
+                `function setCeiling(address,uint256) external`,
+                `function setGuardian(address) external`
             ]);
 
             console.log("aaveV3Adapter mapTokenToAToken");
@@ -410,6 +449,11 @@ export default async function (
                 dai.address,
                 config.aaveAdapter.ceiling
             ]);
+            tx = await opOwner.execute(aaveV3Adapter.address, 0, encoded);
+            await tx.wait(waitForBlocks);
+
+            console.log("aaveV3Adapter setGuardian");
+            encoded = iface.encodeFunctionData("setGuardian(address)", [config.addresses.guardian]);
             tx = await opOwner.execute(aaveV3Adapter.address, 0, encoded);
             await tx.wait(waitForBlocks);
         }
