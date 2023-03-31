@@ -1,5 +1,5 @@
-import {BigNumberish, Signer, ethers} from "ethers";
-import {formatUnits, Interface} from "ethers/lib/utils";
+import {BigNumberish, ContractTransaction, Signer} from "ethers";
+import {Interface} from "ethers/lib/utils";
 import {
     AssetManager__factory,
     Comptroller,
@@ -10,17 +10,11 @@ import {
     OpUNION__factory,
     OpOwner,
     OpOwner__factory,
-    UToken,
-    UToken__factory,
-    UDai,
-    UDai__factory,
     UErc20,
     UErc20__factory,
     AssetManager,
     PureTokenAdapter,
     PureTokenAdapter__factory,
-    IUnionToken,
-    IUnionToken__factory,
     FaucetERC20_ERC20Permit,
     FaucetERC20_ERC20Permit__factory,
     MarketRegistry,
@@ -435,6 +429,43 @@ export default async function (
             tx = await opOwner.execute(assetManager.address, 0, encoded);
             await tx.wait(waitForBlocks);
         }
+    }
+
+    // Enable the whitelist
+    console.log("[*] Enabling OpUNION's whitelisting ...");
+
+    const opL2Bridge = config.addresses.opL2Bridge;
+    if (opL2Bridge) {
+        if (!(await opUnion.isWhitelisted(opL2Bridge))) {
+            console.log(`    - Whitelist ${opL2Bridge}`);
+            const tx = await opUnion.whitelist(opL2Bridge);
+            await tx.wait(waitForBlocks);
+        }
+    }
+
+    if (!(await opUnion.isWhitelisted(comptroller.address))) {
+        console.log(`    - Whitelist ${comptroller.address}`);
+        const tx = await opUnion.whitelist(comptroller.address);
+        await tx.wait(waitForBlocks);
+    }
+
+    if (!(await opUnion.isWhitelisted(userManager.address))) {
+        console.log(`    - Whitelist ${userManager.address}`);
+        const tx = await opUnion.whitelist(userManager.address);
+        await tx.wait(waitForBlocks);
+    }
+
+    if (!(await opUnion.whitelistEnabled())) {
+        console.log("    - Enable the whitelist");
+        const tx = await opUnion.enableWhitelist();
+        await tx.wait(waitForBlocks);
+    }
+
+    if ((await opUnion.owner()) != opOwner.address) {
+        // set OpUnion's owner
+        console.log(`    - Transfer OpUNION's ownership to ${opOwner.address}`);
+        const tx = await opUnion.transferOwnership(opOwner.address);
+        await tx.wait(waitForBlocks);
     }
 
     return {

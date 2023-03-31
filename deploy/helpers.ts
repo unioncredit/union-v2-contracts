@@ -41,7 +41,7 @@ export async function deployProxy<T extends Contract>(
     if (debug) {
         console.log(
             [
-                `[*] Deployed proxy ${contractName}`,
+                `[*] Deployed proxy ${contractName} to ${proxy.address}`,
                 `    - hash: ${resp.deployTransaction.hash}`,
                 `    - from: ${resp.deployTransaction.from}`
             ].join("\n")
