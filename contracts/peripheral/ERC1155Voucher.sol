@@ -24,6 +24,9 @@ contract ERC1155Voucher is Ownable, IERC1155Receiver {
     /// @notice Amount of claimable trust
     uint256 public trustAmount;
 
+    /// @notice Token address to isValid
+    mapping(address => bool) public isValidToken;
+
     /* -------------------------------------------------------------------
       Events 
     ------------------------------------------------------------------- */
@@ -39,6 +42,11 @@ contract ERC1155Voucher is Ownable, IERC1155Receiver {
     /// @notice Exit
     /// @param amount Amount unstaked
     event Exit(uint256 amount);
+
+    /// @notice Set is valid
+    /// @param token Address of token
+    /// @param isValid Is the token valid
+    event SetIsValidToken(address token, bool isValid);
 
     /* -------------------------------------------------------------------
       Constructor 
@@ -68,6 +76,14 @@ contract ERC1155Voucher is Ownable, IERC1155Receiver {
         emit SetTrustAmount(amount);
     }
 
+    /// @notice Set if a token is valid
+    /// @param token Address of token
+    /// @param isValid is the token valid
+    function setIsValid(address token, bool isValid) external onlyOwner {
+        isValidToken[token] = isValid;
+        emit SetIsValidToken(token, isValid);
+    }
+
     /* -------------------------------------------------------------------
       Claim Functions 
     ------------------------------------------------------------------- */
@@ -90,6 +106,7 @@ contract ERC1155Voucher is Ownable, IERC1155Receiver {
         uint256 value,
         bytes calldata data
     ) external returns (bytes4) {
+        require(isValidToken[msg.sender], "!valid token");
         _vouchFor(from);
         return bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
     }

@@ -21,6 +21,7 @@ contract TestERC1155Voucher is TestWrapper {
         deployMocks();
         voucher = new ERC1155Voucher(address(userManagerMock), TRUST_AMOUNT);
         token = new TestERC1155();
+        voucher.setIsValid(address(token), true);
     }
 
     function testConfig() public {
