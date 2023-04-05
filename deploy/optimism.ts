@@ -434,15 +434,6 @@ export default async function (
     // Enable the whitelist
     console.log("[*] Enabling OpUNION's whitelisting ...");
 
-    const opL2Bridge = config.addresses.opL2Bridge;
-    if (opL2Bridge) {
-        if (!(await opUnion.isWhitelisted(opL2Bridge))) {
-            console.log(`    - Whitelist ${opL2Bridge}`);
-            const tx = await opUnion.whitelist(opL2Bridge);
-            await tx.wait(waitForBlocks);
-        }
-    }
-
     if (!(await opUnion.isWhitelisted(comptroller.address))) {
         console.log(`    - Whitelist ${comptroller.address}`);
         const tx = await opUnion.whitelist(comptroller.address);
