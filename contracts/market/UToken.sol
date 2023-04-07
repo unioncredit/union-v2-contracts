@@ -859,7 +859,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @dev Function to simply retrieve block number
      *  This exists mainly for inheriting test contracts to stub this result.
      */
-    function getBlockNumber() internal view returns (uint256) {
+    function getBlockNumber() internal view virtual returns (uint256) {
         return block.number;
     }
 

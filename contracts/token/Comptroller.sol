@@ -118,7 +118,7 @@ contract Comptroller is Controller, IComptroller {
         Controller.__Controller_init(admin);
 
         gInflationIndex = INIT_INFLATION_INDEX;
-        gLastUpdatedBlock = block.number;
+        gLastUpdatedBlock = getBlockNumber();
 
         unionToken = IERC20Upgradeable(unionToken_);
         marketRegistry = IMarketRegistry(marketRegistry_);
@@ -229,9 +229,10 @@ contract Comptroller is Controller, IComptroller {
 
         uint256 amount = _calculateRewardsInternal(account, token, globalTotalStaked, user);
 
+        uint256 blockNumber = getBlockNumber();
         // update the global states
-        gInflationIndex = _getInflationIndexNew(globalTotalStaked, block.number - gLastUpdatedBlock);
-        gLastUpdatedBlock = block.number;
+        gInflationIndex = _getInflationIndexNew(globalTotalStaked, blockNumber - gLastUpdatedBlock);
+        gLastUpdatedBlock = blockNumber;
         users[account][token].inflationIndex = gInflationIndex;
 
         return amount;
@@ -247,8 +248,9 @@ contract Comptroller is Controller, IComptroller {
         uint256 totalStaked
     ) external override whenNotPaused onlyUserManager(token) returns (bool) {
         if (totalStaked > 0) {
-            gInflationIndex = _getInflationIndexNew(totalStaked, block.number - gLastUpdatedBlock);
-            gLastUpdatedBlock = block.number;
+            uint256 blockNumber = getBlockNumber();
+            gInflationIndex = _getInflationIndexNew(totalStaked, blockNumber - gLastUpdatedBlock);
+            gLastUpdatedBlock = blockNumber;
         }
 
         return true;
@@ -284,7 +286,7 @@ contract Comptroller is Controller, IComptroller {
 
         uint256 rewardMultiplier = _getRewardsMultiplier(user);
 
-        uint256 curInflationIndex = _getInflationIndexNew(totalStaked, block.number - gLastUpdatedBlock);
+        uint256 curInflationIndex = _getInflationIndexNew(totalStaked, getBlockNumber() - gLastUpdatedBlock);
 
         if (curInflationIndex < startInflationIndex) revert InflationIndexTooSmall();
 
@@ -371,5 +373,12 @@ contract Comptroller is Controller, IComptroller {
         } else {
             return nonMemberRatio;
         }
+    }
+
+    /**
+     *  @dev Function to simply retrieve block number
+     */
+    function getBlockNumber() internal view virtual returns (uint256) {
+        return block.number;
     }
 }

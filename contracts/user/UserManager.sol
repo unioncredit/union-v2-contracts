@@ -750,10 +750,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 overdueBlocks = uToken.overdueBlocks();
         uint256 lastRepay = uToken.getLastRepay(borrowerAddress);
 
+        uint256 blockNumber = getBlockNumber();
+
         // This function is only callable by the public if the loan is overdue by
         // overdue blocks + maxOverdueBlocks. This stops the system being left with
         // debt that is overdue indefinitely and no ability to do anything about it.
-        if (block.number <= lastRepay + overdueBlocks + maxOverdueBlocks) {
+        if (blockNumber <= lastRepay + overdueBlocks + maxOverdueBlocks) {
             if (stakerAddress != msg.sender) revert AuthFailed();
         }
 
@@ -769,14 +771,14 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
         staker.stakedAmount -= amount.toUint96();
         staker.locked -= amount.toUint96();
-        staker.lastUpdated = (block.number).toUint64();
+        staker.lastUpdated = (blockNumber).toUint64();
 
         totalStaked -= amount;
 
         // update vouch trust amount
         vouch.trust -= amount.toUint96();
         vouch.locked -= amount.toUint96();
-        vouch.lastUpdated = (block.number).toUint64();
+        vouch.lastUpdated = (blockNumber).toUint64();
 
         // Update total frozen and member frozen. We don't want to move th
         // burden of calling updateFrozenInfo into this function as it is quite
@@ -823,19 +825,21 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint96 innerAmount = 0;
         Staker storage staker;
 
+        uint256 blockNumber = getBlockNumber();
+
         uint256 vouchersLength = vouchers[borrower].length;
         for (uint256 i = 0; i < vouchersLength; i++) {
             Vouch storage vouch = vouchers[borrower][i];
             staker = stakers[vouch.staker];
 
             staker.lockedCoinAge += _calcLockedCoinAge(
-                block.number,
+                blockNumber,
                 vouch.locked,
                 staker.lastUpdated,
                 vouch.lastUpdated
             );
 
-            vouch.lastUpdated = (block.number).toUint64();
+            vouch.lastUpdated = (blockNumber).toUint64();
             if (lock) {
                 // Look up the staker and determine how much unlock stake they
                 // have available for the borrower to borrow. If there is 0
@@ -884,15 +888,17 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     function _getEffectiveAmounts(address stakerAddress) private view returns (uint256, uint256, uint256) {
         Staker memory staker = stakers[stakerAddress];
 
+        uint256 blockNumber = getBlockNumber();
+
         CoinAge memory stakerCoinAges = CoinAge({
             stakedCoinAge: staker.stakedCoinAge,
             lockedCoinAge: staker.lockedCoinAge,
             frozenCoinAge: frozenCoinAge[stakerAddress],
-            sinceLastWithdrawRewards: block.number - gLastWithdrawRewards[stakerAddress]
+            sinceLastWithdrawRewards: blockNumber - gLastWithdrawRewards[stakerAddress]
         });
 
         // update staked coin age
-        stakerCoinAges.stakedCoinAge += _calcStakedCoinAge(block.number, staker.stakedAmount, staker.lastUpdated);
+        stakerCoinAges.stakedCoinAge += _calcStakedCoinAge(blockNumber, staker.stakedAmount, staker.lastUpdated);
 
         // Loop through all of the stakers vouchees sum their total
         // locked balance and sum their total currDefaultFrozenCoinAge
@@ -910,7 +916,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
             // update locked coin age
             stakerCoinAges.lockedCoinAge += _calcLockedCoinAge(
-                block.number,
+                blockNumber,
                 vouch.locked,
                 staker.lastUpdated,
                 vouch.lastUpdated
@@ -924,11 +930,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                     // skip the debt all repaid
                     lastRepay != 0)
             ) {
-                if (block.number - lastRepay > overdueBlocks) // for the debt overdue
+                if (blockNumber - lastRepay > overdueBlocks) // for the debt overdue
                 {
                     stakerFrozen += vouch.locked;
                     stakerCoinAges.frozenCoinAge += _calcFrozenCoinAge(
-                        block.number,
+                        blockNumber,
                         vouch.locked,
                         staker.lastUpdated,
                         lastRepay + overdueBlocks
@@ -983,8 +989,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 memberTotalFrozen = 0;
         (effectiveStaked, effectiveLocked, memberTotalFrozen) = _getEffectiveAmounts(staker);
         stakers[staker].stakedCoinAge = 0;
-        stakers[staker].lastUpdated = (block.number).toUint64();
-        gLastWithdrawRewards[staker] = block.number;
+        stakers[staker].lastUpdated = (getBlockNumber()).toUint64();
+        gLastWithdrawRewards[staker] = getBlockNumber();
         stakers[staker].lockedCoinAge = 0;
         frozenCoinAge[staker] = 0;
 
@@ -1013,7 +1019,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             vouch = borrowerVouchers[i];
             if (vouch.locked == 0) continue;
             frozenCoinAge[vouch.staker] += _calcFrozenCoinAge(
-                block.number,
+                getBlockNumber(),
                 vouch.locked,
                 stakers[vouch.staker].lastUpdated,
                 overdueBlock
@@ -1129,5 +1135,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 lastStakeUpdated
     ) private pure returns (uint) {
         return stakedAmount * (currBlockNumber - lastStakeUpdated);
+    }
+
+    /**
+     *  @dev Function to simply retrieve block number
+     */
+    function getBlockNumber() internal view virtual returns (uint256) {
+        return block.number;
     }
 }
