@@ -69,6 +69,7 @@ const getDeployer = (privateKey: string, provider: ethers.providers.BaseProvider
 task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
     .addParam("pk", "Private key to use for deployment")
     .addParam("confirmations", "How many confirmations to wait for")
+    .addParam("l2comptroller", "Receive token address")
     // .addParam("members", "Initial union members")
     .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
         // ------------------------------------------------------
@@ -98,27 +99,8 @@ task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
             process.exit();
         }
 
-        // read deployment file
-        const deploymentFile = path.resolve(dir, "deployment.json");
-
-        let deployedContracts;
-        try {
-            const data = fs.readFileSync(deploymentFile, {encoding: "utf8"});
-            deployedContracts = JSON.parse(data);
-        } catch (err) {
-            console.log({err});
-            process.exit();
-        }
-
-        console.log(deployedContracts);
-
         // validate addresses
-        if (
-            !deployedContracts.comptroller ||
-            !config.addresses.unionToken ||
-            !config.addresses.opUnion ||
-            !config.addresses.opL1Bridge
-        ) {
+        if (!config.addresses.unionToken || !config.addresses.opUnion || !config.addresses.opL1Bridge) {
             console.log("[!] Required address null");
             process.exit();
         }
@@ -129,7 +111,7 @@ task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
             [
                 config.addresses.unionToken,
                 config.addresses.opUnion,
-                deployedContracts.comptroller,
+                taskArguments.l2comptroller,
                 config.addresses.opL1Bridge
             ],
             true,
