@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import {ethers} from "ethers";
-import {Interface} from "ethers/lib/utils";
+import {Interface, parseUnits} from "ethers/lib/utils";
 import {task} from "hardhat/config";
 import {HardhatRuntimeEnvironment, TaskArguments} from "hardhat/types";
 
@@ -17,7 +17,9 @@ import {
     OpOwner,
     OpOwner__factory,
     OpConnector,
-    OpConnector__factory
+    OpConnector__factory,
+    VouchFaucet,
+    VouchFaucet__factory
 } from "../typechain-types";
 
 const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {[key: string]: string}} => {
@@ -350,6 +352,60 @@ task("deploy:lens", "Deploy Union lens contract")
         // save deployment
         const saveDeploymentPath = path.resolve(dir, "lens.json");
         fs.writeFileSync(saveDeploymentPath, JSON.stringify({lens: lens.address}, null, 2));
+        console.log(`    - deployment: ${saveDeploymentPath}`);
+
+        console.log("[*] Complete");
+    });
+
+task("deploy:faucet", "Deploy Vouch Faucet contract")
+    .addParam("pk", "Private key to use for deployment")
+    .addParam("confirmations", "How many confirmations to wait for")
+    .addParam("usermanager", "User manager contract address")
+    .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
+        // ------------------------------------------------------
+        // Setup
+        // ------------------------------------------------------
+
+        const privateKey = taskArguments.pk;
+        const userManager = taskArguments.usermanager;
+        const waitForBlocks = taskArguments.confirmations;
+
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
+
+        console.log(
+            [
+                "[*] Deploying contracts",
+                `    - userManager: ${userManager}`,
+                `    - deployer: ${await deployer.getAddress()}`
+            ].join("\n")
+        );
+
+        // ------------------------------------------------------
+        // Deployment
+        // ------------------------------------------------------
+        const vouchFaucet = await deployContract<VouchFaucet>(
+            new VouchFaucet__factory(deployer),
+            "VouchFaucet",
+            [userManager, parseUnits("1")],
+            true,
+            waitForBlocks
+        );
+
+        console.log("\n[*] Deployment complete\n");
+
+        // ------------------------------------------------------
+        // Save deployment and config
+        // ------------------------------------------------------
+
+        console.log("[*] Saving deployment addresses");
+
+        // create save directory
+        const dir = path.resolve(__dirname, "../deployments", hre.network.name);
+        !fs.existsSync(dir) && fs.mkdirSync(dir);
+
+        // save deployment
+        const saveDeploymentPath = path.resolve(dir, "vouchFaucet.json");
+        fs.writeFileSync(saveDeploymentPath, JSON.stringify({vouchFaucet: vouchFaucet.address}, null, 2));
         console.log(`    - deployment: ${saveDeploymentPath}`);
 
         console.log("[*] Complete");
