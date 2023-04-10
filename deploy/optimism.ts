@@ -2,25 +2,19 @@ import {BigNumberish, Signer, ethers} from "ethers";
 import {formatUnits, Interface} from "ethers/lib/utils";
 import {
     AssetManager__factory,
-    Comptroller,
-    Comptroller__factory,
+    ComptrollerOp,
+    ComptrollerOp__factory,
     UserManagerOp,
     UserManagerOp__factory,
     OpUNION,
     OpUNION__factory,
     OpOwner,
     OpOwner__factory,
-    UToken,
-    UToken__factory,
-    UDai,
-    UDai__factory,
-    UErc20,
-    UErc20__factory,
+    UErc20Op,
+    UErc20Op__factory,
     AssetManager,
     PureTokenAdapter,
     PureTokenAdapter__factory,
-    IUnionToken,
-    IUnionToken__factory,
     FaucetERC20_ERC20Permit,
     FaucetERC20_ERC20Permit__factory,
     MarketRegistry,
@@ -106,9 +100,9 @@ export interface OpContracts {
     userManager: UserManagerOp;
     opUnion?: OpUNION;
     opOwner?: OpOwner;
-    uToken: UErc20;
+    uToken: UErc20Op;
     fixedInterestRateModel: FixedInterestRateModel;
-    comptroller: Comptroller;
+    comptroller: ComptrollerOp;
     assetManager: AssetManager;
     dai: IDai | FaucetERC20_ERC20Permit;
     marketRegistry: MarketRegistry;
@@ -184,20 +178,20 @@ export default async function (
     }
 
     // deploy comptroller
-    let comptroller: Comptroller;
+    let comptroller: ComptrollerOp;
     if (config.addresses.comptroller) {
-        comptroller = Comptroller__factory.connect(config.addresses.comptroller, signer);
+        comptroller = ComptrollerOp__factory.connect(config.addresses.comptroller, signer);
     } else {
-        const {proxy} = await deployProxy<Comptroller>(
-            new Comptroller__factory(signer),
-            "Comptroller",
+        const {proxy} = await deployProxy<ComptrollerOp>(
+            new ComptrollerOp__factory(signer),
+            "ComptrollerOp",
             {
                 signature: "__Comptroller_init(address,address,address,uint256)",
                 args: [opOwner.address, opUnion.address, marketRegistry.address, config.comptroller.halfDecayPoint]
             },
             debug
         );
-        comptroller = Comptroller__factory.connect(proxy.address, signer);
+        comptroller = ComptrollerOp__factory.connect(proxy.address, signer);
     }
 
     // deploy asset manager
@@ -270,13 +264,13 @@ export default async function (
     }
 
     // deploy uToken
-    let uToken: UErc20;
+    let uToken: UErc20Op;
     if (config.addresses.uToken) {
-        uToken = UErc20__factory.connect(config.addresses.uToken, signer);
+        uToken = UErc20Op__factory.connect(config.addresses.uToken, signer);
     } else {
-        const {proxy} = await deployProxy<UErc20>(
-            new UErc20__factory(signer),
-            "UErc20",
+        const {proxy} = await deployProxy<UErc20Op>(
+            new UErc20Op__factory(signer),
+            "UErc20Op",
             {
                 signature:
                     "__UToken_init((string name,string symbol,address underlying,uint256 initialExchangeRateMantissa,uint256 reserveFactorMantissa,uint256 originationFee,uint256 originationFeeMax,uint256 debtCeiling,uint256 maxBorrow,uint256 minBorrow,uint256 overdueBlocks,address admin,uint256 mintFeeRate))",
@@ -300,7 +294,7 @@ export default async function (
             },
             debug
         );
-        uToken = UErc20__factory.connect(proxy.address, signer);
+        uToken = UErc20Op__factory.connect(proxy.address, signer);
 
         const iface = new Interface([
             `function setUToken(address) external`,

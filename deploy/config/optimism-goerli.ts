@@ -21,9 +21,6 @@ export default {
         overdueBlocks: "43200", // in blocks, 1 day
         mintFeeRate: parseUnits("0")
     },
-    fixedInterestRateModel: {
-        interestRatePerBlock: "6341958397" // 10% APR, 38051750380 x 43200 (blocks per day) x 365,
-    },
     addresses: {
         unionToken: "0x23B0483E07196c425d771240E81A9c2f1E113D3A",
         dai: "0xD9662ae38fB577a3F6843b6b8EB5af3410889f3A", // DAI used by aave on goerli-optimism
