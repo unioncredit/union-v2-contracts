@@ -989,8 +989,9 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 memberTotalFrozen = 0;
         (effectiveStaked, effectiveLocked, memberTotalFrozen) = _getEffectiveAmounts(staker);
         stakers[staker].stakedCoinAge = 0;
-        stakers[staker].lastUpdated = (getBlockNumber()).toUint64();
-        gLastWithdrawRewards[staker] = getBlockNumber();
+        uint256 blockNumber = getBlockNumber();
+        stakers[staker].lastUpdated = blockNumber.toUint64();
+        gLastWithdrawRewards[staker] = blockNumber;
         stakers[staker].lockedCoinAge = 0;
         frozenCoinAge[staker] = 0;
 
@@ -1014,12 +1015,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         Vouch[] memory borrowerVouchers = vouchers[borrower];
         uint256 vouchersLength = borrowerVouchers.length;
         Vouch memory vouch;
+        uint256 blockNumber = getBlockNumber();
         // assuming the borrower's already overdue, accumulating all his vouchers' previous frozen coin age
         for (uint256 i = 0; i < vouchersLength; i++) {
             vouch = borrowerVouchers[i];
             if (vouch.locked == 0) continue;
             frozenCoinAge[vouch.staker] += _calcFrozenCoinAge(
-                getBlockNumber(),
+                blockNumber,
                 vouch.locked,
                 stakers[vouch.staker].lastUpdated,
                 overdueBlock
