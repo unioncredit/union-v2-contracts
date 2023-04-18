@@ -22,11 +22,11 @@ contract TestGetStakeInfo is TestUserManagerBase {
     //last operate repay
     function testGetStakeInfo() public {
         vm.prank(address(userManager.uToken()));
-        vm.roll(1); //block number 1
+        skip(1); //block number 1
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        uTokenMock.setOverdueBlocks(1); //OverdueBlocks = 1
+        uTokenMock.setOverdueTime(1); //OverdueBlocks = 1
         uTokenMock.setLastRepay(2); //lastRepay = 2,overdueBlockNumber = lastRepay + OverdueBlocks = 3
-        vm.roll(4); //block number 4
+        skip(4); //block number 4
 
         (, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this));
 
@@ -41,14 +41,14 @@ contract TestGetStakeInfo is TestUserManagerBase {
 
     //last operate stake or unstake
     function testGetStakeInfo2() public {
-        vm.roll(1); //block number 1
+        skip(1); //block number 1
         vm.prank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        uTokenMock.setOverdueBlocks(1); //OverdueBlocks = 1
+        uTokenMock.setOverdueTime(1); //OverdueBlocks = 1
         uTokenMock.setLastRepay(2); //lastRepay = 2,overdueBlockNumber = lastRepay + OverdueBlocks = 3
-        vm.roll(4); //block number 4
+        skip(4); //block number 4
         userManager.unstake(stakeAmount / 2); //The reward is withdrawn, and the coinage is cleared to 0
-        vm.roll(5); //block number 5
+        skip(5); //block number 5
 
         (, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this));
 
@@ -64,15 +64,15 @@ contract TestGetStakeInfo is TestUserManagerBase {
 
     //last operate update locked
     function testGetStakeInfo3() public {
-        vm.roll(1); //block number 1
+        skip(1); //block number 1
         vm.prank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        uTokenMock.setOverdueBlocks(2); //OverdueBlocks = 2
+        uTokenMock.setOverdueTime(2); //OverdueBlocks = 2
         uTokenMock.setLastRepay(2); //lastRepay = 2,overdueBlockNumber = lastRepay + OverdueBlocks = 4
-        vm.roll(3); //block number 3
+        skip(3); //block number 3
         vm.prank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        vm.roll(5); //block number 5
+        skip(5); //block number 5
 
         (, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this));
 

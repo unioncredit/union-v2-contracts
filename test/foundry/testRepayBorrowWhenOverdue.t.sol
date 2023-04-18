@@ -22,7 +22,7 @@ contract TestRepayBorrowWhenOverdue is TestWrapper {
     uint256 internal constant MIN_BORROW = 1 ether;
     uint256 internal constant MAX_BORROW = 100 ether;
     uint256 internal constant BORROW_INTEREST_PER_BLOCK = 0.000001 ether; //0.0001%
-    uint256 internal constant OVERDUE_BLOCKS = 10;
+    uint256 internal constant OVERDUE_TIME = 10;
     uint256 internal constant RESERVE_FACTOR = 0.5 ether;
     uint256 internal constant INIT_EXCHANGE_RATE = 1 ether;
     uint256 internal constant MINT_FEE_RATE = 1e15;
@@ -52,7 +52,7 @@ contract TestRepayBorrowWhenOverdue is TestWrapper {
                         debtCeiling: 1000 ether,
                         maxBorrow: MAX_BORROW,
                         minBorrow: MIN_BORROW,
-                        overdueBlocks: OVERDUE_BLOCKS,
+                        overdueTime: OVERDUE_TIME,
                         admin: ADMIN,
                         mintFeeRate: MINT_FEE_RATE
                     })
@@ -104,8 +104,8 @@ contract TestRepayBorrowWhenOverdue is TestWrapper {
 
         vm.startPrank(borrower);
         uToken.borrow(borrower, borrowAmount);
-        // fast forward to overdue block
-        vm.roll(block.number + OVERDUE_BLOCKS + 10);
+        // fast forward to overdue time
+        skip(block.timestamp + OVERDUE_TIME + 10);
         assertTrue(uToken.checkIsOverdue(borrower));
         uint256 borrowed = uToken.borrowBalanceView(borrower);
         uint256 interest = uToken.calculatingInterest(borrower);
@@ -120,7 +120,7 @@ contract TestRepayBorrowWhenOverdue is TestWrapper {
         assertTrue(!uToken.checkIsOverdue(borrower));
         assertEq(0, uToken.borrowBalanceView(borrower));
 
-        uint256 expectFrozenCoinAge = locked * 10; //Default time 1 block
+        uint256 expectFrozenCoinAge = locked * 11; //Default time 1 block
         assertEq(userManager.frozenCoinAge(staker), expectFrozenCoinAge);
     }
 }

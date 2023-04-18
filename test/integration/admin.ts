@@ -42,8 +42,8 @@ describe("Owner/Admin permissions", () => {
             const resp = contracts.userManager.connect(nonAdmin).setNewMemberFee(0);
             await expect(resp).to.be.revertedWith(error.SenderNotAdmin);
         });
-        it("setMaxOverdueBlocks cannot be called by non owner", async () => {
-            const resp = contracts.userManager.connect(nonAdmin).setMaxOverdueBlocks(0);
+        it("setMaxOverdueTime cannot be called by non owner", async () => {
+            const resp = contracts.userManager.connect(nonAdmin).setMaxOverdueTime(0);
             await expect(resp).to.be.revertedWith(error.SenderNotAdmin);
         });
         it("setEffectiveCount cannot be called by non owner", async () => {
@@ -82,8 +82,8 @@ describe("Owner/Admin permissions", () => {
             const resp = contracts.uToken.connect(nonAdmin).setMaxBorrow(0);
             await expect(resp).to.be.revertedWith(error.SenderNotAdmin);
         });
-        it("setOverdueBlocks cannot be called by non owner", async () => {
-            const resp = contracts.uToken.connect(nonAdmin).setOverdueBlocks(0);
+        it("setOverdueTime cannot be called by non owner", async () => {
+            const resp = contracts.uToken.connect(nonAdmin).setOverdueTime(0);
             await expect(resp).to.be.revertedWith(error.SenderNotAdmin);
         });
         it("setInterestRateModel cannot be called by non owner", async () => {

@@ -26,7 +26,7 @@ contract TestInit is TestUTokenBase {
                 debtCeiling: debtCeiling,
                 maxBorrow: MAX_BORROW,
                 minBorrow: MIN_BORROW,
-                overdueBlocks: OVERDUE_BLOCKS,
+                overdueTime: OVERDUE_TIME,
                 admin: ADMIN,
                 mintFeeRate: MINT_FEE_RATE
             })
@@ -42,7 +42,7 @@ contract TestInit is TestUTokenBase {
         assertEq(uToken.debtCeiling(), debtCeiling);
         assertEq(uToken.maxBorrow(), MAX_BORROW);
         assertEq(uToken.minBorrow(), MIN_BORROW);
-        assertEq(uToken.overdueBlocks(), OVERDUE_BLOCKS);
+        assertEq(uToken.overdueTime(), OVERDUE_TIME);
         assertEq(uToken.admin(), ADMIN);
         assertEq(uToken.mintFeeRate(), MINT_FEE_RATE);
     }

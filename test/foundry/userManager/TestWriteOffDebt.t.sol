@@ -30,7 +30,7 @@ contract TestWriteOffDebt is TestUserManagerBase {
     function testCannotWriteOffDebtNoAuth(uint96 amount) public {
         vm.assume(amount > 0);
         vm.prank(address(3));
-        vm.roll(1);
+        skip(1);
         vm.expectRevert(UserManager.AuthFailed.selector);
         userManager.debtWriteOff(staker, borrower, amount);
     }
@@ -105,10 +105,10 @@ contract TestWriteOffDebt is TestUserManagerBase {
 
         vm.prank(address(uTokenMock));
         userManager.updateLocked(borrower, amount, true);
-        uTokenMock.setOverdueBlocks(0);
-        uTokenMock.setLastRepay(block.number);
+        uTokenMock.setOverdueTime(0);
+        uTokenMock.setLastRepay(block.timestamp);
 
-        vm.roll(2);
+        skip(2);
         address[] memory stakers = new address[](1);
         stakers[0] = staker;
         userManager.batchUpdateFrozenInfo(stakers);

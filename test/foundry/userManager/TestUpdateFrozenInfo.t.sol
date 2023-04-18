@@ -22,14 +22,14 @@ contract TestUpdateFrozenInfo is TestUserManagerBase {
     function testUpdateFrozenInfo() public {
         vm.prank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        uTokenMock.setOverdueBlocks(0);
+        uTokenMock.setOverdueTime(0);
         uTokenMock.setLastRepay(1);
-        vm.roll(2);
+        skip(2);
 
         vm.prank(address(userManager.comptroller()));
         userManager.onWithdrawRewards(address(this));
 
-        vm.roll(3);
+        skip(3);
         (, , uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this));
 
         assertEq(effectiveLocked, 0);

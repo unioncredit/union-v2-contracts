@@ -14,7 +14,7 @@ contract TestUTokenBase is TestWrapper {
     uint256 internal constant MIN_BORROW = 1 ether;
     uint256 internal constant MAX_BORROW = 100 ether;
     uint256 internal constant BORROW_INTEREST_PER_BLOCK = 0.000001 ether; //0.0001%
-    uint256 internal constant OVERDUE_BLOCKS = 10;
+    uint256 internal constant OVERDUE_TIME = 10; // seconds
     uint256 internal constant RESERVE_FACTOR = 0.5 ether;
     uint256 internal constant INIT_EXCHANGE_RATE = 1 ether;
     uint256 internal constant MINT_FEE_RATE = 1e15;
@@ -41,7 +41,7 @@ contract TestUTokenBase is TestWrapper {
                         debtCeiling: debtCeiling,
                         maxBorrow: MAX_BORROW,
                         minBorrow: MIN_BORROW,
-                        overdueBlocks: OVERDUE_BLOCKS,
+                        overdueTime: OVERDUE_TIME,
                         admin: ADMIN,
                         mintFeeRate: MINT_FEE_RATE
                     })

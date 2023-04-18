@@ -186,7 +186,7 @@ describe("Staking and unstaking", () => {
             const borrowerAddress = await borrower.getAddress();
             const [multiplierBefore] = await helpers.getRewardsMultipliers(staker);
 
-            await helpers.withOverdueblocks(1, async () => {
+            await helpers.withOverdue(1, async () => {
                 const isOverdue = await contracts.uToken.checkIsOverdue(borrowerAddress);
                 expect(isOverdue).eq(true);
                 await roll(10);

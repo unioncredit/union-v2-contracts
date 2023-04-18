@@ -74,7 +74,7 @@ describe("Borrowing and repaying", () => {
             expect(locked).eq(await helpers.borrowWithFee(borrowAmount));
         });
         it("cannot borrow if overdue", async () => {
-            await helpers.withOverdueblocks(1, async () => {
+            await helpers.withOverdue(1, async () => {
                 const minBorrow = await contracts.uToken.minBorrow();
                 const resp = helpers.borrow(borrower, minBorrow);
                 await expect(resp).to.be.revertedWith(error.MemberIsOverdue);

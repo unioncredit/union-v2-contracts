@@ -16,7 +16,7 @@ contract TestWithdrawRewards is TestComptrollerBase {
         uint256 balanceBefore = unionTokenMock.balanceOf(address(this));
 
         comptroller.withdrawRewards(address(this), address(daiMock));
-        vm.roll(100);
+        skip(100);
         comptroller.withdrawRewards(address(this), address(daiMock));
 
         uint256 balanceAfter = unionTokenMock.balanceOf(address(this));

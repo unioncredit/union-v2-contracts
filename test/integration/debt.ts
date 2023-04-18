@@ -62,7 +62,7 @@ describe("Writing off member debt", () => {
         });
         it("borrower is overdue", async () => {
             const amount = parseUnits("100");
-            await helpers.withOverdueblocks(10, async () => {
+            await helpers.withOverdue(10, async () => {
                 await roll(10);
                 const lockedBefore = await contracts.userManager.getLockedStake(deployerAddress, borrowerAddress);
                 await contracts.userManager.debtWriteOff(deployerAddress, borrowerAddress, amount);
@@ -87,15 +87,15 @@ describe("Writing off member debt", () => {
         });
         it("cannot if grace period has not passed", async () => {
             const amount = parseUnits("100");
-            await helpers.withOverdueblocks(10, async () => {
+            await helpers.withOverdue(10, async () => {
                 await roll(10);
                 const resp = contracts.userManager.connect(user).debtWriteOff(deployerAddress, borrowerAddress, amount);
                 await expect(resp).to.be.revertedWith(error.AuthFailed);
             });
         });
         it("public can write off debt", async () => {
-            await contracts.userManager.setMaxOverdueBlocks(10);
-            await helpers.withOverdueblocks(10, async () => {
+            await contracts.userManager.setMaxOverdueTime(10);
+            await helpers.withOverdue(10, async () => {
                 await roll(20);
                 const locked = await contracts.userManager.getLockedStake(deployerAddress, borrowerAddress);
                 await contracts.userManager.connect(user).debtWriteOff(deployerAddress, borrowerAddress, locked);
