@@ -99,7 +99,6 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
         // 1st borrow
         vm.prank(address(uTokenMock));
         userManager.updateLocked(borrower, borrowAmount, true);
-
         skip(++currTimestamp);
 
         // 2nd borrow
@@ -112,9 +111,7 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
         userManager.updateLocked(borrower, borrowAmount, true);
         uTokenMock.setOverdueTime(0);
         uTokenMock.setLastRepay(currTimestamp);
-
         skip(++currTimestamp);
-
         // write off debt
         vm.prank(staker);
         userManager.debtWriteOff(staker, borrower, borrowAmount * 2);
@@ -122,28 +119,21 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
 
         // create a snapshot
         uint256 snapshot = vm.snapshot();
-
+        currTimestamp = block.timestamp;
         // withdraw rewards in the same block
         claimedRewards = comptroller.withdrawRewards(staker, address(daiMock));
-
         skip(++currTimestamp);
-
         skip(++currTimestamp);
-
         // record the total rewards from the same block rewards withdraw
         uint256 rewardsFromSameBlockWithdraw = claimedRewards + comptroller.calculateRewards(staker, address(daiMock));
 
         // revert back to before claiming the rewards
         vm.revertTo(snapshot);
         currTimestamp = block.timestamp;
-
         skip(++currTimestamp);
-
         // withdraw rewards 1 block after the debtWriteOff() call
         claimedRewards = comptroller.withdrawRewards(staker, address(daiMock));
-
         skip(++currTimestamp);
-
         // record total rewards
         uint256 rewardsFromDiffBlockWithdraw = claimedRewards + comptroller.calculateRewards(staker, address(daiMock));
 

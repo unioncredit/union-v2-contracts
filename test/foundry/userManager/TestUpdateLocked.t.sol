@@ -106,12 +106,13 @@ contract TestUpdateLocked is TestUserManagerBase {
         // lockedCoinAge should only increase by the locked amount per block
         for (uint256 i = 0; i < 3; ++i) {
             skip(++currBlock);
+            uint currTimestamp = block.timestamp;
             // update locked amount as borrower only repays the interest
             userManager.updateLocked(ACCOUNT, 0, true);
             (, , , vouchLastUpdated) = userManager.vouchers(ACCOUNT, 0);
-            assertEq(vouchLastUpdated, currBlock);
+            assertEq(vouchLastUpdated, currTimestamp);
             (, , , , , lockedCoinAge) = userManager.stakers(MEMBERS[0]);
-            assertEq(lockedCoinAge, lockAmountPerBlock * (currBlock - startBlock));
+            assertEq(lockedCoinAge, lockAmountPerBlock * (currTimestamp - startBlock));
         }
 
         vm.stopPrank();

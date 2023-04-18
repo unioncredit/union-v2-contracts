@@ -35,7 +35,7 @@ contract TestBorrowRepay is TestUTokenBase {
         skip(block.timestamp + 60);
 
         // borrowed amount should now include interest
-        uint256 interest = ((borrowAmount + fees) * BORROW_INTEREST_PER_BLOCK) / 1 ether;
+        uint256 interest = (((borrowAmount + fees) * BORROW_INTEREST_PER_BLOCK) * (60 + 1)) / 1 ether;
 
         assertEq(uToken.borrowBalanceView(ALICE), borrowed + interest);
     }
