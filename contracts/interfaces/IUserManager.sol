@@ -26,7 +26,7 @@ interface IUserManager {
 
     function setNewMemberFee(uint256 amount) external;
 
-    function setMaxOverdueBlocks(uint256 maxOverdueBlocks) external;
+    function setMaxOverdueTime(uint256 maxOverdueTime) external;
 
     function setEffectiveCount(uint256 effectiveCount) external;
 

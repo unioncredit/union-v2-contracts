@@ -16,7 +16,7 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         lastRepay = _lastRepay;
     }
 
-    function setOverdueBlocks(uint256 _overdueBlock) external {
+    function setOverdueTime(uint256 _overdueBlock) external {
         overdueBlock = _overdueBlock;
     }
 
@@ -28,7 +28,7 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         return 0;
     }
 
-    function overdueBlocks() external view override returns (uint256) {
+    function overdueTime() external view override returns (uint256) {
         return overdueBlock;
     }
 

@@ -44,7 +44,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 debtCeiling;
         uint256 maxBorrow;
         uint256 minBorrow;
-        uint256 overdueBlocks;
+        uint256 overdueTime;
         address admin;
         uint256 mintFeeRate;
     }
@@ -84,9 +84,9 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public reserveFactorMantissa;
 
     /**
-     *  @dev Block number that interest was last accrued at
+     *  @dev Block timestamp that interest was last accrued at
      */
-    uint256 public accrualBlockNumber;
+    uint256 public accrualTimestamp;
 
     /**
      *  @dev Accumulator of the total earned interest rate since the opening of the market
@@ -109,9 +109,9 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public totalRedeemable;
 
     /**
-     *  @dev overdue duration, based on the number of blocks
+     *  @dev overdue duration, in seconds
      */
-    uint256 public override overdueBlocks;
+    uint256 public override overdueTime;
 
     /**
      *  @dev fee paid at loan origin
@@ -287,12 +287,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         debtCeiling = params.debtCeiling;
         maxBorrow = params.maxBorrow;
         minBorrow = params.minBorrow;
-        overdueBlocks = params.overdueBlocks;
+        overdueTime = params.overdueTime;
         initialExchangeRateMantissa = params.initialExchangeRateMantissa;
         reserveFactorMantissa = params.reserveFactorMantissa;
         mintFeeRate = params.mintFeeRate;
 
-        accrualBlockNumber = getBlockNumber();
+        accrualTimestamp = getTimestamp();
         borrowIndex = WAD;
     }
 
@@ -354,12 +354,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     *  @dev Change loan overdue duration, based on the number of blocks
+     *  @dev Change loan overdue duration, in seconds
      *  Accept claims only from the admin
      *  @param overdueBlocks_ Maximum late repayment block. The number of arrivals is a default
      */
-    function setOverdueBlocks(uint256 overdueBlocks_) external override onlyAdmin {
-        overdueBlocks = overdueBlocks_;
+    function setOverdueTime(uint256 overdueBlocks_) external override onlyAdmin {
+        overdueTime = overdueBlocks_;
     }
 
     /**
@@ -425,8 +425,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     function checkIsOverdue(address account) public view override returns (bool isOverdue) {
         if (getBorrowed(account) != 0) {
             uint256 lastRepay = getLastRepay(account);
-            uint256 diff = getBlockNumber() - lastRepay;
-            isOverdue = overdueBlocks < diff;
+            uint256 diff = getTimestamp() - lastRepay;
+            isOverdue = overdueTime < diff;
         }
     }
 
@@ -518,9 +518,9 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         }
 
         uint256 borrowRate = borrowRatePerBlock();
-        uint256 currentBlockNumber = getBlockNumber();
-        uint256 blockDelta = currentBlockNumber - accrualBlockNumber;
-        uint256 simpleInterestFactor = borrowRate * blockDelta;
+        uint256 currentTimestamp = getTimestamp();
+        uint256 timeDelta = currentTimestamp - accrualTimestamp;
+        uint256 simpleInterestFactor = borrowRate * timeDelta;
         uint256 borrowIndexNew = (simpleInterestFactor * borrowIndex) / WAD + borrowIndex;
 
         uint256 principalTimesIndex = (loan.principal + loan.interest) * borrowIndexNew;
@@ -574,7 +574,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         // Initialize the last repayment date to the current block number
         if (getLastRepay(msg.sender) == 0) {
-            accountBorrows[msg.sender].lastRepay = getBlockNumber();
+            accountBorrows[msg.sender].lastRepay = getTimestamp();
         }
 
         // Withdraw the borrowed amount of tokens from the assetManager and send them to the borrower
@@ -635,7 +635,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param interest Interest amount
      */
     function _repayBorrowFresh(address payer, address borrower, uint256 amount, uint256 interest) internal {
-        if (getBlockNumber() != accrualBlockNumber) revert AccrueBlockParity();
+        if (getTimestamp() != accrualTimestamp) revert AccrueBlockParity();
         uint256 borrowedAmount = borrowBalanceStoredInternal(borrower);
         uint256 repayAmount = amount > borrowedAmount ? borrowedAmount : amount;
         if (repayAmount == 0) revert AmountZero();
@@ -659,11 +659,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
 
-            uint256 pastBlocks = getBlockNumber() - getLastRepay(borrower);
-            if (pastBlocks > overdueBlocks) {
+            uint256 pastBlocks = getTimestamp() - getLastRepay(borrower);
+            if (pastBlocks > overdueTime) {
                 // For borrowers that are paying back overdue balances we need to update their
                 // frozen balance and the global total frozen balance on the UserManager
-                IUserManager(userManager).onRepayBorrow(borrower, getLastRepay(borrower) + overdueBlocks);
+                IUserManager(userManager).onRepayBorrow(borrower, getLastRepay(borrower) + overdueTime);
             }
 
             // Call update locked on the userManager to lock this borrowers stakers. This function
@@ -677,7 +677,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
                 accountBorrows[borrower].lastRepay = 0;
             } else {
                 // Save the current block number as last repaid
-                accountBorrows[borrower].lastRepay = getBlockNumber();
+                accountBorrows[borrower].lastRepay = getTimestamp();
             }
         } else {
             // For repayments that don't pay off the minimum we just need to adjust the
@@ -707,13 +707,13 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      */
     function accrueInterest() public override returns (bool) {
         uint256 borrowRate = borrowRatePerBlock();
-        uint256 currentBlockNumber = getBlockNumber();
-        uint256 blockDelta = currentBlockNumber - accrualBlockNumber;
+        uint256 currentTimestamp = getTimestamp();
+        uint256 timeDelta = currentTimestamp - accrualTimestamp;
 
-        uint256 simpleInterestFactor = borrowRate * blockDelta;
+        uint256 simpleInterestFactor = borrowRate * timeDelta;
         uint256 borrowIndexNew = (simpleInterestFactor * borrowIndex) / WAD + borrowIndex;
 
-        accrualBlockNumber = currentBlockNumber;
+        accrualTimestamp = currentTimestamp;
         borrowIndex = borrowIndexNew;
 
         return true;
@@ -856,11 +856,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     ------------------------------------------------------------------- */
 
     /**
-     *  @dev Function to simply retrieve block number
+     *  @dev Function to simply retrieve block timestamp
      *  This exists mainly for inheriting test contracts to stub this result.
      */
-    function getBlockNumber() internal view returns (uint256) {
-        return block.number;
+    function getTimestamp() internal view returns (uint256) {
+        return block.timestamp;
     }
 
     /**

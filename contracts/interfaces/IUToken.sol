@@ -14,7 +14,7 @@ interface IUToken {
 
     function exchangeRateCurrent() external returns (uint256);
 
-    function overdueBlocks() external view returns (uint256);
+    function overdueTime() external view returns (uint256);
 
     function getRemainingDebtCeiling() external view returns (uint256);
 
@@ -40,7 +40,7 @@ interface IUToken {
 
     function setMinBorrow(uint256 minBorrow_) external;
 
-    function setOverdueBlocks(uint256 overdueBlocks_) external;
+    function setOverdueTime(uint256 overdueBlocks_) external;
 
     function setInterestRateModel(address newInterestRateModel) external;
 

@@ -122,9 +122,9 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     uint256 public totalFrozen;
 
     /**
-     *  @dev Max blocks can be overdue for
+     *  @dev Max duration (in seconds) can be overdue for
      */
-    uint256 public maxOverdueBlocks;
+    uint256 public maxOverdueTime;
 
     /**
      * @dev Max voucher limit
@@ -172,7 +172,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     mapping(address => uint256) public frozenCoinAge;
 
     /**
-     * @dev Stakers mapped the block height of latest rewards withdrawal
+     * @dev Stakers mapped the block timestamp of latest rewards withdrawal
      */
     mapping(address => uint256) public gLastWithdrawRewards;
 
@@ -275,11 +275,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     event LogSetMaxStakeAmount(uint256 oldMaxStakeAmount, uint256 newMaxStakeAmount);
 
     /**
-     *  @dev set max overdue blocks
-     *  @param oldMaxOverdueBlocks Old value
-     *  @param newMaxOverdueBlocks New value
+     *  @dev set max overdue time
+     *  @param oldMaxOverdueTime Old value
+     *  @param newMaxOverdueTime New value
      */
-    event LogSetMaxOverdueBlocks(uint256 oldMaxOverdueBlocks, uint256 newMaxOverdueBlocks);
+    event LogSetMaxOverdueBlocks(uint256 oldMaxOverdueTime, uint256 newMaxOverdueTime);
 
     /**
      *  @dev set effective count
@@ -310,7 +310,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         address stakingToken_,
         address comptroller_,
         address admin_,
-        uint256 maxOverdueBlocks_,
+        uint256 maxOverdueTime_,
         uint256 effectiveCount_,
         uint256 maxVouchers_,
         uint256 maxVouchees_
@@ -323,7 +323,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         stakingToken = stakingToken_;
         newMemberFee = 1 ether;
         maxStakeAmount = 10_000e18;
-        maxOverdueBlocks = maxOverdueBlocks_;
+        maxOverdueTime = maxOverdueTime_;
         effectiveCount = effectiveCount_;
         maxVouchers = maxVouchers_;
         maxVouchees = maxVouchees_;
@@ -383,12 +383,12 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     /**
      * @dev set New max overdue blocks
      * Emits {LogSetMaxOverdueBlocks} event
-     * @param _maxOverdueBlocks New maxOverdueBlocks value
+     * @param _maxOverdueTime New maxOverdueTime value
      */
-    function setMaxOverdueBlocks(uint256 _maxOverdueBlocks) external onlyAdmin {
-        uint256 oldMaxOverdueBlocks = maxOverdueBlocks;
-        maxOverdueBlocks = _maxOverdueBlocks;
-        emit LogSetMaxOverdueBlocks(oldMaxOverdueBlocks, _maxOverdueBlocks);
+    function setMaxOverdueTime(uint256 _maxOverdueTime) external onlyAdmin {
+        uint256 oldMaxOverdueTime = maxOverdueTime;
+        maxOverdueTime = _maxOverdueTime;
+        emit LogSetMaxOverdueBlocks(oldMaxOverdueTime, _maxOverdueTime);
     }
 
     /**
@@ -747,13 +747,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      */
     function debtWriteOff(address stakerAddress, address borrowerAddress, uint256 amount) external {
         if (amount == 0) revert AmountZero();
-        uint256 overdueBlocks = uToken.overdueBlocks();
+        uint256 overdueTime = uToken.overdueTime();
         uint256 lastRepay = uToken.getLastRepay(borrowerAddress);
 
         // This function is only callable by the public if the loan is overdue by
-        // overdue blocks + maxOverdueBlocks. This stops the system being left with
+        // overdue time + maxOverdueTime. This stops the system being left with
         // debt that is overdue indefinitely and no ability to do anything about it.
-        if (block.number <= lastRepay + overdueBlocks + maxOverdueBlocks) {
+        if (getTimestamp() <= lastRepay + overdueTime + maxOverdueTime) {
             if (stakerAddress != msg.sender) revert AuthFailed();
         }
 
@@ -769,14 +769,14 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
         staker.stakedAmount -= amount.toUint96();
         staker.locked -= amount.toUint96();
-        staker.lastUpdated = (block.number).toUint64();
+        staker.lastUpdated = (getTimestamp()).toUint64();
 
         totalStaked -= amount;
 
         // update vouch trust amount
         vouch.trust -= amount.toUint96();
         vouch.locked -= amount.toUint96();
-        vouch.lastUpdated = (block.number).toUint64();
+        vouch.lastUpdated = (getTimestamp()).toUint64();
 
         // Update total frozen and member frozen. We don't want to move th
         // burden of calling updateFrozenInfo into this function as it is quite
@@ -829,13 +829,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             staker = stakers[vouch.staker];
 
             staker.lockedCoinAge += _calcLockedCoinAge(
-                block.number,
+                getTimestamp(),
                 vouch.locked,
                 staker.lastUpdated,
                 vouch.lastUpdated
             );
 
-            vouch.lastUpdated = (block.number).toUint64();
+            vouch.lastUpdated = (getTimestamp()).toUint64();
             if (lock) {
                 // Look up the staker and determine how much unlock stake they
                 // have available for the borrower to borrow. If there is 0
@@ -845,7 +845,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                 if (lockAmount == 0) continue;
                 // Calculate the amount to add to the lock then
                 // add the extra amount to lock to the stakers locked amount
-                // and also update the vouches locked amount and lastUpdated block
+                // and also update the vouches locked amount and lastUpdated timestamp
                 innerAmount = _min(remaining, lockAmount);
                 staker.locked += innerAmount;
                 vouch.locked += innerAmount;
@@ -857,7 +857,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                 uint96 locked = vouch.locked;
                 if (locked == 0) continue;
                 innerAmount = _min(locked, remaining);
-                // Update the stored locked values and last updated block
+                // Update the stored locked values and last updated timestamp
                 staker.locked -= innerAmount;
                 vouch.locked -= innerAmount;
             }
@@ -883,16 +883,17 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      */
     function _getEffectiveAmounts(address stakerAddress) private view returns (uint256, uint256, uint256) {
         Staker memory staker = stakers[stakerAddress];
+        uint256 currTime = getTimestamp();
 
         CoinAge memory stakerCoinAges = CoinAge({
             stakedCoinAge: staker.stakedCoinAge,
             lockedCoinAge: staker.lockedCoinAge,
             frozenCoinAge: frozenCoinAge[stakerAddress],
-            sinceLastWithdrawRewards: block.number - gLastWithdrawRewards[stakerAddress]
+            sinceLastWithdrawRewards: currTime - gLastWithdrawRewards[stakerAddress]
         });
 
         // update staked coin age
-        stakerCoinAges.stakedCoinAge += _calcStakedCoinAge(block.number, staker.stakedAmount, staker.lastUpdated);
+        stakerCoinAges.stakedCoinAge += _calcStakedCoinAge(currTime, staker.stakedAmount, staker.lastUpdated);
 
         // Loop through all of the stakers vouchees sum their total
         // locked balance and sum their total currDefaultFrozenCoinAge
@@ -901,16 +902,16 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 stakerFrozen = 0;
         Vouchee memory vouchee;
         Vouch memory vouch;
-        uint256 overdueBlocks = uToken.overdueBlocks();
+        uint256 overdueTime = uToken.overdueTime();
         for (uint256 i = 0; i < voucheesLength; i++) {
             // Get the vouchee record and look up the borrowers voucher record
-            // to get the locked amount and lastUpdated block number
+            // to get the locked amount and lastUpdated time
             vouchee = vouchees[stakerAddress][i];
             vouch = vouchers[vouchee.borrower][vouchee.voucherIndex];
 
             // update locked coin age
             stakerCoinAges.lockedCoinAge += _calcLockedCoinAge(
-                block.number,
+                currTime,
                 vouch.locked,
                 staker.lastUpdated,
                 vouch.lastUpdated
@@ -924,14 +925,14 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
                     // skip the debt all repaid
                     lastRepay != 0)
             ) {
-                if (block.number - lastRepay > overdueBlocks) // for the debt overdue
+                if (currTime - lastRepay > overdueTime) // for the debt overdue
                 {
                     stakerFrozen += vouch.locked;
                     stakerCoinAges.frozenCoinAge += _calcFrozenCoinAge(
-                        block.number,
+                        currTime,
                         vouch.locked,
                         staker.lastUpdated,
-                        lastRepay + overdueBlocks
+                        lastRepay + overdueTime
                     );
                 }
             }
@@ -945,9 +946,9 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
             );
         } else {
             return (
-                // staker's total effective staked = (staked coinage - frozen coinage) / (# of blocks since last rewards withdrawal)
+                // staker's total effective staked = (staked coinage - frozen coinage) / (time since last rewards withdrawal)
                 (stakerCoinAges.stakedCoinAge - stakerCoinAges.frozenCoinAge) / stakerCoinAges.sinceLastWithdrawRewards,
-                // effective locked amount = (locked coinage - frozen coinage) / (# of blocks since last rewards withdrawal)
+                // effective locked amount = (locked coinage - frozen coinage) / (time since last rewards withdrawal)
                 (stakerCoinAges.lockedCoinAge - stakerCoinAges.frozenCoinAge) / stakerCoinAges.sinceLastWithdrawRewards,
                 stakerFrozen
             );
@@ -983,8 +984,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 memberTotalFrozen = 0;
         (effectiveStaked, effectiveLocked, memberTotalFrozen) = _getEffectiveAmounts(staker);
         stakers[staker].stakedCoinAge = 0;
-        stakers[staker].lastUpdated = (block.number).toUint64();
-        gLastWithdrawRewards[staker] = block.number;
+        stakers[staker].lastUpdated = (getTimestamp()).toUint64();
+        gLastWithdrawRewards[staker] = getTimestamp();
         stakers[staker].lockedCoinAge = 0;
         frozenCoinAge[staker] = 0;
 
@@ -1000,23 +1001,24 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     /**
      * @dev Make sure only update the frozen info when borrower's overdue
      * @param borrower Borrower address
-     * @param overdueBlock blocks since last repay
+     * @param overdueTime Timestamp since last repay
      */
-    function onRepayBorrow(address borrower, uint256 overdueBlock) external {
+    function onRepayBorrow(address borrower, uint256 overdueTime) external {
         if (address(uToken) != msg.sender) revert AuthFailed();
 
         Vouch[] memory borrowerVouchers = vouchers[borrower];
         uint256 vouchersLength = borrowerVouchers.length;
         Vouch memory vouch;
+        uint256 currTime = getTimestamp();
         // assuming the borrower's already overdue, accumulating all his vouchers' previous frozen coin age
         for (uint256 i = 0; i < vouchersLength; i++) {
             vouch = borrowerVouchers[i];
             if (vouch.locked == 0) continue;
             frozenCoinAge[vouch.staker] += _calcFrozenCoinAge(
-                block.number,
+                currTime,
                 vouch.locked,
                 stakers[vouch.staker].lastUpdated,
-                overdueBlock
+                overdueTime
             );
         }
     }
@@ -1087,47 +1089,55 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     /**
      * @dev Calculate a staker's frozen coin age
-     * @param currBlockNumber Current block height
+     * @param currTime Current timestamp
      * @param locked Stakers locked amount
      * @param lastStakeUpdated Block number when staked coin age is updated
-     * @param overdueBlock Loan over due period in blocks
+     * @param overdueTime Loan over due period in seconds
      */
     function _calcFrozenCoinAge(
-        uint256 currBlockNumber,
+        uint256 currTime,
         uint256 locked,
         uint256 lastStakeUpdated,
-        uint256 overdueBlock
+        uint256 overdueTime
     ) private pure returns (uint) {
-        return locked * (currBlockNumber - _max(lastStakeUpdated, overdueBlock));
+        return locked * (currTime - _max(lastStakeUpdated, overdueTime));
     }
 
     /**
      * @dev Calculate a staker's locked coin age
-     * @param currBlockNumber Current block height
+     * @param currTime Current timestamp
      * @param locked Stakers locked amount
      * @param lastStakeUpdated Block number when staked coin age is updated
      * @param lastLockedUpdated Block number when locked coin age is updated
      */
     function _calcLockedCoinAge(
-        uint256 currBlockNumber,
+        uint256 currTime,
         uint256 locked,
         uint256 lastStakeUpdated,
         uint256 lastLockedUpdated
     ) private pure returns (uint) {
-        return locked * (currBlockNumber - _max(lastStakeUpdated, lastLockedUpdated));
+        return locked * (currTime - _max(lastStakeUpdated, lastLockedUpdated));
     }
 
     /**
      * @dev Calculate a staker's staked coin age
-     * @param currBlockNumber Current block height
+     * @param currTime Current timestamp
      * @param stakedAmount Stakers staked amount
      * @param lastStakeUpdated Block number when staked coin age is updated
      */
     function _calcStakedCoinAge(
-        uint256 currBlockNumber,
+        uint256 currTime,
         uint256 stakedAmount,
         uint256 lastStakeUpdated
     ) private pure returns (uint) {
-        return stakedAmount * (currBlockNumber - lastStakeUpdated);
+        return stakedAmount * (currTime - lastStakeUpdated);
+    }
+
+    /**
+     *  @dev Function to simply retrieve block timestamp
+     *  This exists mainly for inheriting test contracts to stub this result.
+     */
+    function getTimestamp() internal view returns (uint256) {
+        return block.timestamp;
     }
 }

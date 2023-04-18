@@ -115,7 +115,7 @@ contract UserManagerMock {
 
     function setEffectiveCount(uint256 effectiveCount) external {}
 
-    function setMaxOverdueBlocks(uint256 maxOverdueBlocks) external {}
+    function setMaxOverdueTime(uint256 maxOverdueTime) external {}
 
     function setMaxStakeAmount(uint96 maxStakeAmount) external {}
 
