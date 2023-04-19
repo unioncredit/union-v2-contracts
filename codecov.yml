@@ -1,3 +1,4 @@
 ignore:
     - "contracts/mocks/"
     - "test/foundry/"
+    - "contracts/peripheral"
