@@ -10,6 +10,7 @@ import {getConfig} from "../../deploy/config";
 import {createHelpers, fork, getDai, getDeployer, getSigners, Helpers, roll} from "../utils";
 import {isForked} from "../utils/fork";
 import error from "../utils/error";
+import {signERC2612Permit} from "eth-permit";
 
 describe("Borrowing and repaying", () => {
     let signers: Signer[];
@@ -123,6 +124,41 @@ describe("Borrowing and repaying", () => {
         it("cannot repay 0", async () => {
             const resp = contracts.uToken.repayBorrow(deployerAddress, 0);
             await expect(resp).to.be.revertedWith(error.AmountZero);
+        });
+        it("repay borrow with permit", async () => {
+            const borrowerAddress = await borrower.getAddress();
+            let amount = await contracts.uToken.borrowBalanceView(borrowerAddress);
+            //ensure full repayment
+            amount = amount.mul(BigNumber.from(2));
+            //repay by deployer
+            const daiBalance = await contracts.dai.balanceOf(deployerAddress);
+            if (daiBalance.lt(amount) && "mint" in contracts.dai) {
+                await contracts.dai.mint(deployerAddress, amount);
+            }
+
+            const result = await signERC2612Permit(
+                ethers.provider,
+                {
+                    name: "DAI",
+                    chainId: 31337,
+                    version: "1",
+                    verifyingContract: contracts.dai.address
+                },
+                deployerAddress,
+                contracts.uToken.address,
+                amount.toString()
+            );
+
+            await contracts.uToken.repayBorrowWithERC20Permit(
+                borrowerAddress,
+                amount,
+                result.deadline,
+                result.v,
+                result.r,
+                result.s
+            );
+            const borrowed = await contracts.uToken.getBorrowed(borrowerAddress);
+            expect(borrowed).eq(0);
         });
         it("repaying less than interest doesn't update last repaid", async () => {
             const [lastRepayBefore] = await helpers.getBorrowed(borrower);
