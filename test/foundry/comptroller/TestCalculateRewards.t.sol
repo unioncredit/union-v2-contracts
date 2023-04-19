@@ -46,7 +46,7 @@ contract TestCalculateRewards is TestComptrollerBase {
         comptroller.withdrawRewards(address(this), address(daiMock));
         skip(1000);
         uint256 rewards = comptroller.calculateRewards(address(this), address(daiMock));
-        assertEq(rewards, 900000000000000000000);
+        assertEq(rewards, 900000000000000000000 / 12);
 
         //no stake
         FakeUserManager um2 = new FakeUserManager(0, 0, 0, 0, 0, true);
@@ -58,43 +58,43 @@ contract TestCalculateRewards is TestComptrollerBase {
         assertEq(rewards, 0);
     }
 
-    function testInflationPerBlock0() public {
-        uint256 inflation = comptroller.inflationPerBlock(1 ether);
-        assertEq(inflation, 1000000000000000000);
+    function testInflationPerSecond0() public {
+        uint256 inflation = comptroller.inflationPerSecond(1 ether);
+        assertEq(inflation, 83_333_333_333_333_333); // 1000000000000000000 / 12
     }
 
-    function testInflationPerBlock1() public {
-        uint256 inflation = comptroller.inflationPerBlock(100 ether);
-        assertEq(inflation, 900000000000000000);
+    function testInflationPerSecond1() public {
+        uint256 inflation = comptroller.inflationPerSecond(100 ether);
+        assertEq(inflation, 900000000000000000 / 12);
     }
 
-    function testInflationPerBlock2() public {
-        uint256 inflation = comptroller.inflationPerBlock(1000 ether);
-        assertEq(inflation, 800000000000000000);
+    function testInflationPerSecond2() public {
+        uint256 inflation = comptroller.inflationPerSecond(1000 ether);
+        assertEq(inflation, 66_666_666_666_666_667); // 800000000000000000 / 12
     }
 
-    function testInflationPerBlock3() public {
-        uint256 inflation = comptroller.inflationPerBlock(10000 ether);
-        assertEq(inflation, 700000000000000000);
+    function testInflationPerSecond3() public {
+        uint256 inflation = comptroller.inflationPerSecond(10000 ether);
+        assertEq(inflation, 58_333_333_333_333_333); // 700000000000000000 / 12
     }
 
-    function testInflationPerBlock4() public {
-        uint256 inflation = comptroller.inflationPerBlock(100000 ether);
-        assertEq(inflation, 600000000000000000);
+    function testInflationPerSecond4() public {
+        uint256 inflation = comptroller.inflationPerSecond(100000 ether);
+        assertEq(inflation, 600000000000000000 / 12);
     }
 
-    function testInflationPerBlock5() public {
-        uint256 inflation = comptroller.inflationPerBlock(1000000 ether);
-        assertEq(inflation, 500000000000000000);
+    function testInflationPerSecond5() public {
+        uint256 inflation = comptroller.inflationPerSecond(1000000 ether);
+        assertEq(inflation, 41_666_666_666_666_666); // 500000000000000000 / 12
     }
 
-    function testInflationPerBlock6() public {
-        uint256 inflation = comptroller.inflationPerBlock(5_000_000 ether);
-        assertEq(inflation, 250000000000000000);
+    function testInflationPerSecond6() public {
+        uint256 inflation = comptroller.inflationPerSecond(5_000_000 ether);
+        assertEq(inflation, 20_833_333_333_333_333); //250000000000000000 / 12
     }
 
-    function testInflationPerBlock7() public {
-        uint256 inflation = comptroller.inflationPerBlock(type(uint256).max);
-        assertEq(inflation, 1000000000000);
+    function testInflationPerSecond7() public {
+        uint256 inflation = comptroller.inflationPerSecond(type(uint256).max);
+        assertEq(inflation, 83_333_333_333); // 1000000000000 / 12
     }
 }
