@@ -53,7 +53,7 @@ contract TestVouchFaucet is TestWrapper {
     }
 
     function testTransferERC20(address to, uint256 amount) public {
-        vm.assume(to != address(this) && to != address(vouchFaucet));
+        vm.assume(to != address(0) && to != address(this) && to != address(vouchFaucet));
 
         daiMock.mint(address(vouchFaucet), amount);
         uint256 balBefore = daiMock.balanceOf(address(vouchFaucet));
