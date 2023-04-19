@@ -183,8 +183,8 @@ contract Comptroller is Controller, IComptroller {
      *  @param effectiveTotalStake Effective total stake
      *  @return Inflation amount, div totalSupply is the inflation rate
      */
-    function inflationPerBlock(uint256 effectiveTotalStake) public view returns (uint256) {
-        return _inflationPerBlock(effectiveTotalStake);
+    function inflationPerSecond(uint256 effectiveTotalStake) public view returns (uint256) {
+        return _inflationPerSecond(effectiveTotalStake);
     }
 
     /* -------------------------------------------------------------------
@@ -314,40 +314,40 @@ contract Comptroller is Controller, IComptroller {
     }
 
     /**
-     *  @dev See Comptroller.inflationPerBlock
+     *  @dev See Comptroller.inflationPerSecond
      */
-    function _inflationPerBlock(uint256 effectiveTotalStake) internal view returns (uint256) {
+    function _inflationPerSecond(uint256 effectiveTotalStake) internal view returns (uint256) {
         uint256 index = effectiveTotalStake / halfDecayPoint;
         return _lookup(index);
     }
 
     function _lookup(uint256 index) internal pure returns (uint256) {
         if (index <= 0.00001 * 10 ** 18) {
-            return 1 * 10 ** 18;
+            return 83_333_333_333_333_333; // 0.08333333333 * 10 ** 18;
         } else if (index <= 0.0001 * 10 ** 18) {
-            return 0.9 * 10 ** 18;
+            return 75_000_000_000_000_000; // 0.075 * 10 ** 18;
         } else if (index <= 0.001 * 10 ** 18) {
-            return 0.8 * 10 ** 18;
+            return 66_666_666_666_666_667; // 0.0666666667 * 10 ** 18;
         } else if (index <= 0.01 * 10 ** 18) {
-            return 0.7 * 10 ** 18;
+            return 58_333_333_333_333_333; // 0.0583333333 * 10 ** 18;
         } else if (index <= 0.1 * 10 ** 18) {
-            return 0.6 * 10 ** 18;
+            return 50_000_000_000_000_000; // 0.05 * 10 ** 18;
         } else if (index <= 1 * 10 ** 18) {
-            return 0.5 * 10 ** 18;
+            return 41_666_666_666_666_666; // 0.0416666667 * 10 ** 18;
         } else if (index <= 5 * 10 ** 18) {
-            return 0.25 * 10 ** 18;
+            return 20_833_333_333_333_333; // 0.0208333333 * 10 ** 18;
         } else if (index <= 10 * 10 ** 18) {
-            return 0.1 * 10 ** 18;
+            return 8_333_333_333_333_333; // 0.0083333333 * 10 ** 18;
         } else if (index <= 100 * 10 ** 18) {
-            return 0.01 * 10 ** 18;
+            return 833_333_333_333_333; // 0.0008333333 * 10 ** 18;
         } else if (index <= 1000 * 10 ** 18) {
-            return 0.001 * 10 ** 18;
+            return 83_333_333_333_333; // 0.0000833333 * 10 ** 18;
         } else if (index <= 10000 * 10 ** 18) {
-            return 0.0001 * 10 ** 18;
+            return 8_333_333_333_333; // 0.0000083333 * 10 ** 18;
         } else if (index <= 100000 * 10 ** 18) {
-            return 0.00001 * 10 ** 18;
+            return 833_333_333_333; // 0.0000008333 * 10 ** 18;
         } else {
-            return 0.000001 * 10 ** 18;
+            return 83_333_333_333; // 0.0000000833 * 10 ** 18;
         }
     }
 
@@ -356,7 +356,7 @@ contract Comptroller is Controller, IComptroller {
         uint256 inflationIndex,
         uint256 timeDelta
     ) internal view returns (uint256) {
-        return timeDelta * _inflationPerBlock(effectiveAmount).wadDiv(effectiveAmount) + inflationIndex;
+        return timeDelta * _inflationPerSecond(effectiveAmount).wadDiv(effectiveAmount) + inflationIndex;
     }
 
     function _getRewardsMultiplier(UserManagerAccountState memory user) internal pure returns (uint256) {

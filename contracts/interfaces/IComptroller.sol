@@ -8,7 +8,7 @@ pragma solidity 0.8.16;
 interface IComptroller {
     function setHalfDecayPoint(uint256 point) external;
 
-    function inflationPerBlock(uint256 effectiveTotalStake) external view returns (uint256);
+    function inflationPerSecond(uint256 effectiveTotalStake) external view returns (uint256);
 
     /**
      *  @dev Get the reward multiplier based on the account status
