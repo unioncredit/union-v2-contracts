@@ -635,7 +635,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param interest Interest amount
      */
     function _repayBorrowFresh(address payer, address borrower, uint256 amount, uint256 interest) internal {
-        if (getTimestamp() != accrualTimestamp) revert AccrueBlockParity();
+        uint256 currTime = getTimestamp();
+        if (currTime != accrualTimestamp) revert AccrueBlockParity();
         uint256 borrowedAmount = borrowBalanceStoredInternal(borrower);
         uint256 repayAmount = amount > borrowedAmount ? borrowedAmount : amount;
         if (repayAmount == 0) revert AmountZero();
@@ -659,8 +660,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
 
-            uint256 pastBlocks = getTimestamp() - getLastRepay(borrower);
-            if (pastBlocks > overdueTime) {
+            uint256 pastTime = currTime - getLastRepay(borrower);
+            if (pastTime > overdueTime) {
                 // For borrowers that are paying back overdue balances we need to update their
                 // frozen balance and the global total frozen balance on the UserManager
                 IUserManager(userManager).onRepayBorrow(borrower, getLastRepay(borrower) + overdueTime);
@@ -677,7 +678,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
                 accountBorrows[borrower].lastRepay = 0;
             } else {
                 // Save the current block number as last repaid
-                accountBorrows[borrower].lastRepay = getTimestamp();
+                accountBorrows[borrower].lastRepay = currTime;
             }
         } else {
             // For repayments that don't pay off the minimum we just need to adjust the

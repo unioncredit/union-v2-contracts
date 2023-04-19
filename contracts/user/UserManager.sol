@@ -749,18 +749,19 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         if (amount == 0) revert AmountZero();
         uint256 overdueTime = uToken.overdueTime();
         uint256 lastRepay = uToken.getLastRepay(borrowerAddress);
+        uint256 currTime = getTimestamp();
 
         // This function is only callable by the public if the loan is overdue by
         // overdue time + maxOverdueTime. This stops the system being left with
         // debt that is overdue indefinitely and no ability to do anything about it.
-        if (getTimestamp() <= lastRepay + overdueTime + maxOverdueTime) {
+        if (currTime <= lastRepay + overdueTime + maxOverdueTime) {
             if (stakerAddress != msg.sender) revert AuthFailed();
         }
 
         Index memory index = voucherIndexes[borrowerAddress][stakerAddress];
         if (!index.isSet) revert VoucherNotFound();
         Vouch storage vouch = vouchers[borrowerAddress][index.idx];
-        uint256 locked = uint256(vouch.locked);
+        uint256 locked = vouch.locked;
         if (amount > locked) revert ExceedsLocked();
 
         comptroller.accrueRewards(stakerAddress, stakingToken);
@@ -769,14 +770,14 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
         staker.stakedAmount -= amount.toUint96();
         staker.locked -= amount.toUint96();
-        staker.lastUpdated = (getTimestamp()).toUint64();
+        staker.lastUpdated = currTime.toUint64();
 
         totalStaked -= amount;
 
         // update vouch trust amount
         vouch.trust -= amount.toUint96();
         vouch.locked -= amount.toUint96();
-        vouch.lastUpdated = (getTimestamp()).toUint64();
+        vouch.lastUpdated = currTime.toUint64();
 
         // Update total frozen and member frozen. We don't want to move th
         // burden of calling updateFrozenInfo into this function as it is quite
@@ -822,20 +823,16 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint96 remaining = (amount).toUint96();
         uint96 innerAmount = 0;
         Staker storage staker;
+        uint256 currTime = getTimestamp();
 
         uint256 vouchersLength = vouchers[borrower].length;
         for (uint256 i = 0; i < vouchersLength; i++) {
             Vouch storage vouch = vouchers[borrower][i];
             staker = stakers[vouch.staker];
 
-            staker.lockedCoinAge += _calcLockedCoinAge(
-                getTimestamp(),
-                vouch.locked,
-                staker.lastUpdated,
-                vouch.lastUpdated
-            );
+            staker.lockedCoinAge += _calcLockedCoinAge(currTime, vouch.locked, staker.lastUpdated, vouch.lastUpdated);
 
-            vouch.lastUpdated = (getTimestamp()).toUint64();
+            vouch.lastUpdated = currTime.toUint64();
             if (lock) {
                 // Look up the staker and determine how much unlock stake they
                 // have available for the borrower to borrow. If there is 0
