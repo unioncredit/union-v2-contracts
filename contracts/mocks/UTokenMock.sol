@@ -6,7 +6,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
     uint256 lastRepay;
-    uint256 overdueBlock;
+    uint256 overdueTime_;
 
     function setAssetManager(address) external {}
 
@@ -16,8 +16,8 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         lastRepay = _lastRepay;
     }
 
-    function setOverdueBlocks(uint256 _overdueBlock) external {
-        overdueBlock = _overdueBlock;
+    function setOverdueTime(uint256 _overdueTime) external {
+        overdueTime_ = _overdueTime;
     }
 
     function exchangeRateStored() external pure returns (uint256) {
@@ -28,8 +28,8 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         return 0;
     }
 
-    function overdueBlocks() external view override returns (uint256) {
-        return overdueBlock;
+    function overdueTime() external view override returns (uint256) {
+        return overdueTime_;
     }
 
     function getRemainingDebtCeiling() external pure override returns (uint256) {

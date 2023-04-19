@@ -3,7 +3,7 @@ import {DeployConfig} from "../index";
 
 export default {
     userManager: {
-        maxOverdue: "43200", // in blocks, 1 day
+        maxOverdue: "86400", // in seconds, 1 day
         effectiveCount: "1",
         maxVouchers: "400",
         maxVouchees: "1000"
@@ -18,11 +18,8 @@ export default {
         debtCeiling: parseUnits("250000"),
         maxBorrow: parseUnits("25000"),
         minBorrow: parseUnits("100"),
-        overdueBlocks: "43200", // in blocks, 1 day
+        overdueTime: "86400", // in seconds, 1 day
         mintFeeRate: parseUnits("0")
-    },
-    fixedInterestRateModel: {
-        interestRatePerBlock: "6341958397" // 10% APR, 38051750380 x 43200 (blocks per day) x 365,
     },
     addresses: {
         guardian: "0x7a0C61EdD8b5c0c5C1437AEb571d7DDbF8022Be4",

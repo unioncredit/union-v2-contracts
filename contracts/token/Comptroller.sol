@@ -66,9 +66,9 @@ contract Comptroller is Controller, IComptroller {
     uint256 public gInflationIndex;
 
     /**
-     * @dev block number when updating the inflation index
+     * @dev timestamp when updating the inflation index
      */
-    uint256 public gLastUpdatedBlock;
+    uint256 public gLastUpdated;
 
     /**
      * @dev $UNION token contract
@@ -118,7 +118,7 @@ contract Comptroller is Controller, IComptroller {
         Controller.__Controller_init(admin);
 
         gInflationIndex = INIT_INFLATION_INDEX;
-        gLastUpdatedBlock = block.number;
+        gLastUpdated = getTimestamp();
 
         unionToken = IERC20Upgradeable(unionToken_);
         marketRegistry = IMarketRegistry(marketRegistry_);
@@ -230,8 +230,8 @@ contract Comptroller is Controller, IComptroller {
         uint256 amount = _calculateRewardsInternal(account, token, globalTotalStaked, user);
 
         // update the global states
-        gInflationIndex = _getInflationIndexNew(globalTotalStaked, block.number - gLastUpdatedBlock);
-        gLastUpdatedBlock = block.number;
+        gInflationIndex = _getInflationIndexNew(globalTotalStaked, getTimestamp() - gLastUpdated);
+        gLastUpdated = getTimestamp();
         users[account][token].inflationIndex = gInflationIndex;
 
         return amount;
@@ -247,8 +247,8 @@ contract Comptroller is Controller, IComptroller {
         uint256 totalStaked
     ) external override whenNotPaused onlyUserManager(token) returns (bool) {
         if (totalStaked > 0) {
-            gInflationIndex = _getInflationIndexNew(totalStaked, block.number - gLastUpdatedBlock);
-            gLastUpdatedBlock = block.number;
+            gInflationIndex = _getInflationIndexNew(totalStaked, getTimestamp() - gLastUpdated);
+            gLastUpdated = getTimestamp();
         }
 
         return true;
@@ -284,7 +284,7 @@ contract Comptroller is Controller, IComptroller {
 
         uint256 rewardMultiplier = _getRewardsMultiplier(user);
 
-        uint256 curInflationIndex = _getInflationIndexNew(totalStaked, block.number - gLastUpdatedBlock);
+        uint256 curInflationIndex = _getInflationIndexNew(totalStaked, getTimestamp() - gLastUpdated);
 
         if (curInflationIndex < startInflationIndex) revert InflationIndexTooSmall();
 
@@ -296,12 +296,12 @@ contract Comptroller is Controller, IComptroller {
     /**
      *  @dev Calculate new inflation index based on # of blocks
      *  @param totalStaked_ Number of total staked tokens in the system
-     *  @param blockDelta Number of blocks
+     *  @param timeDelta Number of seconds passed
      *  @return New inflation index
      */
-    function _getInflationIndexNew(uint256 totalStaked_, uint256 blockDelta) internal view returns (uint256) {
-        if (blockDelta == 0 || totalStaked_ < 1e18) return gInflationIndex;
-        return _getInflationIndex(totalStaked_, gInflationIndex, blockDelta);
+    function _getInflationIndexNew(uint256 totalStaked_, uint256 timeDelta) internal view returns (uint256) {
+        if (timeDelta == 0 || totalStaked_ < 1e18) return gInflationIndex;
+        return _getInflationIndex(totalStaked_, gInflationIndex, timeDelta);
     }
 
     /**
@@ -354,9 +354,9 @@ contract Comptroller is Controller, IComptroller {
     function _getInflationIndex(
         uint256 effectiveAmount,
         uint256 inflationIndex,
-        uint256 blockDelta
+        uint256 timeDelta
     ) internal view returns (uint256) {
-        return blockDelta * _inflationPerBlock(effectiveAmount).wadDiv(effectiveAmount) + inflationIndex;
+        return timeDelta * _inflationPerBlock(effectiveAmount).wadDiv(effectiveAmount) + inflationIndex;
     }
 
     function _getRewardsMultiplier(UserManagerAccountState memory user) internal pure returns (uint256) {
@@ -371,5 +371,13 @@ contract Comptroller is Controller, IComptroller {
         } else {
             return nonMemberRatio;
         }
+    }
+
+    /**
+     *  @dev Function to simply retrieve block timestamp
+     *  This exists mainly for inheriting test contracts to stub this result.
+     */
+    function getTimestamp() internal view returns (uint256) {
+        return block.timestamp;
     }
 }

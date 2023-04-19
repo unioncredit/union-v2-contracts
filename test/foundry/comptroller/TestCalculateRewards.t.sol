@@ -44,7 +44,7 @@ contract TestCalculateRewards is TestComptrollerBase {
         vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
         comptroller.withdrawRewards(address(this), address(daiMock));
-        vm.roll(1001);
+        skip(1000);
         uint256 rewards = comptroller.calculateRewards(address(this), address(daiMock));
         assertEq(rewards, 900000000000000000000);
 
@@ -53,7 +53,7 @@ contract TestCalculateRewards is TestComptrollerBase {
         vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(um2));
         comptroller.withdrawRewards(address(this), address(daiMock));
-        vm.roll(1001);
+        skip(1000);
         rewards = comptroller.calculateRewards(address(this), address(daiMock));
         assertEq(rewards, 0);
     }

@@ -122,7 +122,7 @@ export interface Helpers {
     repay: (borrower: Signer, amount: BigNumberish) => Promise<ContractTransaction>;
     repayFull: (borrower: Signer) => Promise<ContractTransaction>;
     stake: (amount: BigNumberish, ...accounts: Signer[]) => Promise<void>;
-    withOverdueblocks: (blocks: BigNumberish, fn: () => Promise<void>) => Promise<void>;
+    withOverdue: (timestamp: BigNumberish, fn: () => Promise<void>) => Promise<void>;
 }
 
 export const createHelpers = (contracts: Contracts): Helpers => {
@@ -256,11 +256,11 @@ export const createHelpers = (contracts: Contracts): Helpers => {
      * Higher Order
      * ------------------------------------------------------- */
 
-    const withOverdueblocks = async (blocks: BigNumberish, fn: () => Promise<void>) => {
-        const overdueBlocks = await contracts.uToken.overdueBlocks();
-        await contracts.uToken.setOverdueBlocks(blocks);
+    const withOverdue = async (timestamp: BigNumberish, fn: () => Promise<void>) => {
+        const overdueTime = await contracts.uToken.overdueTime();
+        await contracts.uToken.setOverdueTime(timestamp);
         await fn();
-        await contracts.uToken.setOverdueBlocks(overdueBlocks);
+        await contracts.uToken.setOverdueTime(overdueTime);
     };
 
     return {
@@ -279,6 +279,6 @@ export const createHelpers = (contracts: Contracts): Helpers => {
         repay,
         repayFull,
         stake,
-        withOverdueblocks
+        withOverdue
     };
 };

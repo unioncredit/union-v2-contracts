@@ -44,13 +44,13 @@ contract TestSetters is TestComptrollerBase {
 
         vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(this));
-        assertEq(comptroller.gLastUpdatedBlock(), block.number);
+        assertEq(comptroller.gLastUpdated(), block.timestamp);
         assertEq(comptroller.gInflationIndex(), comptroller.INIT_INFLATION_INDEX());
 
-        vm.roll(100);
+        skip(100);
 
         comptroller.updateTotalStaked(address(daiMock), amount);
-        assertEq(comptroller.gLastUpdatedBlock(), block.number);
+        assertEq(comptroller.gLastUpdated(), block.timestamp);
         assert(comptroller.gInflationIndex() != comptroller.INIT_INFLATION_INDEX());
     }
 

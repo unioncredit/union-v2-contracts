@@ -76,11 +76,11 @@ export interface DeployConfig {
         debtCeiling: BigNumberish;
         maxBorrow: BigNumberish;
         minBorrow: BigNumberish;
-        overdueBlocks: BigNumberish;
+        overdueTime: BigNumberish;
         mintFeeRate: BigNumberish;
     };
     fixedInterestRateModel: {
-        interestRatePerBlock: BigNumberish;
+        interestRatePerSecond: BigNumberish;
     };
     comptroller: {
         halfDecayPoint: BigNumberish;
@@ -235,7 +235,7 @@ export default async function (
         fixedInterestRateModel = await deployContract<FixedInterestRateModel>(
             new FixedInterestRateModel__factory(signer),
             "FixedInterestRateModel",
-            [config.fixedInterestRateModel.interestRatePerBlock],
+            [config.fixedInterestRateModel.interestRatePerSecond],
             debug,
             waitForBlocks
         );
@@ -251,7 +251,7 @@ export default async function (
             "UErc20",
             {
                 signature:
-                    "__UToken_init((string name,string symbol,address underlying,uint256 initialExchangeRateMantissa,uint256 reserveFactorMantissa,uint256 originationFee,uint256 originationFeeMax,uint256 debtCeiling,uint256 maxBorrow,uint256 minBorrow,uint256 overdueBlocks,address admin,uint256 mintFeeRate))",
+                    "__UToken_init((string name,string symbol,address underlying,uint256 initialExchangeRateMantissa,uint256 reserveFactorMantissa,uint256 originationFee,uint256 originationFeeMax,uint256 debtCeiling,uint256 maxBorrow,uint256 minBorrow,uint256 overdueTime,address admin,uint256 mintFeeRate))",
                 args: [
                     {
                         name: config.uToken.name,
@@ -264,7 +264,7 @@ export default async function (
                         debtCeiling: config.uToken.debtCeiling,
                         maxBorrow: config.uToken.maxBorrow,
                         minBorrow: config.uToken.minBorrow,
-                        overdueBlocks: config.uToken.overdueBlocks,
+                        overdueTime: config.uToken.overdueTime,
                         admin: config.admin,
                         mintFeeRate: config.uToken.mintFeeRate
                     }

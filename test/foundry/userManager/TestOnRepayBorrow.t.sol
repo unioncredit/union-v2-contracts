@@ -34,7 +34,7 @@ contract TestOnRepayBorrow is TestUserManagerBase {
         uint256 frozenCoinBefore = userManager.frozenCoinAge(STAKER);
 
         vm.startPrank(address(userManager.uToken()));
-        userManager.onRepayBorrow(BORROWER, block.number - 1);
+        userManager.onRepayBorrow(BORROWER, block.timestamp - 1);
         vm.stopPrank();
 
         uint256 frozenCoinAfter = userManager.frozenCoinAge(STAKER);

@@ -132,7 +132,7 @@ contract TestMintRedeem is TestUTokenBase {
 
         uToken.borrow(ALICE, borrowAmount);
         uint256 borrowed = uToken.borrowBalanceView(ALICE);
-        vm.roll(block.number + 1);
+        skip(block.timestamp + 1);
         // Get the interest amount
         uint256 interest = uToken.calculatingInterest(ALICE);
         uint256 repayAmount = borrowed + interest;

@@ -31,11 +31,11 @@ contract TestBorrowRepay is TestUTokenBase {
         uint256 fees = (ORIGINATION_FEE * borrowAmount) / 1 ether;
         assertEq(borrowed, borrowAmount + fees);
 
-        // advance 1 more block
-        vm.roll(block.number + 1);
+        // advance 60 seconds
+        skip(block.timestamp + 60);
 
         // borrowed amount should now include interest
-        uint256 interest = ((borrowAmount + fees) * BORROW_INTEREST_PER_BLOCK) / 1 ether;
+        uint256 interest = (((borrowAmount + fees) * BORROW_INTEREST_PER_BLOCK) * (60 + 1)) / 1 ether;
 
         assertEq(uToken.borrowBalanceView(ALICE), borrowed + interest);
     }
@@ -73,7 +73,7 @@ contract TestBorrowRepay is TestUTokenBase {
         uint256 borrowed = uToken.borrowBalanceView(ALICE);
         assertEq(borrowed, borrowAmount + (ORIGINATION_FEE * borrowAmount) / 1 ether);
 
-        vm.roll(block.number + 1);
+        skip(block.timestamp + 1);
 
         // Get the interest amount
         uint256 interest = uToken.calculatingInterest(ALICE);
@@ -96,7 +96,7 @@ contract TestBorrowRepay is TestUTokenBase {
 
         uToken.borrow(ALICE, borrowAmount);
         // fast forward to overdue block
-        vm.roll(block.number + OVERDUE_BLOCKS + 1);
+        skip(block.timestamp + OVERDUE_TIME + 1);
         assertTrue(uToken.checkIsOverdue(ALICE));
 
         uint256 interest = uToken.calculatingInterest(ALICE);
@@ -118,7 +118,7 @@ contract TestBorrowRepay is TestUTokenBase {
         uToken.borrow(ALICE, borrowAmount);
 
         // fast forward to overdue block
-        vm.roll(block.number + OVERDUE_BLOCKS + 1);
+        skip(block.timestamp + OVERDUE_TIME + 1);
 
         assertTrue(uToken.checkIsOverdue(ALICE));
 
@@ -190,7 +190,7 @@ contract TestBorrowRepay is TestUTokenBase {
         vm.startPrank(ALICE);
         uToken.borrow(ALICE, borrowAmount);
         // fast forward a few blocks to acrue some interest
-        vm.roll(block.number + 10);
+        skip(block.timestamp + 10);
         uint256 interest = uToken.calculatingInterest(ALICE);
         assert(interest > 0);
 

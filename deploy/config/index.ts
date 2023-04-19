@@ -24,7 +24,7 @@ export const baseConfig = {
         }
     },
     userManager: {
-        maxOverdue: "2592000", // 12 x overdueBlocks
+        maxOverdue: "2592000", // in seconds, 30 days
         effectiveCount: "1",
         maxVouchers: "400",
         maxVouchees: "1000"
@@ -39,11 +39,11 @@ export const baseConfig = {
         debtCeiling: parseUnits("250000"),
         maxBorrow: parseUnits("25000"),
         minBorrow: parseUnits("100"),
-        overdueBlocks: "216000", // in blocks, 30 days.
+        overdueTime: "2592000", // in seconds, 30 days.
         mintFeeRate: parseUnits("0.001")
     },
     fixedInterestRateModel: {
-        interestRatePerBlock: "38051750380" // 10% APR, 38051750380 x 7200 (blocks per day) x 365,
+        interestRatePerSecond: "3170979198" // 10% APR, 3170979198 x 86400 (seconds per day) x 365,
     },
     comptroller: {
         halfDecayPoint: "500000"

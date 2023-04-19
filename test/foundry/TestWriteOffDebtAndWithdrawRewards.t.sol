@@ -93,14 +93,13 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
     function testDebtWriteOffAndWithdrawRewards(uint96 borrowAmount) public {
         vm.assume(borrowAmount > 0 && borrowAmount <= stakeAmount / 2);
 
-        uint256 currBlock = block.number;
+        uint256 currTimestamp = block.timestamp;
         uint256 claimedRewards = 0;
 
         // 1st borrow
         vm.prank(address(uTokenMock));
         userManager.updateLocked(borrower, borrowAmount, true);
-
-        vm.roll(++currBlock);
+        skip(++currTimestamp);
 
         // 2nd borrow
         vm.mockCall(
@@ -110,11 +109,9 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
         );
         vm.prank(address(uTokenMock));
         userManager.updateLocked(borrower, borrowAmount, true);
-        uTokenMock.setOverdueBlocks(0);
-        uTokenMock.setLastRepay(currBlock);
-
-        vm.roll(++currBlock);
-
+        uTokenMock.setOverdueTime(0);
+        uTokenMock.setLastRepay(currTimestamp);
+        skip(++currTimestamp);
         // write off debt
         vm.prank(staker);
         userManager.debtWriteOff(staker, borrower, borrowAmount * 2);
@@ -122,28 +119,21 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
 
         // create a snapshot
         uint256 snapshot = vm.snapshot();
-
+        currTimestamp = block.timestamp;
         // withdraw rewards in the same block
         claimedRewards = comptroller.withdrawRewards(staker, address(daiMock));
-
-        vm.roll(++currBlock);
-
-        vm.roll(++currBlock);
-
+        skip(++currTimestamp);
+        skip(++currTimestamp);
         // record the total rewards from the same block rewards withdraw
         uint256 rewardsFromSameBlockWithdraw = claimedRewards + comptroller.calculateRewards(staker, address(daiMock));
 
         // revert back to before claiming the rewards
         vm.revertTo(snapshot);
-        currBlock = block.number;
-
-        vm.roll(++currBlock);
-
+        currTimestamp = block.timestamp;
+        skip(++currTimestamp);
         // withdraw rewards 1 block after the debtWriteOff() call
         claimedRewards = comptroller.withdrawRewards(staker, address(daiMock));
-
-        vm.roll(++currBlock);
-
+        skip(++currTimestamp);
         // record total rewards
         uint256 rewardsFromDiffBlockWithdraw = claimedRewards + comptroller.calculateRewards(staker, address(daiMock));
 

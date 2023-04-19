@@ -47,7 +47,7 @@ describe("Test deployment configs", () => {
             expect(isAdmin).eq(true);
         });
         it("has the correct maxOverdue", async () => {
-            const maxOverdue = await contracts.userManager.maxOverdueBlocks();
+            const maxOverdue = await contracts.userManager.maxOverdueTime();
             expect(maxOverdue).eq(config.userManager.maxOverdue);
         });
         it("has the correct effectiveCount", async () => {
@@ -126,9 +126,9 @@ describe("Test deployment configs", () => {
             const minBorrow = await contracts.uToken.minBorrow();
             expect(minBorrow).eq(config.uToken.minBorrow);
         });
-        it("has the correct overdueBlocks", async () => {
-            const overdueBlocks = await contracts.uToken.overdueBlocks();
-            expect(overdueBlocks).eq(config.uToken.overdueBlocks);
+        it("has the correct overdueTime", async () => {
+            const overdueTime = await contracts.uToken.overdueTime();
+            expect(overdueTime).eq(config.uToken.overdueTime);
         });
         it("has the correct admin", async () => {
             const isAdmin = await contracts.uToken.isAdmin(deployerAddress);

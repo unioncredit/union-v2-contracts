@@ -101,17 +101,17 @@ contract TestSetters is TestUTokenBase {
         assertEq(newMaxBorrow, maxBorrow);
     }
 
-    function testCannotSetOverdueBlocksNotAdmin(uint256 overdueBlocks) public {
+    function testCannotSetOverdueBlocksNotAdmin(uint256 overdueTime) public {
         vm.expectRevert(Controller.SenderNotAdmin.selector);
-        uToken.setOverdueBlocks(overdueBlocks);
+        uToken.setOverdueTime(overdueTime);
     }
 
-    function testSetOverdueBlocks(uint256 overdueBlocks) public {
+    function testSetOverdueBlocks(uint256 overdueTime) public {
         vm.startPrank(ADMIN);
-        uToken.setOverdueBlocks(overdueBlocks);
+        uToken.setOverdueTime(overdueTime);
         vm.stopPrank();
-        uint256 newOverdueBlocks = uToken.overdueBlocks();
-        assertEq(newOverdueBlocks, overdueBlocks);
+        uint256 newOverdueBlocks = uToken.overdueTime();
+        assertEq(newOverdueBlocks, overdueTime);
     }
 
     function testCannotSetInterestRateModelNotAdmin(address interestRateModel) public {

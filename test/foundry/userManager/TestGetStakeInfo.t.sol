@@ -21,34 +21,37 @@ contract TestGetStakeInfo is TestUserManagerBase {
 
     //last operate repay
     function testGetStakeInfo() public {
+        uint startTimestamp = block.timestamp;
+        uint overdueTime = 1;
         vm.prank(address(userManager.uToken()));
-        vm.roll(1); //block number 1
+        skip(1); //block number 1
+        uint lockedTimestamp = block.timestamp;
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        uTokenMock.setOverdueBlocks(1); //OverdueBlocks = 1
+        uTokenMock.setOverdueTime(overdueTime);
         uTokenMock.setLastRepay(2); //lastRepay = 2,overdueBlockNumber = lastRepay + OverdueBlocks = 3
-        vm.roll(4); //block number 4
-
+        skip(4); //block number 4
+        uint endTimestamp = block.timestamp;
         (, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this));
 
-        uint256 expectStakedCoinAge = stakeAmount * (4 - 1);
-        uint256 expectLockedCoinAge = lockAmount * (4 - 1);
-        uint256 expectFrozenCoinAge = lockAmount * (4 - 3);
-        uint256 expectStaked = (expectStakedCoinAge - expectFrozenCoinAge) / 3;
-        uint256 expectLocked = (expectLockedCoinAge - expectFrozenCoinAge) / 3;
+        uint256 expectStakedCoinAge = stakeAmount * (endTimestamp - startTimestamp);
+        uint256 expectLockedCoinAge = lockAmount * (endTimestamp - lockedTimestamp);
+        uint256 expectFrozenCoinAge = lockAmount * (endTimestamp - startTimestamp - overdueTime - 1);
+        uint256 expectStaked = (expectStakedCoinAge - expectFrozenCoinAge) / (endTimestamp - startTimestamp);
+        uint256 expectLocked = (expectLockedCoinAge - expectFrozenCoinAge) / (endTimestamp - startTimestamp);
         assertEq(effectiveStaked, expectStaked);
         assertEq(effectiveLocked, expectLocked);
     }
 
     //last operate stake or unstake
     function testGetStakeInfo2() public {
-        vm.roll(1); //block number 1
+        skip(1); //block number 1
         vm.prank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        uTokenMock.setOverdueBlocks(1); //OverdueBlocks = 1
+        uTokenMock.setOverdueTime(1); //OverdueBlocks = 1
         uTokenMock.setLastRepay(2); //lastRepay = 2,overdueBlockNumber = lastRepay + OverdueBlocks = 3
-        vm.roll(4); //block number 4
+        skip(4); //block number 4
         userManager.unstake(stakeAmount / 2); //The reward is withdrawn, and the coinage is cleared to 0
-        vm.roll(5); //block number 5
+        skip(5); //block number 5
 
         (, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this));
 
@@ -64,23 +67,29 @@ contract TestGetStakeInfo is TestUserManagerBase {
 
     //last operate update locked
     function testGetStakeInfo3() public {
-        vm.roll(1); //block number 1
+        uint startTimestamp = block.timestamp;
+        uint overdueTime = 2;
+        skip(1); //block number 1
         vm.prank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        uTokenMock.setOverdueBlocks(2); //OverdueBlocks = 2
+        uTokenMock.setOverdueTime(overdueTime); //
         uTokenMock.setLastRepay(2); //lastRepay = 2,overdueBlockNumber = lastRepay + OverdueBlocks = 4
-        vm.roll(3); //block number 3
+        skip(3); //block number 3
         vm.prank(address(userManager.uToken()));
+        uint lockedTimestamp = block.timestamp;
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        vm.roll(5); //block number 5
-
+        skip(5); //block number 5
+        uint endTimestamp = block.timestamp;
         (, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this));
 
-        uint256 expectStakedCoinAge = stakeAmount * (5 - 1);
-        uint256 expectLockedCoinAge = lockAmount * (3 - 1) + (lockAmount + lockAmount) * (5 - 3); //The lockedcoinage is updated on the block no 3
-        uint256 expectFrozenCoinAge = (lockAmount + lockAmount) * (5 - 4);
-        uint256 expectStaked = (expectStakedCoinAge - expectFrozenCoinAge) / (5 - 1);
-        uint256 expectLocked = (expectLockedCoinAge - expectFrozenCoinAge) / (5 - 1);
+        uint256 expectStakedCoinAge = stakeAmount * (endTimestamp - startTimestamp);
+        uint256 expectLockedCoinAge = lockAmount *
+            (lockedTimestamp - startTimestamp - 1) +
+            (lockAmount + lockAmount) *
+            (endTimestamp - lockedTimestamp); //The lockedcoinage is updated on the block no 3
+        uint256 expectFrozenCoinAge = (lockAmount + lockAmount) * (endTimestamp - startTimestamp - overdueTime - 1);
+        uint256 expectStaked = (expectStakedCoinAge - expectFrozenCoinAge) / (endTimestamp - startTimestamp);
+        uint256 expectLocked = (expectLockedCoinAge - expectFrozenCoinAge) / (endTimestamp - startTimestamp);
         assertEq(effectiveStaked, expectStaked);
         assertEq(effectiveLocked, expectLocked);
     }

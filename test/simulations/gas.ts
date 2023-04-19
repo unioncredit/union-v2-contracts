@@ -180,7 +180,7 @@ describe("Max gas", () => {
             const stakerAddress = await staker.getAddress();
 
             await contracts.uToken.setMinBorrow(0);
-            await contracts.uToken.setOverdueBlocks(0);
+            await contracts.uToken.setOverdueTime(0);
 
             const stakeAmount = parseUnits("10000");
             await getDai(contracts.dai, staker, stakeAmount.mul(2));
