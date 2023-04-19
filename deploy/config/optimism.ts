@@ -2,28 +2,6 @@ import {parseUnits} from "ethers/lib/utils";
 import {DeployConfig} from "../index";
 
 export default {
-    userManager: {
-        maxOverdue: "2592000", // in blocks, 60 days
-        effectiveCount: "1",
-        maxVouchers: "400",
-        maxVouchees: "1000"
-    },
-    uToken: {
-        name: "uDAI",
-        symbol: "uDAI",
-        initialExchangeRateMantissa: parseUnits("1"),
-        reserveFactorMantissa: parseUnits("1"),
-        originationFee: parseUnits("0.005"),
-        originationFeeMax: parseUnits("0.5"),
-        debtCeiling: parseUnits("250000"),
-        maxBorrow: parseUnits("25000"),
-        minBorrow: parseUnits("100"),
-        overdueBlocks: "1296000", // in blocks, 30 days
-        mintFeeRate: parseUnits("0")
-    },
-    fixedInterestRateModel: {
-        interestRatePerBlock: "6341958397" // 10% APR, 6341958397 x 43200 (blocks per day) x 365,
-    },
     addresses: {
         guardian: "",
         unionToken: "0x5Dfe42eEA70a3e6f93EE54eD9C321aF07A85535C",

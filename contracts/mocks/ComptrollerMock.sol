@@ -9,7 +9,7 @@ contract ComptrollerMock is IComptroller {
 
     function setHalfDecayPoint(uint256) external {}
 
-    function inflationPerBlock(uint256) external pure returns (uint256) {}
+    function inflationPerSecond(uint256) external pure returns (uint256) {}
 
     function getRewardsMultiplier(address, address) external pure override returns (uint256) {
         return 0;

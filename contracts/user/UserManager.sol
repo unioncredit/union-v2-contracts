@@ -279,7 +279,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      *  @param oldMaxOverdueTime Old value
      *  @param newMaxOverdueTime New value
      */
-    event LogSetMaxOverdueBlocks(uint256 oldMaxOverdueTime, uint256 newMaxOverdueTime);
+    event LogSetMaxOverdueTime(uint256 oldMaxOverdueTime, uint256 newMaxOverdueTime);
 
     /**
      *  @dev set effective count
@@ -382,13 +382,13 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
 
     /**
      * @dev set New max overdue blocks
-     * Emits {LogSetMaxOverdueBlocks} event
+     * Emits {LogSetMaxOverdueTime} event
      * @param _maxOverdueTime New maxOverdueTime value
      */
     function setMaxOverdueTime(uint256 _maxOverdueTime) external onlyAdmin {
         uint256 oldMaxOverdueTime = maxOverdueTime;
         maxOverdueTime = _maxOverdueTime;
-        emit LogSetMaxOverdueBlocks(oldMaxOverdueTime, _maxOverdueTime);
+        emit LogSetMaxOverdueTime(oldMaxOverdueTime, _maxOverdueTime);
     }
 
     /**
