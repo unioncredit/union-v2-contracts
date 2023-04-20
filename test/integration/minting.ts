@@ -85,7 +85,7 @@ describe("Minting and redeeming uToken", () => {
             //exchangeRate does not change at 100%
             await contracts.uToken.setReserveFactor("50"); //50%
 
-            const interestRatePerBlock = await contracts.fixedInterestRateModel.interestRatePerBlock();
+            const interestRatePerSecond = await contracts.fixedInterestRateModel.interestRatePerSecond();
             const reserveFactorMantissa = await contracts.uToken.reserveFactorMantissa();
             const originationFee = await contracts.uToken.originationFee();
             const mintAmount = parseUnits("100");
@@ -103,13 +103,13 @@ describe("Minting and redeeming uToken", () => {
             let exchangeRateStored = await contracts.uToken.exchangeRateStored();
             const expeOriginationFee = borrowAmount.mul(originationFee).div(WAD);
             const expectInterest = borrowAmount
-                .mul(interestRatePerBlock)
+                .mul(interestRatePerSecond)
                 .mul(BigNumber.from(blocks + 1))
                 .div(WAD);
             const expectRedeemable = expectInterest
                 .add(
                     expeOriginationFee
-                        .mul(interestRatePerBlock)
+                        .mul(interestRatePerSecond)
                         .mul(BigNumber.from(blocks + 1))
                         .div(WAD)
                 )

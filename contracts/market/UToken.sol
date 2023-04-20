@@ -64,7 +64,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public constant MIN_MINT_AMOUNT = 1e18;
 
     /**
-     * @dev Maximum borrow rate that can ever be applied (.005% / block)
+     * @dev Maximum borrow rate that can ever be applied (.005% / 12 second)
      */
     uint256 internal constant BORROW_RATE_MAX_MANTISSA = 4_166_666_666_667; // 0.005e16 / 12
 
