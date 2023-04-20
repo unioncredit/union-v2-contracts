@@ -51,7 +51,7 @@
         "overdueBlocks": "216000"
     },
     "fixedInterestRateModel": {
-        "interestRatePerBlock": "3170979198"
+        "interestRatePerSecond": "3170979198"
     },
     "comptroller": {
         "halfDecayPoint": "500000"
