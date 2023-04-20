@@ -2375,7 +2375,7 @@ const uTokenABI = [
     },
     {
         inputs: [],
-        name: "borrowRatePerBlock",
+        name: "borrowRatePerSecond",
         outputs: [
             {
                 internalType: "uint256",
@@ -3139,7 +3139,7 @@ const uTokenABI = [
     },
     {
         inputs: [],
-        name: "supplyRatePerBlock",
+        name: "supplyRatePerSecond",
         outputs: [
             {
                 internalType: "uint256",

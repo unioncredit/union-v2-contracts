@@ -179,7 +179,7 @@ contract Comptroller is Controller, IComptroller {
     }
 
     /**
-     *  @dev Calculate inflation per block
+     *  @dev Calculate inflation per second
      *  @param effectiveTotalStake Effective total stake
      *  @return Inflation amount, div totalSupply is the inflation rate
      */
@@ -294,7 +294,7 @@ contract Comptroller is Controller, IComptroller {
     }
 
     /**
-     *  @dev Calculate new inflation index based on # of blocks
+     *  @dev Calculate new inflation index based on # of seconds
      *  @param totalStaked_ Number of total staked tokens in the system
      *  @param timeDelta Number of seconds passed
      *  @return New inflation index

@@ -67,7 +67,7 @@
         }
     },
     "fixedInterestRateModel": {
-        "interestRatePerBlock": "38051750380"
+        "interestRatePerBlock": "3170979198"
     },
     "comptroller": {
         "halfDecayPoint": "500000"

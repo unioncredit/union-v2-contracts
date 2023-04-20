@@ -66,7 +66,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     /**
      * @dev Maximum borrow rate that can ever be applied (.005% / block)
      */
-    uint256 internal constant BORROW_RATE_MAX_MANTISSA = 0.005e16;
+    uint256 internal constant BORROW_RATE_MAX_MANTISSA = 4_166_666_666_667; // 0.005e16 / 12
 
     /**
      *  @dev Maximum fraction of interest that can be set aside for reserves
@@ -356,10 +356,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     /**
      *  @dev Change loan overdue duration, in seconds
      *  Accept claims only from the admin
-     *  @param overdueBlocks_ Maximum late repayment block. The number of arrivals is a default
+     *  @param overdueTime_ Maximum late repayment time. The number of arrivals is a default
      */
-    function setOverdueTime(uint256 overdueBlocks_) external override onlyAdmin {
-        overdueTime = overdueBlocks_;
+    function setOverdueTime(uint256 overdueTime_) external override onlyAdmin {
+        overdueTime = overdueTime_;
     }
 
     /**
@@ -409,7 +409,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     *  @dev Get the last repay block
+     *  @dev Get the last repay time
      *  @param account Member address
      *  @return lastRepay
      */
@@ -477,10 +477,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     *  @dev Get the borrowing interest rate per block
+     *  @dev Get the borrowing interest rate per second
      *  @return Borrow rate
      */
-    function borrowRatePerBlock() public view override returns (uint256) {
+    function borrowRatePerSecond() public view override returns (uint256) {
         uint256 borrowRateMantissa = interestRateModel.getBorrowRate();
         if (borrowRateMantissa > BORROW_RATE_MAX_MANTISSA) revert BorrowRateExceedLimit();
 
@@ -488,10 +488,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     * @notice Returns the current per-block supply interest rate for this UToken
-     * @return The supply interest rate per block, scaled by 1e18
+     * @notice Returns the current per-second supply interest rate for this UToken
+     * @return The supply interest rate per second, scaled by 1e18
      */
-    function supplyRatePerBlock() external view override returns (uint256) {
+    function supplyRatePerSecond() external view override returns (uint256) {
         return interestRateModel.getSupplyRate(reserveFactorMantissa);
     }
 
@@ -517,7 +517,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             return 0;
         }
 
-        uint256 borrowRate = borrowRatePerBlock();
+        uint256 borrowRate = borrowRatePerSecond();
         uint256 currentTimestamp = getTimestamp();
         uint256 timeDelta = currentTimestamp - accrualTimestamp;
         uint256 simpleInterestFactor = borrowRate * timeDelta;
@@ -572,7 +572,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         uint256 borrowedAmount = borrowBalanceStoredInternal(msg.sender);
 
-        // Initialize the last repayment date to the current block number
+        // Initialize the last repayment date to the current block timestamp
         if (getLastRepay(msg.sender) == 0) {
             accountBorrows[msg.sender].lastRepay = getTimestamp();
         }
@@ -673,11 +673,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             IUserManager(userManager).updateLocked(borrower, repayAmount - interest, false);
 
             if (getBorrowed(borrower) == 0) {
-                // If the principal is now 0 we can reset the last repaid block to 0.
+                // If the principal is now 0 we can reset the last repaid time to 0.
                 // which indicates that the borrower has no outstanding loans.
                 accountBorrows[borrower].lastRepay = 0;
             } else {
-                // Save the current block number as last repaid
+                // Save the current block timestamp as last repaid
                 accountBorrows[borrower].lastRepay = currTime;
             }
         } else {
@@ -707,7 +707,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @return Accrue interest finished
      */
     function accrueInterest() public override returns (bool) {
-        uint256 borrowRate = borrowRatePerBlock();
+        uint256 borrowRate = borrowRatePerSecond();
         uint256 currentTimestamp = getTimestamp();
         uint256 timeDelta = currentTimestamp - accrualTimestamp;
 
@@ -730,7 +730,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         totalBorrows -= repayAmount;
 
         if (repayAmount == oldPrincipal) {
-            // If all principal is written off, we can reset the last repaid block to 0.
+            // If all principal is written off, we can reset the last repaid time to 0.
             // which indicates that the borrower has no outstanding loans.
             accountBorrows[borrower].lastRepay = 0;
         }
