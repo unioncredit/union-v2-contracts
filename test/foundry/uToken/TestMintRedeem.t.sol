@@ -12,7 +12,7 @@ contract TestMintRedeem is TestUTokenBase {
     function testSupplyRate() public {
         uint256 reserveFactorMantissa = uToken.reserveFactorMantissa();
         uint256 expectSupplyRate = (BORROW_INTEREST_PER_BLOCK * (1 ether - reserveFactorMantissa)) / 1 ether;
-        assertEq(expectSupplyRate, uToken.supplyRatePerBlock());
+        assertEq(expectSupplyRate, uToken.supplyRatePerSecond());
     }
 
     function testMintUTokenWithMintFee(uint256 mintAmount, uint256 mintFeeRate) public {

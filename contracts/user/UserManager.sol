@@ -381,7 +381,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev set New max overdue blocks
+     * @dev set New max overdue timestamp
      * Emits {LogSetMaxOverdueTime} event
      * @param _maxOverdueTime New maxOverdueTime value
      */
@@ -981,8 +981,9 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         uint256 memberTotalFrozen = 0;
         (effectiveStaked, effectiveLocked, memberTotalFrozen) = _getEffectiveAmounts(staker);
         stakers[staker].stakedCoinAge = 0;
-        stakers[staker].lastUpdated = (getTimestamp()).toUint64();
-        gLastWithdrawRewards[staker] = getTimestamp();
+        uint256 currTime = getTimestamp();
+        stakers[staker].lastUpdated = currTime.toUint64();
+        gLastWithdrawRewards[staker] = currTime;
         stakers[staker].lockedCoinAge = 0;
         frozenCoinAge[staker] = 0;
 
@@ -1088,7 +1089,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @dev Calculate a staker's frozen coin age
      * @param currTime Current timestamp
      * @param locked Stakers locked amount
-     * @param lastStakeUpdated Block number when staked coin age is updated
+     * @param lastStakeUpdated Block timestamp when staked coin age is updated
      * @param overdueTime Loan over due period in seconds
      */
     function _calcFrozenCoinAge(
@@ -1104,8 +1105,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @dev Calculate a staker's locked coin age
      * @param currTime Current timestamp
      * @param locked Stakers locked amount
-     * @param lastStakeUpdated Block number when staked coin age is updated
-     * @param lastLockedUpdated Block number when locked coin age is updated
+     * @param lastStakeUpdated Block timestamp when staked coin age is updated
+     * @param lastLockedUpdated Block timestamp when locked coin age is updated
      */
     function _calcLockedCoinAge(
         uint256 currTime,
@@ -1120,7 +1121,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      * @dev Calculate a staker's staked coin age
      * @param currTime Current timestamp
      * @param stakedAmount Stakers staked amount
-     * @param lastStakeUpdated Block number when staked coin age is updated
+     * @param lastStakeUpdated Block timestamp when staked coin age is updated
      */
     function _calcStakedCoinAge(
         uint256 currTime,

@@ -24,7 +24,7 @@ interface IUToken {
 
     function checkIsOverdue(address account) external view returns (bool);
 
-    function borrowRatePerBlock() external view returns (uint256);
+    function borrowRatePerSecond() external view returns (uint256);
 
     function calculatingFee(uint256 amount) external view returns (uint256);
 
@@ -46,7 +46,7 @@ interface IUToken {
 
     function setReserveFactor(uint256 reserveFactorMantissa_) external;
 
-    function supplyRatePerBlock() external returns (uint256);
+    function supplyRatePerSecond() external returns (uint256);
 
     function accrueInterest() external returns (bool);
 
