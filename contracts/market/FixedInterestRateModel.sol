@@ -62,8 +62,8 @@ contract FixedInterestRateModel is Ownable, IInterestRateModel {
 
     /**
      * @dev Get supply rate for given reserve factor
-     * @dev If reserve factor is 100% interest acres to the reserves
-     * @dev If reserves factor is 0 interest acres to uDAI minters
+     * @dev If reserve factor is 100% interest accrued to the reserves
+     * @dev If reserves factor is 0 interest accrued to uDAI minters
      * @param reserveFactorMantissa The reserve factor (scaled)
      */
     function getSupplyRate(uint256 reserveFactorMantissa) public view override returns (uint256) {

@@ -250,7 +250,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @dev Get the supported lending protocol
      *  @param tokenAddress ERC20 token address
      *  @param marketId MoneyMarkets array index
-     *  @return rate tokenSupply, rate(compound is supplyRatePerSecond 1e18, aave is supplyRatePerYear 1e27)
+     *  @return rate tokenSupply, rate(compound is supplyRatePerBlock 1e18, aave is supplyRatePerYear 1e27)
      */
     function getMoneyMarket(
         address tokenAddress,
