@@ -115,7 +115,7 @@ describe("Borrowing and repaying", () => {
     });
 
     context("Member repays debt", () => {
-        before(async () => {
+        beforeEach(async () => {
             await beforeContext();
             await contracts.uToken.addReserves(mintAmount);
             await helpers.updateTrust(staker, borrower, mintAmount);
