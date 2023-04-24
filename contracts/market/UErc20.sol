@@ -20,20 +20,4 @@ contract UErc20 is UToken {
         uint256 interest = calculatingInterest(borrower);
         _repayBorrowFresh(msg.sender, borrower, amount, interest);
     }
-
-    function repayInterestWithPermit(
-        address borrower,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external whenNotPaused {
-        IERC20Permit erc20Token = IERC20Permit(underlying);
-        
-        if (!accrueInterest()) revert AccrueInterestFailed();
-        uint256 interest = calculatingInterest(borrower);
-
-        erc20Token.permit(msg.sender, address(this), interest, deadline, v, r, s);
-        _repayBorrowFresh(msg.sender, borrower, interest, interest);
-    }
 }
