@@ -24,7 +24,7 @@ export const baseConfig = {
         }
     },
     userManager: {
-        maxOverdue: "2592000", // in seconds, 30 days
+        maxOverdue: "5184000", // in seconds, 60 days
         effectiveCount: "1",
         maxVouchers: "400",
         maxVouchees: "1000"
