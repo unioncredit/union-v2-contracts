@@ -2,7 +2,7 @@ import "./testSetup";
 
 import {expect} from "chai";
 import {ethers} from "hardhat";
-import {Signer} from "ethers";
+import {Signer, BigNumber} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
 
 import error from "../utils/error";
@@ -147,10 +147,18 @@ describe("Staking and unstaking", () => {
                 contracts.dai.address
             );
             const balanceBefore = await contracts.unionToken.balanceOf(deployerAddress);
+            const blockNumBefore = await ethers.provider.getBlockNumber();
+            const blockBefore = await ethers.provider.getBlock(blockNumBefore);
+            const timestampBefore = blockBefore.timestamp;
             await contracts.userManager.stake(1);
             const balanceAfter = await contracts.unionToken.balanceOf(deployerAddress);
+            const blockNumAfter = await ethers.provider.getBlockNumber();
+            const blockAfter = await ethers.provider.getBlock(blockNumAfter);
+            const timestampAfter = blockAfter.timestamp;
             // 2 blocks rewards
-            expect(balanceAfter.sub(balanceBefore)).eq(rewardsPerBlock.mul("2"));
+            expect(balanceAfter.sub(balanceBefore)).eq(
+                rewardsPerBlock.mul(BigNumber.from(timestampAfter - timestampBefore + 1))
+            );
         });
         it("large staker has more rewards than small staker", async () => {
             const [, shrimp, whale] = accounts;
