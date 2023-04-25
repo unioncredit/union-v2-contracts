@@ -1,6 +1,9 @@
 import {DeployConfig} from "../index";
 
 export default {
+    comptroller: {
+        halfDecayPoint: "1000"
+    },
     addresses: {
         guardian: "0xF7dc916eC6ee854b3a32f5D8DcF2ED0582e05Dc3",
         unionToken: "0x5Dfe42eEA70a3e6f93EE54eD9C321aF07A85535C",
