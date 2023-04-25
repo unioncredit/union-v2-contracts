@@ -1,8 +1,29 @@
 import {DeployConfig} from "../index";
 
 export default {
+    uToken: {
+        name: "uDAI",
+        symbol: "uDAI",
+        initialExchangeRateMantissa: parseUnits("1"),
+        reserveFactorMantissa: parseUnits("1"),
+        originationFee: parseUnits("0.005"),
+        originationFeeMax: parseUnits("0.5"),
+        debtCeiling: parseUnits("250000"),
+        maxBorrow: parseUnits("25000"),
+        minBorrow: parseUnits("1"),
+        overdueTime: "2592000", // in seconds, 30 days.
+        mintFeeRate: parseUnits("0")
+    },
     comptroller: {
         halfDecayPoint: "1000"
+    },
+    pureAdapter: {
+        floor: parseUnits("1000"),
+        ceiling: parseUnits("1000000000")
+    },
+    aaveAdapter: {
+        floor: parseUnits("1000"),
+        ceiling: parseUnits("100000")
     },
     addresses: {
         guardian: "0xF7dc916eC6ee854b3a32f5D8DcF2ED0582e05Dc3",
