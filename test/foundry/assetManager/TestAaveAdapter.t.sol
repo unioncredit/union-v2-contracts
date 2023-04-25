@@ -76,6 +76,7 @@ contract TestAaveV3Adapter is TestWrapper {
     }
 
     function testMapTokenToAToken(address token) public {
+        vm.assume(token != address(vm)); // exclude vm address
         vm.prank(ADMIN);
         vm.mockCall(
             token,
