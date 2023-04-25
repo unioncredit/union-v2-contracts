@@ -21,6 +21,12 @@ export default {
         },
         "optimism-goerli": {
             url: process.env.NODE_URL || "https://goerli.optimism.io"
+        },
+        optimism: {
+            url: process.env.NODE_URL || "https://optimism-mainnet.infura.io"
+        },
+        mainnet: {
+            url: process.env.NODE_URL || "https://mainnet.infura.io/v3/"
         }
     },
     solidity: {

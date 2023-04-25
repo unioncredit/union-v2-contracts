@@ -16,6 +16,12 @@ import localConfig from "./local";
 // Optimism testnet configs
 import optimismGoerliConfig from "./optimism-goerli";
 
+// Optimism configs
+import optimismConfig from "./optimism";
+
+// Mainnet configs
+import mainnetConfig from "./mainnet";
+
 export const baseConfig = {
     addresses: {
         aave: {
@@ -70,6 +76,10 @@ export const getConfig = () => {
             return {...baseConfig, ...localConfig};
         case "optimism-goerli":
             return {...baseConfig, ...optimismGoerliConfig};
+        case "optimism":
+            return {...baseConfig, ...optimismConfig};
+        case "mainnet":
+            return {...baseConfig, ...mainnetConfig};
         default:
             return baseConfig;
     }

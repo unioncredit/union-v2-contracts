@@ -1,3 +1,4 @@
+import {parseUnits} from "ethers/lib/utils";
 import {DeployConfig} from "../index";
 
 export default {
