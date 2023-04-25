@@ -48,7 +48,7 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
         return false;
     }
 
-    function borrowRatePerBlock() external pure override returns (uint256) {
+    function borrowRatePerSecond() external pure override returns (uint256) {
         return 0;
     }
 
@@ -76,7 +76,7 @@ contract UTokenMock is ERC20("uTokenMock", "UMOCK"), IUToken {
 
     function setReserveFactor(uint256) external override {}
 
-    function supplyRatePerBlock() external pure override returns (uint256) {
+    function supplyRatePerSecond() external pure override returns (uint256) {
         return 1;
     }
 
