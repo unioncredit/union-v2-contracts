@@ -81,9 +81,8 @@ contract TestStakeAndUnstake is TestUserManagerBase {
             abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, MEMBER, amount),
             abi.encode(1 ether)
         );
+        vm.expectRevert(UserManager.AssetManagerWithdrawFailed.selector);
         userManager.unstake(amount);
-        uint256 stakeAmount = userManager.getStakerBalance(MEMBER);
-        assertEq(stakeAmount, 1 ether);
         vm.stopPrank();
     }
 }
