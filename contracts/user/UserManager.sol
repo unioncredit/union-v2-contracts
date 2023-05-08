@@ -717,15 +717,14 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
         comptroller.withdrawRewards(msg.sender, stakingToken);
 
         uint256 remaining = IAssetManager(assetManager).withdraw(stakingToken, msg.sender, amount);
-        if (remaining > amount) {
+        if (remaining > 0) {
             revert AssetManagerWithdrawFailed();
         }
-        uint96 actualAmount = amount - remaining.toUint96();
 
-        staker.stakedAmount -= actualAmount;
-        totalStaked -= actualAmount;
+        staker.stakedAmount -= amount;
+        totalStaked -= amount;
 
-        emit LogUnstake(msg.sender, actualAmount);
+        emit LogUnstake(msg.sender, amount);
     }
 
     /**

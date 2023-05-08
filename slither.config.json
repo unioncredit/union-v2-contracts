@@ -1,5 +1,5 @@
 {
-    "detectors_to_exclude": "external-function|naming-convention|similar-names",
+    "detectors_to_exclude": "external-function|naming-convention|similar-names|solc-version",
     "exclude_informational": true,
     "exclude_low": true,
     "exclude_medium": false,
