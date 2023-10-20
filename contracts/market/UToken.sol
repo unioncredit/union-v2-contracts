@@ -6,6 +6,7 @@ import {ERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import {Controller} from "../Controller.sol";
 import {IUserManager} from "../interfaces/IUserManager.sol";
@@ -19,6 +20,7 @@ import {IInterestRateModel} from "../interfaces/IInterestRateModel.sol";
  */
 contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCastUpgradeable for uint256;
 
     /* -------------------------------------------------------------------
       Types 
@@ -31,6 +33,22 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 lastRepay; //Calculate if it is overdue
     }
 
+    struct InitParams {
+        string name;
+        string symbol;
+        address underlying;
+        uint256 initialExchangeRateMantissa;
+        uint256 reserveFactorMantissa;
+        uint256 originationFee;
+        uint256 originationFeeMax;
+        uint256 debtCeiling;
+        uint256 maxBorrow;
+        uint256 minBorrow;
+        uint256 overdueTime;
+        address admin;
+        uint256 mintFeeRate;
+    }
+
     /* -------------------------------------------------------------------
       Storage 
     ------------------------------------------------------------------- */
@@ -41,9 +59,14 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public constant WAD = 1e18;
 
     /**
-     * @dev Maximum borrow rate that can ever be applied (.005% / block)
+     *  @dev Minimum mint amount
      */
-    uint256 internal constant BORROW_RATE_MAX_MANTISSA = 0.005e16;
+    uint256 public constant MIN_MINT_AMOUNT = 1e18;
+
+    /**
+     * @dev Maximum borrow rate that can ever be applied (.005% / 12 second)
+     */
+    uint256 internal constant BORROW_RATE_MAX_MANTISSA = 4_166_666_666_667; // 0.005e16 / 12
 
     /**
      *  @dev Maximum fraction of interest that can be set aside for reserves
@@ -61,9 +84,9 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public reserveFactorMantissa;
 
     /**
-     *  @dev Block number that interest was last accrued at
+     *  @dev Block timestamp that interest was last accrued at
      */
-    uint256 public accrualBlockNumber;
+    uint256 public accrualTimestamp;
 
     /**
      *  @dev Accumulator of the total earned interest rate since the opening of the market
@@ -76,7 +99,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public totalBorrows;
 
     /**
-     *  @dev Total amount of reserves of the underlying held in this marke
+     *  @dev Total amount of reserves of the underlying held in this market
      */
     uint256 public totalReserves;
 
@@ -86,14 +109,19 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     uint256 public totalRedeemable;
 
     /**
-     *  @dev overdue duration, based on the number of blocks
+     *  @dev overdue duration, in seconds
      */
-    uint256 public override overdueBlocks;
+    uint256 public override overdueTime;
 
     /**
      *  @dev fee paid at loan origin
      */
     uint256 public originationFee;
+
+    /**
+     * @dev The max allowed value for originationFee
+     */
+    uint256 public originationFeeMax;
 
     /**
      *  @dev The debt limit for the whole system
@@ -135,25 +163,33 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      */
     mapping(address => BorrowSnapshot) internal accountBorrows;
 
+    /**
+     *  @dev fee charged on minting UToken to prevent frontrun attack on repayments
+     */
+    uint256 public mintFeeRate;
+
     /* -------------------------------------------------------------------
       Errors 
     ------------------------------------------------------------------- */
 
     error AccrueInterestFailed();
+    error AccrueBlockParity();
     error AmountExceedGlobalMax();
     error AmountExceedMaxBorrow();
     error AmountLessMinBorrow();
+    error AmountError();
     error AmountZero();
     error BorrowRateExceedLimit();
     error WithdrawFailed();
     error CallerNotMember();
     error CallerNotUserManager();
-    error ContractNotInterestModel();
     error InitExchangeRateNotZero();
     error InsufficientFundsLeft();
     error MemberIsOverdue();
     error ReserveFactoryExceedLimit();
     error DepositToAssetManagerFailed();
+    error OriginationFeeExceedLimit();
+    error MintFeeError();
 
     /* -------------------------------------------------------------------
       Events 
@@ -177,7 +213,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     /**
      *  @dev Redeem token for uToken
      */
-    event LogRedeem(address redeemer, uint256 redeemTokensIn, uint256 redeemAmountIn, uint256 redeemAmount);
+    event LogRedeem(address redeemer, uint256 amountIn, uint256 amountOut, uint256 uTokenAmount, uint256 redeemAmount);
 
     /**
      *  @dev Token added to the reserves
@@ -189,7 +225,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
     /**
      *  @dev Token removed from the reserves
-     *  @param receiver reciever address of tokens
+     *  @param receiver receiver address of tokens
      *  @param reduceAmount amount of tokens to withdraw
      *  @param totalReservesNew new total reserves amount
      */
@@ -209,6 +245,13 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param amount Repay amount
      */
     event LogRepay(address indexed payer, address indexed account, uint256 amount);
+
+    /**
+     *  @dev Event minter fee rate change
+     *  @param oldRate Old rate
+     *  @param newRate New rate
+     */
+    event LogMintFeeRateChanged(uint256 oldRate, uint256 newRate);
 
     /* -------------------------------------------------------------------
       Modifiers 
@@ -231,34 +274,25 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
-    function __UToken_init(
-        string memory name_,
-        string memory symbol_,
-        address underlying_,
-        uint256 initialExchangeRateMantissa_,
-        uint256 reserveFactorMantissa_,
-        uint256 originationFee_,
-        uint256 debtCeiling_,
-        uint256 maxBorrow_,
-        uint256 minBorrow_,
-        uint256 overdueBlocks_,
-        address admin_
-    ) public initializer {
-        if (initialExchangeRateMantissa_ == 0) revert InitExchangeRateNotZero();
-        if (reserveFactorMantissa_ > RESERVE_FACTORY_MAX_MANTISSA) revert ReserveFactoryExceedLimit();
-        Controller.__Controller_init(admin_);
-        ERC20Upgradeable.__ERC20_init(name_, symbol_);
-        ERC20PermitUpgradeable.__ERC20Permit_init(name_);
+    function __UToken_init(InitParams memory params) public initializer {
+        if (params.initialExchangeRateMantissa == 0) revert InitExchangeRateNotZero();
+        if (params.reserveFactorMantissa > RESERVE_FACTORY_MAX_MANTISSA) revert ReserveFactoryExceedLimit();
+        Controller.__Controller_init(params.admin);
+        ERC20Upgradeable.__ERC20_init(params.name, params.symbol);
+        ERC20PermitUpgradeable.__ERC20Permit_init(params.name);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
-        underlying = underlying_;
-        originationFee = originationFee_;
-        debtCeiling = debtCeiling_;
-        maxBorrow = maxBorrow_;
-        minBorrow = minBorrow_;
-        overdueBlocks = overdueBlocks_;
-        initialExchangeRateMantissa = initialExchangeRateMantissa_;
-        reserveFactorMantissa = reserveFactorMantissa_;
-        accrualBlockNumber = getBlockNumber();
+        underlying = params.underlying;
+        originationFee = params.originationFee;
+        originationFeeMax = params.originationFeeMax;
+        debtCeiling = params.debtCeiling;
+        maxBorrow = params.maxBorrow;
+        minBorrow = params.minBorrow;
+        overdueTime = params.overdueTime;
+        initialExchangeRateMantissa = params.initialExchangeRateMantissa;
+        reserveFactorMantissa = params.reserveFactorMantissa;
+        mintFeeRate = params.mintFeeRate;
+
+        accrualTimestamp = getTimestamp();
         borrowIndex = WAD;
     }
 
@@ -288,6 +322,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @param originationFee_ Fees deducted for each loan transaction
      */
     function setOriginationFee(uint256 originationFee_) external override onlyAdmin {
+        if (originationFee_ > originationFeeMax) revert OriginationFeeExceedLimit();
         originationFee = originationFee_;
     }
 
@@ -319,12 +354,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     *  @dev Change loan overdue duration, based on the number of blocks
+     *  @dev Change loan overdue duration, in seconds
      *  Accept claims only from the admin
-     *  @param overdueBlocks_ Maximum late repayment block. The number of arrivals is a default
+     *  @param overdueTime_ Maximum late repayment time. The number of arrivals is a default
      */
-    function setOverdueBlocks(uint256 overdueBlocks_) external override onlyAdmin {
-        overdueBlocks = overdueBlocks_;
+    function setOverdueTime(uint256 overdueTime_) external override onlyAdmin {
+        overdueTime = overdueTime_;
     }
 
     /**
@@ -335,9 +370,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     function setInterestRateModel(address newInterestRateModel_) external override onlyAdmin {
         address oldInterestRateModel = address(interestRateModel);
         address newInterestRateModel = newInterestRateModel_;
-        if (!IInterestRateModel(newInterestRateModel).isInterestRateModel()) revert ContractNotInterestModel();
         interestRateModel = IInterestRateModel(newInterestRateModel);
-
         emit LogNewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel);
     }
 
@@ -348,6 +381,19 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     function setReserveFactor(uint256 reserveFactorMantissa_) external override onlyAdmin {
         if (reserveFactorMantissa_ > RESERVE_FACTORY_MAX_MANTISSA) revert ReserveFactoryExceedLimit();
         reserveFactorMantissa = reserveFactorMantissa_;
+    }
+
+    /**
+     *  @dev Change minter fee rate
+     *  Only admin can call this function
+     *  @param newRate New minter fee rate
+     */
+    function setMintFeeRate(uint256 newRate) external override onlyAdmin {
+        if (newRate > 1e17) revert MintFeeError();
+        uint256 oldRate = mintFeeRate;
+        mintFeeRate = newRate;
+
+        emit LogMintFeeRateChanged(oldRate, newRate);
     }
 
     /* -------------------------------------------------------------------
@@ -363,7 +409,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     *  @dev Get the last repay block
+     *  @dev Get the last repay time
      *  @param account Member address
      *  @return lastRepay
      */
@@ -379,8 +425,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     function checkIsOverdue(address account) public view override returns (bool isOverdue) {
         if (getBorrowed(account) != 0) {
             uint256 lastRepay = getLastRepay(account);
-            uint256 diff = getBlockNumber() - lastRepay;
-            isOverdue = overdueBlocks < diff;
+            uint256 diff = getTimestamp() - lastRepay;
+            isOverdue = overdueTime < diff;
         }
     }
 
@@ -431,10 +477,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     *  @dev Get the borrowing interest rate per block
+     *  @dev Get the borrowing interest rate per second
      *  @return Borrow rate
      */
-    function borrowRatePerBlock() public view override returns (uint256) {
+    function borrowRatePerSecond() public view override returns (uint256) {
         uint256 borrowRateMantissa = interestRateModel.getBorrowRate();
         if (borrowRateMantissa > BORROW_RATE_MAX_MANTISSA) revert BorrowRateExceedLimit();
 
@@ -442,10 +488,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     * @notice Returns the current per-block supply interest rate for this UToken
-     * @return The supply interest rate per block, scaled by 1e18
+     * @notice Returns the current per-second supply interest rate for this UToken
+     * @return The supply interest rate per second, scaled by 1e18
      */
-    function supplyRatePerBlock() external view override returns (uint256) {
+    function supplyRatePerSecond() external view override returns (uint256) {
         return interestRateModel.getSupplyRate(reserveFactorMantissa);
     }
 
@@ -471,10 +517,10 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             return 0;
         }
 
-        uint256 borrowRate = borrowRatePerBlock();
-        uint256 currentBlockNumber = getBlockNumber();
-        uint256 blockDelta = currentBlockNumber - accrualBlockNumber;
-        uint256 simpleInterestFactor = borrowRate * blockDelta;
+        uint256 borrowRate = borrowRatePerSecond();
+        uint256 currentTimestamp = getTimestamp();
+        uint256 timeDelta = currentTimestamp - accrualTimestamp;
+        uint256 simpleInterestFactor = borrowRate * timeDelta;
         uint256 borrowIndexNew = (simpleInterestFactor * borrowIndex) / WAD + borrowIndex;
 
         uint256 principalTimesIndex = (loan.principal + loan.interest) * borrowIndexNew;
@@ -498,8 +544,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      * @param owner The address of the account to query
      * @return The amount of underlying owned by `owner`
      */
-    function balanceOfUnderlying(address owner) external override returns (uint256) {
-        return exchangeRateCurrent() * balanceOf(owner);
+    function balanceOfUnderlying(address owner) external view override returns (uint256) {
+        return (exchangeRateStored() * balanceOf(owner)) / WAD;
     }
 
     /* -------------------------------------------------------------------
@@ -515,7 +561,6 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     function borrow(address to, uint256 amount) external override onlyMember(msg.sender) whenNotPaused nonReentrant {
         IAssetManager assetManagerContract = IAssetManager(assetManager);
         if (amount < minBorrow) revert AmountLessMinBorrow();
-        if (amount > getRemainingDebtCeiling()) revert AmountExceedGlobalMax();
 
         // Calculate the origination fee
         uint256 fee = calculatingFee(amount);
@@ -527,16 +572,23 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         uint256 borrowedAmount = borrowBalanceStoredInternal(msg.sender);
 
-        // Initialize the last repayment date to the current block number
+        // Initialize the last repayment date to the current block timestamp
         if (getLastRepay(msg.sender) == 0) {
-            accountBorrows[msg.sender].lastRepay = getBlockNumber();
+            accountBorrows[msg.sender].lastRepay = getTimestamp();
         }
 
-        uint256 accountBorrowsNew = borrowedAmount + amount + fee;
-        uint256 totalBorrowsNew = totalBorrows + amount + fee;
+        // Withdraw the borrowed amount of tokens from the assetManager and send them to the borrower
+        uint256 remaining = assetManagerContract.withdraw(underlying, to, amount);
+        if (remaining > amount) revert WithdrawFailed();
+        uint256 actualAmount = amount - remaining;
+
+        fee = calculatingFee(actualAmount);
+        uint256 accountBorrowsNew = borrowedAmount + actualAmount + fee;
+        uint256 totalBorrowsNew = totalBorrows + actualAmount + fee;
+        if (totalBorrowsNew > debtCeiling) revert AmountExceedGlobalMax();
 
         // Update internal balances
-        accountBorrows[msg.sender].principal += amount + fee;
+        accountBorrows[msg.sender].principal += actualAmount + fee;
         uint256 newPrincipal = getBorrowed(msg.sender);
         accountBorrows[msg.sender].interest = accountBorrowsNew - newPrincipal;
         accountBorrows[msg.sender].interestIndex = borrowIndex;
@@ -546,41 +598,45 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // uDAI minters redeemable amount.
         totalReserves += fee;
 
-        // Withdraw the borrowed amount of tokens from the assetManager and send them to the borrower
-        if (!assetManagerContract.withdraw(underlying, to, amount)) revert WithdrawFailed();
-
         // Call update locked on the userManager to lock this borrowers stakers. This function
         // will revert if the account does not have enough vouchers to cover the borrow amount. ie
         // the borrower is trying to borrow more than is able to be underwritten
-        IUserManager(userManager).updateLocked(msg.sender, uint96(amount + fee), true);
+        IUserManager(userManager).updateLocked(msg.sender, actualAmount + fee, true);
 
-        emit LogBorrow(msg.sender, to, amount, fee);
+        emit LogBorrow(msg.sender, to, actualAmount, fee);
+    }
+
+    /**
+     * @dev Helper function to repay interest amount
+     * @param borrower Borrower address
+     */
+    function repayInterest(address borrower) external override whenNotPaused nonReentrant {
+        if (!accrueInterest()) revert AccrueInterestFailed();
+        uint256 interest = calculatingInterest(borrower);
+        _repayBorrowFresh(msg.sender, borrower, interest, interest);
     }
 
     /**
      * @notice Repay outstanding borrow
      * @dev Repay borrow see _repayBorrowFresh
      */
-    function repayBorrow(address borrower, uint256 repayAmount) external override whenNotPaused nonReentrant {
-        _repayBorrowFresh(msg.sender, borrower, repayAmount);
+    function repayBorrow(address borrower, uint256 amount) external override whenNotPaused nonReentrant {
+        if (!accrueInterest()) revert AccrueInterestFailed();
+        uint256 interest = calculatingInterest(borrower);
+        _repayBorrowFresh(msg.sender, borrower, amount, interest);
     }
 
     /**
      *  @dev Repay the loan
-     *  Accept claims only from the member
      *  Updated member lastPaymentEpoch only when the repayment amount is greater than interest
      *  @param payer Payer address
      *  @param borrower Borrower address
      *  @param amount Repay amount
+     *  @param interest Interest amount
      */
-    function _repayBorrowFresh(
-        address payer,
-        address borrower,
-        uint256 amount
-    ) internal {
-        if (!accrueInterest()) revert AccrueInterestFailed();
-
-        uint256 interest = calculatingInterest(borrower);
+    function _repayBorrowFresh(address payer, address borrower, uint256 amount, uint256 interest) internal {
+        uint256 currTime = getTimestamp();
+        if (currTime != accrualTimestamp) revert AccrueBlockParity();
         uint256 borrowedAmount = borrowBalanceStoredInternal(borrower);
         uint256 repayAmount = amount > borrowedAmount ? borrowedAmount : amount;
         if (repayAmount == 0) revert AmountZero();
@@ -588,13 +644,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 toReserveAmount;
         uint256 toRedeemableAmount;
 
-        accountBorrows[borrower].interestIndex = borrowIndex;
-        totalBorrows -= repayAmount;
-
         if (repayAmount >= interest) {
-            // If the repayment amount is greater than the interest (min payment)
-            bool isOverdue = checkIsOverdue(borrower);
-
             // Interest is split between the reserves and the uToken minters based on
             // the reserveFactorMantissa When set to WAD all the interest is paid to teh reserves.
             // any interest that isn't sent to the reserves is added to the redeemable amount
@@ -602,28 +652,33 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             toReserveAmount = (interest * reserveFactorMantissa) / WAD;
             toRedeemableAmount = interest - toReserveAmount;
 
+            // Update the total borrows to reduce by the amount of principal that has
+            // been paid off
+            totalBorrows -= (repayAmount - interest);
+
             // Update the account borrows to reflect the repayment
             accountBorrows[borrower].principal = borrowedAmount - repayAmount;
             accountBorrows[borrower].interest = 0;
 
-            if (getBorrowed(borrower) == 0) {
-                // If the principal is now 0 we can reset the last repaid block to 0.
-                // which indicates that the borrower has no outstanding loans.
-                accountBorrows[borrower].lastRepay = 0;
-            } else {
-                // Save the current block number as last repaid
-                accountBorrows[borrower].lastRepay = getBlockNumber();
+            uint256 pastTime = currTime - getLastRepay(borrower);
+            if (pastTime > overdueTime) {
+                // For borrowers that are paying back overdue balances we need to update their
+                // frozen balance and the global total frozen balance on the UserManager
+                IUserManager(userManager).onRepayBorrow(borrower, getLastRepay(borrower) + overdueTime);
             }
 
             // Call update locked on the userManager to lock this borrowers stakers. This function
             // will revert if the account does not have enough vouchers to cover the repay amount. ie
             // the borrower is trying to repay more than is locked (owed)
-            IUserManager(userManager).updateLocked(borrower, uint96(repayAmount - interest), false);
+            IUserManager(userManager).updateLocked(borrower, repayAmount - interest, false);
 
-            if (isOverdue) {
-                // For borrowers that are paying back overdue balances we need to update their
-                // frozen balance and the global total frozen balance on the UserManager
-                IUserManager(userManager).updateFrozenInfo(borrower, 0);
+            if (getBorrowed(borrower) == 0) {
+                // If the principal is now 0 we can reset the last repaid time to 0.
+                // which indicates that the borrower has no outstanding loans.
+                accountBorrows[borrower].lastRepay = 0;
+            } else {
+                // Save the current block timestamp as last repaid
+                accountBorrows[borrower].lastRepay = currTime;
             }
         } else {
             // For repayments that don't pay off the minimum we just need to adjust the
@@ -635,6 +690,8 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         totalReserves += toReserveAmount;
         totalRedeemable += toRedeemableAmount;
+
+        accountBorrows[borrower].interestIndex = borrowIndex;
 
         // Transfer underlying token that have been repaid and then deposit
         // then in the asset manager so they can be distributed between the
@@ -650,119 +707,106 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @return Accrue interest finished
      */
     function accrueInterest() public override returns (bool) {
-        uint256 borrowRate = borrowRatePerBlock();
-        uint256 currentBlockNumber = getBlockNumber();
-        uint256 blockDelta = currentBlockNumber - accrualBlockNumber;
+        uint256 borrowRate = borrowRatePerSecond();
+        uint256 currentTimestamp = getTimestamp();
+        uint256 timeDelta = currentTimestamp - accrualTimestamp;
 
-        uint256 simpleInterestFactor = borrowRate * blockDelta;
-        uint256 interestAccumulated = (simpleInterestFactor * totalBorrows) / WAD;
-        uint256 totalBorrowsNew = interestAccumulated + totalBorrows;
+        uint256 simpleInterestFactor = borrowRate * timeDelta;
         uint256 borrowIndexNew = (simpleInterestFactor * borrowIndex) / WAD + borrowIndex;
 
-        accrualBlockNumber = currentBlockNumber;
+        accrualTimestamp = currentTimestamp;
         borrowIndex = borrowIndexNew;
-        totalBorrows = totalBorrowsNew;
 
         return true;
     }
 
     function debtWriteOff(address borrower, uint256 amount) external override whenNotPaused onlyUserManager {
+        if (amount == 0) revert AmountZero();
+
         uint256 oldPrincipal = getBorrowed(borrower);
         uint256 repayAmount = amount > oldPrincipal ? oldPrincipal : amount;
 
         accountBorrows[borrower].principal = oldPrincipal - repayAmount;
         totalBorrows -= repayAmount;
+
+        if (repayAmount == oldPrincipal) {
+            // If all principal is written off, we can reset the last repaid time to 0.
+            // which indicates that the borrower has no outstanding loans.
+            accountBorrows[borrower].lastRepay = 0;
+        }
     }
 
     /* -------------------------------------------------------------------
-       Mint uToken Functions 
+       mint and redeem uToken Functions 
     ------------------------------------------------------------------- */
 
     /**
      * @dev Mint uTokens by depositing tokens
-     * @param mintAmount Amount of uTokens to mint
+     * @param amountIn The amount of the underlying asset to supply
      */
-    function mint(uint256 mintAmount) external override whenNotPaused nonReentrant {
+    function mint(uint256 amountIn) external override whenNotPaused nonReentrant {
+        if (amountIn < MIN_MINT_AMOUNT) revert AmountError();
         if (!accrueInterest()) revert AccrueInterestFailed();
         uint256 exchangeRate = exchangeRateStored();
         IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
         uint256 balanceBefore = assetToken.balanceOf(address(this));
-        assetToken.safeTransferFrom(msg.sender, address(this), mintAmount);
+        assetToken.safeTransferFrom(msg.sender, address(this), amountIn);
         uint256 balanceAfter = assetToken.balanceOf(address(this));
-        uint256 actualMintAmount = balanceAfter - balanceBefore;
-        totalRedeemable += actualMintAmount;
-        uint256 mintTokens = (actualMintAmount * WAD) / exchangeRate;
+        uint256 totalAmount = balanceAfter - balanceBefore;
+        uint256 mintTokens = 0;
+        uint256 mintFee = (totalAmount * mintFeeRate) / WAD;
+        if (mintFee > 0) {
+            // Minter fee goes to the reserve
+            totalReserves += mintFee;
+        }
+        // Rest goes to minting UToken
+        uint256 mintAmount = totalAmount - mintFee;
+        totalRedeemable += mintAmount;
+        mintTokens = (mintAmount * WAD) / exchangeRate;
         _mint(msg.sender, mintTokens);
+        // send all to asset manager
+        _depositToAssetManager(totalAmount);
 
-        _depositToAssetManager(actualMintAmount);
-
-        emit LogMint(msg.sender, actualMintAmount, mintTokens);
-    }
-
-    /**
-     * @notice Sender redeems uTokens in exchange for the underlying asset
-     * @dev Accrues interest whether or not the operation succeeds, unless reverted
-     * @param redeemTokens The number of uTokens to redeem into underlying
-     */
-    function redeem(uint256 redeemTokens) external override whenNotPaused nonReentrant {
-        if (!accrueInterest()) revert AccrueInterestFailed();
-        _redeemFresh(payable(msg.sender), redeemTokens, 0);
-    }
-
-    /**
-     * @notice Sender redeems uTokens in exchange for a specified amount of underlying asset
-     * @dev Accrues interest whether or not the operation succeeds, unless reverted
-     * @param redeemAmount The amount of underlying to receive from redeeming uTokens
-     */
-    function redeemUnderlying(uint256 redeemAmount) external override whenNotPaused nonReentrant {
-        if (!accrueInterest()) revert AccrueInterestFailed();
-        _redeemFresh(payable(msg.sender), 0, redeemAmount);
+        emit LogMint(msg.sender, mintAmount, mintTokens);
     }
 
     /**
      * @notice User redeems uTokens in exchange for the underlying asset
      * @dev Assumes interest has already been accrued up to the current block
-     * @param redeemer The address of the account which is redeeming the tokens
-     * @param redeemTokensIn The number of uTokens to redeem into underlying (only one of redeemTokensIn or redeemAmountIn may be non-zero)
-     * @param redeemAmountIn The number of underlying tokens to receive from redeeming uTokens (only one of redeemTokensIn or redeemAmountIn may be non-zero)
+     * @param amountIn The number of uTokens to redeem into underlying
+     *        (only one of amountIn or amountOut may be non-zero)
+     * @param amountOut The number of underlying tokens to receive from
+     *        (only one of amountIn or amountOut may be non-zero)
      */
-    function _redeemFresh(
-        address payable redeemer,
-        uint256 redeemTokensIn,
-        uint256 redeemAmountIn
-    ) private {
-        if (redeemTokensIn != 0 && redeemAmountIn != 0) revert AmountZero();
-
-        IAssetManager assetManagerContract = IAssetManager(assetManager);
+    function redeem(uint256 amountIn, uint256 amountOut) external override whenNotPaused nonReentrant {
+        if (!accrueInterest()) revert AccrueInterestFailed();
+        if (amountIn != 0 && amountOut != 0) revert AmountError();
+        if (amountIn == 0 && amountOut == 0) revert AmountZero();
 
         uint256 exchangeRate = exchangeRateStored();
 
-        uint256 redeemTokens;
-        uint256 redeemAmount;
+        // Amount of the underlying token to redeem
+        uint256 underlyingAmount = amountOut;
 
-        if (redeemTokensIn > 0) {
-            /*
-             * We calculate the exchange rate and the amount of underlying to be redeemed:
-             *  redeemTokens = redeemTokensIn
-             *  redeemAmount = redeemTokensIn x exchangeRateCurrent
-             */
-            redeemTokens = redeemTokensIn;
-            redeemAmount = (redeemTokensIn * exchangeRate) / WAD;
-        } else {
-            /*
-             * We get the current exchange rate and calculate the amount to be redeemed:
-             *  redeemTokens = redeemAmountIn / exchangeRate
-             *  redeemAmount = redeemAmountIn
-             */
-            redeemTokens = (redeemAmountIn * WAD) / exchangeRate;
-            redeemAmount = redeemAmountIn;
+        if (amountIn > 0) {
+            // We calculate the exchange rate and the amount of underlying to be redeemed:
+            // underlyingAmount = amountIn x exchangeRateCurrent
+            underlyingAmount = (amountIn * exchangeRate) / WAD;
         }
 
-        totalRedeemable -= redeemAmount;
-        _burn(redeemer, redeemTokens);
-        if (!assetManagerContract.withdraw(underlying, redeemer, redeemAmount)) revert WithdrawFailed();
+        uint256 remaining = IAssetManager(assetManager).withdraw(underlying, msg.sender, underlyingAmount);
+        // If the remaining amount is greater than or equal to the
+        // underlyingAmount then we weren't able to withdraw enough
+        // to cover this redemption
+        if (remaining >= underlyingAmount) revert WithdrawFailed();
 
-        emit LogRedeem(redeemer, redeemTokensIn, redeemAmountIn, redeemAmount);
+        uint256 actualAmount = underlyingAmount - remaining;
+        uint256 realUtokenAmount = (actualAmount * WAD) / exchangeRate;
+        if (realUtokenAmount == 0) revert AmountZero();
+        _burn(msg.sender, realUtokenAmount);
+
+        totalRedeemable -= actualAmount;
+        emit LogRedeem(msg.sender, amountIn, amountOut, realUtokenAmount, actualAmount);
     }
 
     /* -------------------------------------------------------------------
@@ -770,7 +814,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     ------------------------------------------------------------------- */
 
     /**
-     * @dev Add tokens to the reseve
+     * @dev Add tokens to the reserve
      * @param addAmount amount of tokens to add
      */
     function addReserves(uint256 addAmount) external override whenNotPaused nonReentrant {
@@ -789,24 +833,23 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     /**
-     * @dev Remove tokens to the reseve
-     * @param receiver address to recieve tokens
+     * @dev Remove tokens to the reserve
+     * @param receiver address to receive tokens
      * @param reduceAmount amount of tokens to remove
      */
-    function removeReserves(address receiver, uint256 reduceAmount)
-        external
-        override
-        whenNotPaused
-        nonReentrant
-        onlyAdmin
-    {
+    function removeReserves(
+        address receiver,
+        uint256 reduceAmount
+    ) external override whenNotPaused nonReentrant onlyAdmin {
+        if (reduceAmount > totalReserves) revert AmountError();
         if (!accrueInterest()) revert AccrueInterestFailed();
 
-        totalReserves -= reduceAmount;
+        uint256 remaining = IAssetManager(assetManager).withdraw(underlying, receiver, reduceAmount);
+        if (remaining > reduceAmount) revert WithdrawFailed();
+        uint256 actualAmount = reduceAmount - remaining;
+        totalReserves -= actualAmount;
 
-        if (!IAssetManager(assetManager).withdraw(underlying, receiver, reduceAmount)) revert WithdrawFailed();
-
-        emit LogReservesReduced(receiver, reduceAmount, totalReserves);
+        emit LogReservesReduced(receiver, actualAmount, totalReserves);
     }
 
     /* -------------------------------------------------------------------
@@ -814,11 +857,11 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     ------------------------------------------------------------------- */
 
     /**
-     *  @dev Function to simply retrieve block number
+     *  @dev Function to simply retrieve block timestamp
      *  This exists mainly for inheriting test contracts to stub this result.
      */
-    function getBlockNumber() internal view returns (uint256) {
-        return block.number;
+    function getTimestamp() internal view returns (uint256) {
+        return block.timestamp;
     }
 
     /**
@@ -826,8 +869,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      */
     function _depositToAssetManager(uint256 amount) internal {
         IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
-        assetToken.safeApprove(assetManager, 0); // Some ERC20 tokens (e.g. Tether) changed the behavior of approve to look like safeApprove
-        assetToken.safeApprove(assetManager, amount);
+
+        uint256 currentAllowance = assetToken.allowance(address(this), assetManager);
+        if (currentAllowance < amount) {
+            assetToken.safeIncreaseAllowance(assetManager, amount - currentAllowance);
+        }
+
         if (!IAssetManager(assetManager).deposit(underlying, amount)) revert DepositToAssetManagerFailed();
     }
 }

@@ -4,10 +4,11 @@ import {expect} from "chai";
 import {BigNumber, Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
 
-import {roll} from "../utils";
+import error from "../utils/error";
+import {isForked} from "../utils/fork";
 import deploy, {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";
-import {getDai, getDeployer, getSigners} from "../utils";
+import {fork, roll, getDai, getDeployer, getSigners} from "../utils";
 
 describe("Minting and redeeming uToken", () => {
     let deployer: Signer;
@@ -17,10 +18,13 @@ describe("Minting and redeeming uToken", () => {
     let contracts: Contracts;
     let assetManagerAddress: string;
     let WAD: BigNumber;
+    let mintFeeRate: BigNumber;
 
     const mintAmount = parseUnits("1000");
 
-    before(async function () {
+    const beforeContext = async () => {
+        if (isForked()) await fork();
+
         const signers = await getSigners();
         deployer = await getDeployer();
 
@@ -28,9 +32,7 @@ describe("Minting and redeeming uToken", () => {
 
         deployerAddress = await deployer.getAddress();
         userAddress = await user.getAddress();
-    });
 
-    const beforeContext = async () => {
         contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         assetManagerAddress = await contracts.uToken.assetManager();
         WAD = await contracts.uToken.WAD();
@@ -46,6 +48,7 @@ describe("Minting and redeeming uToken", () => {
         await contracts.dai.approve(contracts.userManager.address, stakeAmount);
         await contracts.userManager.stake(stakeAmount);
         await contracts.userManager.updateTrust(userAddress, stakeAmount);
+        mintFeeRate = await contracts.uToken.mintFeeRate();
     };
 
     context("Minting uToken", () => {
@@ -61,31 +64,35 @@ describe("Minting and redeeming uToken", () => {
             const balanceAfter = await contracts.uToken.balanceOf(deployerAddress);
             const assetManagerBalAfter = await contracts.dai.balanceOf(assetManagerAddress);
 
-            expect(balanceAfter.sub(balanceBefore)).eq(mintAmount.mul(WAD).div(exchangeRateStored));
+            const mintFee = mintAmount.mul(mintFeeRate).div(WAD);
+            expect(balanceAfter.sub(balanceBefore)).eq(mintAmount.sub(mintFee).mul(WAD).div(exchangeRateStored));
             expect(assetManagerBalAfter.sub(assetManagerBalBefore)).eq(mintAmount);
         });
         it("can redeem uDAI for DAI", async () => {
             const balanceBefore = await contracts.dai.balanceOf(deployerAddress);
             const assetManagerBalBefore = await contracts.dai.balanceOf(assetManagerAddress);
-
-            await contracts.uToken.redeemUnderlying(mintAmount);
+            const mintFee = mintAmount.mul(mintFeeRate).div(WAD);
+            const redeemAmount = mintAmount.sub(mintFee);
+            await contracts.uToken.redeem(0, redeemAmount);
 
             const balanceAfter = await contracts.dai.balanceOf(deployerAddress);
             const assetManagerBalAfter = await contracts.dai.balanceOf(assetManagerAddress);
 
-            expect(balanceAfter.sub(balanceBefore)).eq(mintAmount);
-            expect(assetManagerBalBefore.sub(assetManagerBalAfter)).eq(mintAmount);
+            expect(balanceAfter.sub(balanceBefore)).eq(redeemAmount);
+            expect(assetManagerBalBefore.sub(assetManagerBalAfter)).eq(redeemAmount);
         });
         it("mint when exchangeRate change", async () => {
             //exchangeRate does not change at 100%
             await contracts.uToken.setReserveFactor("50"); //50%
-            const interestRatePerBlock = await contracts.fixedInterestRateModel.interestRatePerBlock();
+
+            const interestRatePerSecond = await contracts.fixedInterestRateModel.interestRatePerSecond();
             const reserveFactorMantissa = await contracts.uToken.reserveFactorMantissa();
             const originationFee = await contracts.uToken.originationFee();
             const mintAmount = parseUnits("100");
             await contracts.uToken.mint(mintAmount);
+            const mintFee = mintAmount.mul(mintFeeRate).div(WAD);
             let uTokenBal = await contracts.uToken.balanceOf(deployerAddress);
-            expect(uTokenBal).eq(mintAmount);
+            expect(uTokenBal).eq(mintAmount.sub(mintFee));
 
             const borrowAmount = parseUnits("100");
             await contracts.uToken.connect(user).borrow(userAddress, borrowAmount);
@@ -96,23 +103,23 @@ describe("Minting and redeeming uToken", () => {
             let exchangeRateStored = await contracts.uToken.exchangeRateStored();
             const expeOriginationFee = borrowAmount.mul(originationFee).div(WAD);
             const expectInterest = borrowAmount
-                .mul(interestRatePerBlock)
+                .mul(interestRatePerSecond)
                 .mul(BigNumber.from(blocks + 1))
                 .div(WAD);
             const expectRedeemable = expectInterest
                 .add(
                     expeOriginationFee
-                        .mul(interestRatePerBlock)
+                        .mul(interestRatePerSecond)
                         .mul(BigNumber.from(blocks + 1))
                         .div(WAD)
                 )
                 .sub(expectInterest.mul(reserveFactorMantissa).div(WAD));
-            const expectRate = mintAmount.add(expectRedeemable).mul(WAD).div(mintAmount);
+            const expectRate = mintAmount.sub(mintFee).add(expectRedeemable).mul(WAD).div(mintAmount.sub(mintFee));
             expect(exchangeRateStored.add(100).div(10000)).eq(expectRate.add(100).div(10000));
 
             await contracts.uToken.mint(mintAmount);
             uTokenBal = await contracts.uToken.balanceOf(deployerAddress);
-            const expectUDaiBal = mintAmount.add(mintAmount.mul(WAD).div(exchangeRateStored));
+            const expectUDaiBal = mintAmount.sub(mintFee).add(mintAmount.sub(mintFee).mul(WAD).div(exchangeRateStored));
             expect(uTokenBal).eq(expectUDaiBal);
         });
     });

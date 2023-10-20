@@ -7,7 +7,7 @@ pragma solidity 0.8.16;
  */
 interface IMoneyMarketAdapter {
     /**
-     * @dev set assetmanager.
+     * @dev set assetManager.
      */
     function setAssetManager(address setAssetManager) external;
 
@@ -29,16 +29,12 @@ interface IMoneyMarketAdapter {
     /**
      * @dev Deposits the given amount of tokens in the underlying money market.
      */
-    function deposit(address tokenAddress) external;
+    function deposit(address tokenAddress) external returns (bool);
 
     /**
      * @dev Withdraws the given amount of tokens from the underlying money market and transfers them to `recipient`.
      */
-    function withdraw(
-        address tokenAddress,
-        address recipient,
-        uint256 amount
-    ) external;
+    function withdraw(address tokenAddress, address recipient, uint256 amount) external returns (bool);
 
     /**
      * @dev Withdraws all the tokens from the underlying money market and transfers them to `recipient`.

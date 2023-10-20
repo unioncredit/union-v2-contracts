@@ -9,4 +9,13 @@ contract FaucetERC20_ERC20Permit is ERC20Permit {
     function mint(address account, uint256 mintAmount) external {
         _mint(account, mintAmount);
     }
+
+    function burnFrom(address account, uint256 amount) public {
+        uint256 currentAllowance = allowance(account, msg.sender);
+        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
+        unchecked {
+            _approve(account, msg.sender, currentAllowance - amount);
+        }
+        _burn(account, amount);
+    }
 }

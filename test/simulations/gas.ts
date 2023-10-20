@@ -1,12 +1,26 @@
-import {Signer} from "ethers";
-import {formatUnits, parseUnits} from "ethers/lib/utils";
-import {ethers} from "hardhat";
+import * as fs from "fs";
+import * as path from "path";
+
 import ora from "ora";
+import {Signer} from "ethers";
+import {ethers} from "hardhat";
+import {commify, formatUnits, parseUnits} from "ethers/lib/utils";
 
 import deploy, {Contracts} from "../../deploy";
-import config from "../../deploy/config";
+import {getConfig} from "../../deploy/config";
+import {getDai} from "../../test/utils";
 
-describe("Max gas tests", () => {
+const ACCOUNT_COUNT = Number(process.env.ACCOUNT_COUNT || "10");
+
+function saveReport(str: string, index: number) {
+    const file = path.resolve(__dirname, "simulations-gas-snapshot.txt");
+    const content = fs.readFileSync(file, "utf8");
+    const arr = content.split("\n");
+    arr[index] = str;
+    fs.writeFileSync(file, arr.join("\n"));
+}
+
+describe("Max gas", () => {
     let accounts: Signer[];
     let deployer: Signer;
     let deployerAddress: string;
@@ -19,7 +33,7 @@ describe("Max gas tests", () => {
     });
 
     const beforeContext = async (accountCount: number) => {
-        contracts = await deploy({...config.main, admin: deployerAddress}, deployer);
+        contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
 
         let spinner = ora(`Creating ${accountCount} wallets`).start();
 
@@ -31,6 +45,9 @@ describe("Max gas tests", () => {
             });
 
         spinner.stop();
+
+        await contracts.uToken.setMaxBorrow(ethers.constants.MaxUint256);
+        await contracts.uToken.setMinBorrow(0);
 
         spinner = ora("Setting up accounts").start();
 
@@ -45,6 +62,7 @@ describe("Max gas tests", () => {
 
     context("updateTrust has constant gas cost", () => {
         before(async () => await beforeContext(10));
+
         it("updateTrust", async () => {
             const trustAmount = parseUnits("100");
 
@@ -77,25 +95,28 @@ describe("Max gas tests", () => {
 
             spinner.stop();
 
-            console.log(`[*] Min gas: ${min}, Max gas: ${max}, Delta: ${max - min}`);
+            const reportStr = `[*] updateTrust:: Min gas: ${commify(min)}, Max gas: ${commify(max)}, Delta: ${commify(
+                max - min
+            )}`;
+            saveReport(reportStr, 0);
+            console.log(reportStr);
         });
     });
 
     context("borrow max gas cost", () => {
-        before(async () => await beforeContext(100));
-        it("updateTrust", async () => {
-            const trustAmount = parseUnits("1");
-            const stakeAmount = parseUnits("1");
+        before(async () => await beforeContext(ACCOUNT_COUNT));
+
+        it("borrow", async () => {
+            const trustAmount = parseUnits("100");
+            const stakeAmount = parseUnits("100");
 
             const borrower = deployer;
             const borrowerAddress = deployerAddress;
 
             await contracts.userManager.addMember(borrowerAddress);
-            if ("mint" in contracts.dai) {
-                await contracts.dai.mint(borrowerAddress, parseUnits("10000000"));
-                await contracts.dai.approve(contracts.uToken.address, parseUnits("10000000"));
-                await contracts.uToken.addReserves(parseUnits("10000000"));
-            }
+            await getDai(contracts.dai, borrower, parseUnits("10000000"));
+            await contracts.dai.approve(contracts.uToken.address, parseUnits("10000000"));
+            await contracts.uToken.addReserves(parseUnits("10000000"));
 
             const stakers = accounts;
 
@@ -106,8 +127,7 @@ describe("Max gas tests", () => {
             for (let i = 0; i < stakers.length; i++) {
                 const staker = stakers[i];
                 if ("mint" in contracts.dai) {
-                    const stakerAddress = await staker.getAddress();
-                    await contracts.dai.connect(deployer).mint(stakerAddress, stakeAmount);
+                    await getDai(contracts.dai, staker, stakeAmount);
                     await contracts.dai
                         .connect(staker)
                         .approve(contracts.userManager.address, ethers.constants.MaxUint256);
@@ -119,36 +139,55 @@ describe("Max gas tests", () => {
 
             spinner.stop();
 
+            // ---------------------------------------------------
+            // BORROW
+            // ---------------------------------------------------
             const creditLimit = await contracts.userManager.getCreditLimit(borrowerAddress);
             const borrowAmount = creditLimit.mul(900).div(1000);
             spinner = ora(`Borrowing: ${formatUnits(creditLimit)}`).start();
 
-            const tx = await contracts.uToken.connect(borrower).borrow(borrowAmount);
-            const resp = await tx.wait();
+            let tx = await contracts.uToken.connect(borrower).borrow(borrowerAddress, borrowAmount);
+            let resp = await tx.wait();
 
             spinner.stop();
 
-            console.log(`Gas used: ${resp.gasUsed}`);
+            const reportStr = `[*] borrow:: count: ${stakers.length} borrow: ${commify(
+                formatUnits(borrowAmount)
+            )} creditLimit: ${commify(formatUnits(creditLimit))} Gas used: ${commify(resp.gasUsed.toString())}`;
+            saveReport(reportStr, 1);
+            console.log(reportStr);
+
+            // ---------------------------------------------------
+            // REPAY
+            // ---------------------------------------------------
+
+            await contracts.dai.connect(borrower).approve(contracts.uToken.address, borrowAmount);
+            tx = await contracts.uToken.connect(borrower).repayBorrow(borrowerAddress, borrowAmount);
+            resp = await tx.wait();
+
+            const reportStr0 = `[*] repay:: count: ${stakers.length} borrow: ${commify(
+                formatUnits(borrowAmount)
+            )} creditLimit: ${commify(formatUnits(creditLimit))} Gas used: ${commify(resp.gasUsed.toString())}`;
+            saveReport(reportStr0, 2);
+            console.log(reportStr0);
         });
     });
-    context("get frozen info", () => {
-        before(async () => await beforeContext(100));
-        it("getFrozenInfo", async () => {
-            const trustAmount = parseUnits("1");
+    context("get stake info", () => {
+        before(async () => await beforeContext(ACCOUNT_COUNT));
+        it("getStakeInfo", async () => {
+            const trustAmount = parseUnits("100");
             const staker = accounts[0];
             const stakerAddress = await staker.getAddress();
 
             await contracts.uToken.setMinBorrow(0);
-            await contracts.uToken.setOverdueBlocks(0);
+            await contracts.uToken.setOverdueTime(0);
 
-            if ("mint" in contracts.dai) {
-                const stakeAmount = parseUnits("10000");
-                await contracts.dai.mint(stakerAddress, stakeAmount.add(stakeAmount));
-                await contracts.dai.connect(staker).approve(contracts.userManager.address, ethers.constants.MaxUint256);
-                await contracts.userManager.connect(staker).stake(stakeAmount);
-                await contracts.dai.connect(staker).approve(contracts.uToken.address, ethers.constants.MaxUint256);
-                await contracts.uToken.connect(staker).addReserves(stakeAmount);
-            }
+            const stakeAmount = parseUnits("10000");
+            await getDai(contracts.dai, staker, stakeAmount.mul(2));
+            await contracts.dai.connect(staker).approve(contracts.userManager.address, ethers.constants.MaxUint256);
+            await contracts.userManager.connect(staker).stake(stakeAmount);
+            await contracts.dai.connect(staker).approve(contracts.uToken.address, ethers.constants.MaxUint256);
+            await contracts.uToken.connect(staker).addReserves(stakeAmount);
 
             const str = (n: number) => `Processing accounts: ${n}/${accounts.length}`;
 
@@ -163,7 +202,7 @@ describe("Max gas tests", () => {
                     await contracts.userManager.connect(staker).updateTrust(addr, trustAmount);
                     const creditLimit = await contracts.userManager.getCreditLimit(addr);
                     const borrowAmount = creditLimit.mul(950).div(1000);
-                    await contracts.uToken.connect(account).borrow(borrowAmount);
+                    await contracts.uToken.connect(account).borrow(addr, borrowAmount);
                 }
 
                 spinner.text = str(i);
@@ -171,8 +210,10 @@ describe("Max gas tests", () => {
 
             spinner.stop();
 
-            const gasUsed = await contracts.userManager.estimateGas.getFrozenInfo(stakerAddress, 0);
-            console.log(`Gas used: ${gasUsed}`);
+            const gasUsed = await contracts.userManager.estimateGas.getStakeInfo(stakerAddress);
+            const reportStr = `[*] getStakeInfo:: count: ${ACCOUNT_COUNT} Gas used: ${commify(gasUsed.toString())}`;
+            saveReport(reportStr, 3);
+            console.log(reportStr);
         });
     });
 });

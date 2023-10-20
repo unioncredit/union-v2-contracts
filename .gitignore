@@ -1,3 +1,4 @@
+lcov.info
 artifacts/
 cache/
 hh-cache/
@@ -7,3 +8,8 @@ node_modules/
 .openzeppelin
 typechain-types/
 coverage/
+docs
+.env
+.envrc
+dist
+report

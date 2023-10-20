@@ -92,7 +92,7 @@ abstract contract Controller is Initializable, UUPSUpgradeable {
     ------------------------------------------------------------------- */
 
     //When using minimal deploy, do not call initialize directly during deploy, because msg.sender is the proxyFactory address, and you need to call it manually
-    function __Controller_init(address admin_) public initializer {
+    function __Controller_init(address admin_) internal onlyInitializing {
         _paused = false;
         admin = admin_;
         __UUPSUpgradeable_init();

@@ -1,57 +1,14 @@
 pragma solidity ^0.8.0;
 
+import {console} from "forge-std/console.sol";
 import {TestComptrollerBase} from "./TestComptrollerBase.sol";
-
-contract FakeUserManager {
-    uint256 public totalStaked;
-
-    uint256 public stakerBalance;
-    uint256 public totalLockedStake;
-    uint256 public frozenCoinAge;
-    uint256 public totalFrozen;
-    bool public isMember;
-
-    constructor(
-        uint256 _totalStaked,
-        uint256 _stakerBalance,
-        uint256 _totalLockedStake,
-        uint256 _frozenCoinAge,
-        uint256 _totalFrozen,
-        bool _isMember
-    ) public {
-        totalStaked = _totalStaked;
-        stakerBalance = _stakerBalance;
-        totalLockedStake = _totalLockedStake;
-        frozenCoinAge = _frozenCoinAge;
-        totalFrozen = _totalFrozen;
-        isMember = _isMember;
-    }
-
-    function getStakerBalance(address) public view returns (uint256) {
-        return stakerBalance;
-    }
-
-    function getTotalLockedStake(address) public view returns (uint256) {
-        return totalLockedStake;
-    }
-
-    function getFrozenInfo(address, uint256) public view returns (uint256, uint256) {
-        return (frozenCoinAge, totalFrozen);
-    }
-
-    function updateFrozenInfo(address, uint256) public returns (uint256, uint256) {
-        return (frozenCoinAge, totalFrozen);
-    }
-
-    function checkIsMember(address) public view returns (bool) {
-        return isMember;
-    }
-}
+import {FakeUserManager} from "./FakeUserManager.sol";
 
 // TODO: test internal function individually too
 contract TestCalculateRewards is TestComptrollerBase {
     function testGetRewardsMultiplierNonMember() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, false);
+        vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
         uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
         assertEq(multiplier, comptroller.nonMemberRatio());
@@ -59,57 +16,85 @@ contract TestCalculateRewards is TestComptrollerBase {
 
     function testGetRewardsMultiplierMember() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
+        vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
+        assertEq(true, um.checkIsMember(address(this)));
         uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
         assertEq(multiplier, comptroller.memberRatio());
+
+        //member no stake
+        FakeUserManager um2 = new FakeUserManager(0, 0, 0, 0, 0, true);
+        vm.prank(ADMIN);
+        marketRegistryMock.setUserManager(address(daiMock), address(um2));
+        assertEq(true, um2.checkIsMember(address(this)));
+        multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
+        assertEq(multiplier, comptroller.memberRatio());
+
+        //no member
+        FakeUserManager um3 = new FakeUserManager(0, 0, 0, 0, 0, false);
+        vm.prank(ADMIN);
+        marketRegistryMock.setUserManager(address(daiMock), address(um3));
+        assertEq(false, um3.checkIsMember(address(this)));
+        multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
+        assertEq(multiplier, comptroller.nonMemberRatio());
     }
 
-    function testCalculateRewardsByBlocks() public {
+    function testCalculateRewards() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
+        vm.prank(ADMIN);
         marketRegistryMock.setUserManager(address(daiMock), address(um));
-        vm.prank(address(um));
         comptroller.withdrawRewards(address(this), address(daiMock));
-        uint256 rewards = comptroller.calculateRewardsByBlocks(address(this), address(daiMock), 1000);
-        assertEq(rewards, 900000000000000000000);
+        skip(1000);
+        uint256 rewards = comptroller.calculateRewards(address(this), address(daiMock));
+        assertEq(rewards, 900000000000000000000 / 12);
+
+        //no stake
+        FakeUserManager um2 = new FakeUserManager(0, 0, 0, 0, 0, true);
+        vm.prank(ADMIN);
+        marketRegistryMock.setUserManager(address(daiMock), address(um2));
+        comptroller.withdrawRewards(address(this), address(daiMock));
+        skip(1000);
+        rewards = comptroller.calculateRewards(address(this), address(daiMock));
+        assertEq(rewards, 0);
     }
 
-    function testInflationPerBlock0() public {
-        uint256 inflation = comptroller.inflationPerBlock(1 ether);
-        assertEq(inflation, 1000000000000000000);
+    function testInflationPerSecond0() public {
+        uint256 inflation = comptroller.inflationPerSecond(1 ether);
+        assertEq(inflation, 83_333_333_333_333_333); // 1000000000000000000 / 12
     }
 
-    function testInflationPerBlock1() public {
-        uint256 inflation = comptroller.inflationPerBlock(100 ether);
-        assertEq(inflation, 900000000000000000);
+    function testInflationPerSecond1() public {
+        uint256 inflation = comptroller.inflationPerSecond(100 ether);
+        assertEq(inflation, 900000000000000000 / 12);
     }
 
-    function testInflationPerBlock2() public {
-        uint256 inflation = comptroller.inflationPerBlock(1000 ether);
-        assertEq(inflation, 800000000000000000);
+    function testInflationPerSecond2() public {
+        uint256 inflation = comptroller.inflationPerSecond(1000 ether);
+        assertEq(inflation, 66_666_666_666_666_667); // 800000000000000000 / 12
     }
 
-    function testInflationPerBlock3() public {
-        uint256 inflation = comptroller.inflationPerBlock(10000 ether);
-        assertEq(inflation, 700000000000000000);
+    function testInflationPerSecond3() public {
+        uint256 inflation = comptroller.inflationPerSecond(10000 ether);
+        assertEq(inflation, 58_333_333_333_333_333); // 700000000000000000 / 12
     }
 
-    function testInflationPerBlock4() public {
-        uint256 inflation = comptroller.inflationPerBlock(100000 ether);
-        assertEq(inflation, 600000000000000000);
+    function testInflationPerSecond4() public {
+        uint256 inflation = comptroller.inflationPerSecond(100000 ether);
+        assertEq(inflation, 600000000000000000 / 12);
     }
 
-    function testInflationPerBlock5() public {
-        uint256 inflation = comptroller.inflationPerBlock(1000000 ether);
-        assertEq(inflation, 500000000000000000);
+    function testInflationPerSecond5() public {
+        uint256 inflation = comptroller.inflationPerSecond(1000000 ether);
+        assertEq(inflation, 41_666_666_666_666_666); // 500000000000000000 / 12
     }
 
-    function testInflationPerBlock6() public {
-        uint256 inflation = comptroller.inflationPerBlock(5_000_000 ether);
-        assertEq(inflation, 250000000000000000);
+    function testInflationPerSecond6() public {
+        uint256 inflation = comptroller.inflationPerSecond(5_000_000 ether);
+        assertEq(inflation, 20_833_333_333_333_333); //250000000000000000 / 12
     }
 
-    function testInflationPerBlock7() public {
-        uint256 inflation = comptroller.inflationPerBlock(type(uint256).max);
-        assertEq(inflation, 1000000000000);
+    function testInflationPerSecond7() public {
+        uint256 inflation = comptroller.inflationPerSecond(type(uint256).max);
+        assertEq(inflation, 83_333_333_333); // 1000000000000 / 12
     }
 }

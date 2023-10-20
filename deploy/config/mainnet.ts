@@ -2,11 +2,8 @@ import {DeployConfig} from "../index";
 
 export default {
     addresses: {
-        dai: "0x6b175474e89094c44da98b954eedeac495271d0f",
-        aave: {
-            market: "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5",
-            lendingPool: "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9"
-        },
-        whales: {dai: "0x5d38b4e4783e34e2301a2a36c39a03c45798c4dd"}
+        unionToken: "0x5Dfe42eEA70a3e6f93EE54eD9C321aF07A85535C",
+        opUnion: "0xB025ee78b54B5348BD638Fe4a6D77Ec2F813f4f9",
+        opL1Bridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1"
     }
 } as DeployConfig;

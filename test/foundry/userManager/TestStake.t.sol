@@ -27,11 +27,15 @@ contract TestStakeAndUnstake is TestUserManagerBase {
     }
 
     function testStake(uint96 amount) public {
-        vm.assume(amount <= 100 ether && amount > 0);
+        vm.assume(amount <= 100 ether && amount > 1 ether);
         vm.prank(MEMBER);
         userManager.stake(amount);
         uint256 stakeAmount = userManager.getStakerBalance(MEMBER);
         assertEq(stakeAmount, amount);
+        uint256 globalTotalStaked = userManager.globalTotalStaked();
+        uint256 totalFrozen = userManager.totalFrozen();
+        assertEq(totalFrozen, 0);
+        assertEq(globalTotalStaked, amount);
     }
 
     function testCannotUnstakeAboveStake(uint96 amount) public {
@@ -50,7 +54,7 @@ contract TestStakeAndUnstake is TestUserManagerBase {
         vm.mockCall(
             address(assetManagerMock),
             abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, MEMBER, amount),
-            abi.encode(false)
+            abi.encode(101 ether)
         );
         vm.expectRevert(UserManager.AssetManagerWithdrawFailed.selector);
         userManager.unstake(amount);
@@ -65,6 +69,21 @@ contract TestStakeAndUnstake is TestUserManagerBase {
         userManager.unstake(amount);
         uint256 stakeAmount = userManager.getStakerBalance(MEMBER);
         assertEq(stakeAmount, 0);
+        vm.stopPrank();
+    }
+
+    function testUnstakeWhenRemaining(uint96 amount) public {
+        vm.assume(amount <= 100 ether && amount > 1 ether);
+        vm.startPrank(MEMBER);
+        userManager.stake(amount);
+        vm.mockCall(
+            address(assetManagerMock),
+            abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, MEMBER, amount),
+            abi.encode(1 ether)
+        );
+        userManager.unstake(amount);
+        uint256 stakeAmount = userManager.getStakerBalance(MEMBER);
+        assertEq(stakeAmount, 1 ether);
         vm.stopPrank();
     }
 }

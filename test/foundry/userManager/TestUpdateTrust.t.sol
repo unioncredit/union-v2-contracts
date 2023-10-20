@@ -11,6 +11,24 @@ contract TestUpdateTrust is TestUserManagerBase {
         userManager.stake(100 ether);
     }
 
+    function verifyVouches(address acc) private {
+        uint256 voucheeLen = userManager.getVoucheeCount(acc);
+        uint256 voucherLen = userManager.getVoucherCount(acc);
+
+        // Loop through all the vouchees and get the voucher index of their
+        // staker and then check their staker is correct
+        for (uint256 i = 0; i < voucheeLen; i++) {
+            (address borrower, uint96 voucherIndex) = userManager.vouchees(acc, i);
+            (address staker, uint96 t, uint96 l, uint64 lu) = userManager.vouchers(borrower, voucherIndex);
+            (, uint128 voucheeIdx) = userManager.voucheeIndexes(borrower, acc);
+            (, uint128 voucherIdx) = userManager.voucherIndexes(borrower, acc);
+
+            assertEq(voucheeIdx, i);
+            assertEq(voucherIndex, voucherIdx);
+            assertEq(staker, acc);
+        }
+    }
+
     function testGetCreditLimit(uint96 trustAmount) public {
         vm.assume(trustAmount <= 100 ether);
         vm.startPrank(MEMBER);
@@ -42,6 +60,73 @@ contract TestUpdateTrust is TestUserManagerBase {
         assertEq(amountAfter, amount1);
         vm.stopPrank();
     }
+
+    function testCannotCancelNotStakerOrBorrower() public {
+        vm.startPrank(MEMBER);
+        vm.expectRevert(UserManager.AuthFailed.selector);
+        userManager.cancelVouch(address(3), address(4));
+        vm.stopPrank();
+    }
+
+    function testCancelNoVouch() public {
+        vm.startPrank(MEMBER);
+        vm.expectRevert(UserManager.VoucherNotFound.selector);
+        userManager.cancelVouch(MEMBER, ACCOUNT);
+        vm.stopPrank();
+    }
+
+    function testCancelStakeNonZero() public {
+        vm.prank(MEMBER);
+        userManager.updateTrust(ACCOUNT, 100);
+        vm.prank(address(userManager.uToken()));
+        userManager.updateLocked(ACCOUNT, 100, true);
+        vm.expectRevert(UserManager.LockedStakeNonZero.selector);
+        vm.prank(MEMBER);
+        userManager.cancelVouch(MEMBER, ACCOUNT);
+    }
+
+    function testCancelVouch(uint96 amount) public {
+        vm.startPrank(MEMBER);
+
+        userManager.updateTrust(ACCOUNT, amount);
+        assertEq(userManager.getVoucheeCount(MEMBER), 1);
+
+        (, uint256 vouchIndex) = userManager.voucherIndexes(ACCOUNT, MEMBER);
+        (, uint256 vouchAmount, , ) = userManager.vouchers(ACCOUNT, vouchIndex);
+        assertEq(vouchAmount, amount);
+        userManager.cancelVouch(MEMBER, ACCOUNT);
+        (bool isSet, ) = userManager.voucherIndexes(ACCOUNT, MEMBER);
+        assert(!isSet);
+        // Verify
+        verifyVouches(MEMBER);
+        verifyVouches(ACCOUNT);
+        vm.stopPrank();
+    }
+
+    function testCancelVouchMultiple(uint96 amount) public {
+        vm.startPrank(MEMBER);
+
+        address ACC0 = address(123456);
+        address ACC1 = address(234567);
+
+        userManager.updateTrust(ACC0, amount);
+        userManager.updateTrust(ACC1, amount);
+        assertEq(userManager.getVoucheeCount(MEMBER), 2);
+
+        (, uint256 vouchIndex) = userManager.voucherIndexes(ACC0, MEMBER);
+        (, uint256 vouchAmount, , ) = userManager.vouchers(ACC0, vouchIndex);
+        assertEq(vouchAmount, amount);
+        userManager.cancelVouch(MEMBER, ACC0);
+        (bool isSet, ) = userManager.voucherIndexes(ACC0, MEMBER);
+        assert(!isSet);
+        // Verify
+        verifyVouches(MEMBER);
+        verifyVouches(ACC0);
+        verifyVouches(ACC1);
+        vm.stopPrank();
+    }
+
+    // TODO: remove when only 1 vouch
 
     function testSavesVouchIndex() public {
         vm.startPrank(MEMBER);
@@ -85,7 +170,7 @@ contract TestUpdateTrust is TestUserManagerBase {
 
     function testCannotVouchForMoreThanMaxLimit() public {
         vm.prank(ADMIN);
-        userManager.setMaxVouchers(2);
+        userManager.setMaxVouchees(2);
 
         vm.startPrank(MEMBER);
         userManager.updateTrust(address(123), 10 ether);
@@ -93,5 +178,25 @@ contract TestUpdateTrust is TestUserManagerBase {
         vm.expectRevert(UserManager.MaxVouchees.selector);
         userManager.updateTrust(address(12345), 10 ether);
         vm.stopPrank();
+    }
+
+    function testCannotRecieveVouchesForMoreThanMaxLimit() public {
+        address member0 = address(123);
+        address member1 = address(456);
+
+        vm.startPrank(ADMIN);
+        userManager.addMember(member0);
+        userManager.addMember(member1);
+        userManager.setMaxVouchers(1);
+        vm.stopPrank();
+
+        address vouchTo = address(789);
+
+        vm.prank(member0);
+        userManager.updateTrust(vouchTo, 10 ether);
+
+        vm.prank(member1);
+        vm.expectRevert(UserManager.MaxVouchers.selector);
+        userManager.updateTrust(vouchTo, 10 ether);
     }
 }

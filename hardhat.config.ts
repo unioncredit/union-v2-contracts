@@ -1,8 +1,9 @@
-import "@nomiclabs/hardhat-waffle";
+// import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import "solidity-coverage";
+import "@nomicfoundation/hardhat-chai-matchers";
 
 console.log("[*] Environment");
 console.log(`    - ETHERSCAN_API_KEY: ${process.env.ETHERSCAN_API_KEY}`);
@@ -16,8 +17,16 @@ export default {
             }
         },
         goerli: {
-            url: process.env.NODE_URL || "",
-            gasPrice: 3000000000
+            url: process.env.NODE_URL || ""
+        },
+        "optimism-goerli": {
+            url: process.env.NODE_URL || "https://goerli.optimism.io"
+        },
+        optimism: {
+            url: process.env.NODE_URL || "https://optimism-mainnet.infura.io"
+        },
+        mainnet: {
+            url: process.env.NODE_URL || "https://mainnet.infura.io/v3/"
         }
     },
     solidity: {
@@ -27,7 +36,7 @@ export default {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 100
+                        runs: 200
                     },
                     evmVersion: "istanbul"
                 }

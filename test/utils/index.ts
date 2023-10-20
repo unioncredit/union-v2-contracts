@@ -1,12 +1,10 @@
 import {BigNumber, BigNumberish, ContractTransaction, Signer} from "ethers";
 import {ethers, network} from "hardhat";
+
+import {isForked} from "./fork";
 import {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";
-import {FaucetERC20, IDai} from "../../typechain-types";
-
-export const isForked = () => {
-    return process.env.FORK_NODE_URL && process.env.FORK_BLOCK;
-};
+import {FaucetERC20_ERC20Permit, IDai, IUnionToken} from "../../typechain-types";
 
 export const roll = async (n: number) => {
     await Promise.all(
@@ -54,7 +52,8 @@ export const fork = (forkBlock?: number) => {
 export const getDeployer = async () => {
     const signers = await ethers.getSigners();
     if (isForked()) {
-        await prank(signers[0].address);
+        const config = getConfig();
+        return prank(config.admin || signers[0].address);
     }
     return ethers.provider.getSigner(signers[0].address);
 };
@@ -68,7 +67,7 @@ export const getSigners = async () => {
     return accounts;
 };
 
-export const getDai = async (dai: IDai | FaucetERC20, account: Signer, amount: BigNumberish) => {
+export const getDai = async (dai: IDai | FaucetERC20_ERC20Permit, account: Signer, amount: BigNumberish) => {
     const address = await account.getAddress();
     const config = getConfig();
 
@@ -84,6 +83,26 @@ export const getDai = async (dai: IDai | FaucetERC20, account: Signer, amount: B
         // Transfer DAI from the dai whale on this network
         const daiWhale = await prank(config.addresses.whales.dai);
         await dai.connect(daiWhale).transfer(address, amount);
+    }
+};
+
+export const getUnion = async (union: IUnionToken | FaucetERC20_ERC20Permit, address: string, amount: BigNumberish) => {
+    const config = getConfig();
+
+    if (!("getPriorVotes" in union)) {
+        // Just mint DAI from the mock faucet
+        await union.mint(address, amount);
+    } else {
+        if (!config.addresses?.whales?.union) {
+            console.log("[!] Not UNION whale found in config");
+            process.exit();
+        }
+
+        // Transfer DAI from the dai whale on this network
+        const whale = await prank(config.addresses.whales.union);
+        const owner = await prank(await union.owner());
+        await union.connect(owner).disableWhitelist();
+        await union.connect(whale).transfer(address, amount);
     }
 };
 
@@ -103,7 +122,7 @@ export interface Helpers {
     repay: (borrower: Signer, amount: BigNumberish) => Promise<ContractTransaction>;
     repayFull: (borrower: Signer) => Promise<ContractTransaction>;
     stake: (amount: BigNumberish, ...accounts: Signer[]) => Promise<void>;
-    withOverdueblocks: (blocks: BigNumberish, fn: () => Promise<void>) => Promise<void>;
+    withOverdue: (timestamp: BigNumberish, fn: () => Promise<void>) => Promise<void>;
 }
 
 export const createHelpers = (contracts: Contracts): Helpers => {
@@ -218,8 +237,8 @@ export const createHelpers = (contracts: Contracts): Helpers => {
         const borrowerAddress = await borrower.getAddress();
         const owed = await contracts.uToken.borrowBalanceView(borrowerAddress);
         const daiBalance = await contracts.dai.balanceOf(borrowerAddress);
-        if (daiBalance.lt(owed) && "mint" in contracts.dai) {
-            await contracts.dai.mint(borrowerAddress, owed.mul(1100).div(1000));
+        if (daiBalance.lt(owed)) {
+            await getDai(contracts.dai, borrower, owed.mul(1100).div(1000));
         }
         await contracts.dai.connect(borrower).approve(contracts.uToken.address, ethers.constants.MaxUint256);
         return contracts.uToken.connect(borrower).repayBorrow(borrowerAddress, ethers.constants.MaxUint256);
@@ -237,11 +256,11 @@ export const createHelpers = (contracts: Contracts): Helpers => {
      * Higher Order
      * ------------------------------------------------------- */
 
-    const withOverdueblocks = async (blocks: BigNumberish, fn: () => Promise<void>) => {
-        const overdueBlocks = await contracts.uToken.overdueBlocks();
-        await contracts.uToken.setOverdueBlocks(blocks);
+    const withOverdue = async (timestamp: BigNumberish, fn: () => Promise<void>) => {
+        const overdueTime = await contracts.uToken.overdueTime();
+        await contracts.uToken.setOverdueTime(timestamp);
         await fn();
-        await contracts.uToken.setOverdueBlocks(overdueBlocks);
+        await contracts.uToken.setOverdueTime(overdueTime);
     };
 
     return {
@@ -260,6 +279,6 @@ export const createHelpers = (contracts: Contracts): Helpers => {
         repay,
         repayFull,
         stake,
-        withOverdueblocks
+        withOverdue
     };
 };

@@ -51,8 +51,8 @@ contract MarketRegistry is Controller, IMarketRegistry {
     /**
      *  @dev Initialization function
      */
-    function __MarketRegistry_init() public initializer {
-        Controller.__Controller_init(msg.sender);
+    function __MarketRegistry_init(address admin) public initializer {
+        Controller.__Controller_init(admin);
     }
 
     /* -------------------------------------------------------------------

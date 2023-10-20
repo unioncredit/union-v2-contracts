@@ -6,17 +6,33 @@ pragma solidity 0.8.16;
  * @dev Manages the Union members credit lines, and their vouchees and borrowers info.
  */
 interface IUserManager {
+    function memberFrozen(address staker) external view returns (uint256);
+
+    function stakers(address staker) external view returns (bool, uint96, uint96, uint64, uint256, uint256);
+
+    function vouchers(address borrower, uint256 index) external view returns (address, uint96, uint96, uint64);
+
+    function stakingToken() external view returns (address);
+
+    function vouchees(address staker, uint256 index) external view returns (address, uint96);
+
+    function voucherIndexes(address borrower, address staker) external view returns (bool, uint128);
+
+    function voucheeIndexes(address borrower, address staker) external view returns (bool, uint128);
+
     function setMaxStakeAmount(uint96 maxStakeAmount) external;
 
     function setUToken(address uToken) external;
 
     function setNewMemberFee(uint256 amount) external;
 
-    function setMaxOverdueBlocks(uint256 maxOverdueBlocks) external;
+    function setMaxOverdueTime(uint256 maxOverdueTime) external;
 
     function setEffectiveCount(uint256 effectiveCount) external;
 
     function getVoucherCount(address borrower) external view returns (uint256);
+
+    function getVoucheeCount(address staker) external view returns (uint256);
 
     function getLockedStake(address staker, address borrower) external view returns (uint256);
 
@@ -33,11 +49,7 @@ interface IUserManager {
 
     function withdrawRewards() external;
 
-    function debtWriteOff(
-        address staker,
-        address borrower,
-        uint96 amount
-    ) external;
+    function debtWriteOff(address staker, address borrower, uint256 amount) external;
 
     /**
      *  @dev Check if the account is a valid member
@@ -57,6 +69,8 @@ interface IUserManager {
 
     function totalFrozen() external view returns (uint256);
 
+    function globalTotalStaked() external view returns (uint256);
+
     /**
      *  @dev Add a new member
      *  Accept claims only from the admin
@@ -65,7 +79,7 @@ interface IUserManager {
     function addMember(address account) external;
 
     /**
-     *  @dev Update the trust amount for exisitng members.
+     *  @dev Update the trust amount for existing members.
      *  @param borrower Borrower address
      *  @param trustAmount Trust amount
      */
@@ -92,13 +106,29 @@ interface IUserManager {
     function getTotalLockedStake(address staker) external view returns (uint256);
 
     /**
-     *  @dev Get staker's defaulted / frozen staked token amount
+     *  @dev Get the staker's effective staked and locked amount
      *  @param staker Staker address
-     *  @return Frozen token amount
+     *  @return is member
+     *          effective staked amount
+     *          effective locked amount
+     *          frozen amount
      */
-    function getFrozenInfo(address staker, uint256 blocks) external view returns (uint256, uint256);
+    function getStakeInfo(address staker) external view returns (bool, uint256, uint256, uint256);
 
-    function updateFrozenInfo(address staker, uint256 pastBlocks) external returns (uint256, uint256);
+    /**
+     * @dev Update the frozen info by the comptroller
+     * @param staker Staker address
+     * @return  effectStaked user's total stake - frozen
+     *          effectLocked user's locked amount - frozen
+     */
+    function onWithdrawRewards(address staker) external returns (uint256, uint256, bool);
+
+    /**
+     * @dev Update the frozen info by the utoken repay
+     * @param borrower Borrower address
+     * @param pastBlocks blocks since last repay
+     */
+    function onRepayBorrow(address borrower, uint256 pastBlocks) external;
 
     /**
      *  @dev Update userManager locked info
@@ -106,11 +136,7 @@ interface IUserManager {
      *  @param amount Borrow or repay amount(Including previously accrued interest)
      *  @param isBorrow True is borrow, false is repay
      */
-    function updateLocked(
-        address borrower,
-        uint96 amount,
-        bool isBorrow
-    ) external;
+    function updateLocked(address borrower, uint256 amount, bool isBorrow) external;
 
     /**
      *  @dev Get the user's deposited stake amount

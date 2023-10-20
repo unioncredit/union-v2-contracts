@@ -14,7 +14,7 @@ interface IUToken {
 
     function exchangeRateCurrent() external returns (uint256);
 
-    function overdueBlocks() external view returns (uint256);
+    function overdueTime() external view returns (uint256);
 
     function getRemainingDebtCeiling() external view returns (uint256);
 
@@ -24,7 +24,7 @@ interface IUToken {
 
     function checkIsOverdue(address account) external view returns (bool);
 
-    function borrowRatePerBlock() external view returns (uint256);
+    function borrowRatePerSecond() external view returns (uint256);
 
     function calculatingFee(uint256 amount) external view returns (uint256);
 
@@ -40,13 +40,13 @@ interface IUToken {
 
     function setMinBorrow(uint256 minBorrow_) external;
 
-    function setOverdueBlocks(uint256 overdueBlocks_) external;
+    function setOverdueTime(uint256 overdueBlocks_) external;
 
     function setInterestRateModel(address newInterestRateModel) external;
 
     function setReserveFactor(uint256 reserveFactorMantissa_) external;
 
-    function supplyRatePerBlock() external returns (uint256);
+    function supplyRatePerSecond() external returns (uint256);
 
     function accrueInterest() external returns (bool);
 
@@ -54,9 +54,7 @@ interface IUToken {
 
     function mint(uint256 mintAmount) external;
 
-    function redeem(uint256 redeemTokens) external;
-
-    function redeemUnderlying(uint256 redeemAmount) external;
+    function redeem(uint256 amountIn, uint256 amountOut) external;
 
     function addReserves(uint256 addAmount) external;
 
@@ -64,7 +62,11 @@ interface IUToken {
 
     function borrow(address to, uint256 amount) external;
 
+    function repayInterest(address borrower) external;
+
     function repayBorrow(address borrower, uint256 amount) external;
 
     function debtWriteOff(address borrower, uint256 amount) external;
+
+    function setMintFeeRate(uint256 newRate) external;
 }

@@ -1,4 +1,5 @@
 pragma solidity ^0.8.0;
+
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v2-contracts/user/UserManager.sol";
 
@@ -8,6 +9,7 @@ contract TestUpdateFrozenInfo is TestUserManagerBase {
 
     function setUp() public override {
         super.setUp();
+        comptrollerMock.setUserManager(address(userManager));
 
         vm.startPrank(ADMIN);
         userManager.addMember(address(this));
@@ -20,14 +22,18 @@ contract TestUpdateFrozenInfo is TestUserManagerBase {
     function testUpdateFrozenInfo() public {
         vm.prank(address(userManager.uToken()));
         userManager.updateLocked(ACCOUNT, lockAmount, true);
-        vm.roll(block.number + 10);
+        uTokenMock.setOverdueTime(0);
+        uTokenMock.setLastRepay(1);
+        skip(2);
 
         vm.prank(address(userManager.comptroller()));
-        userManager.updateFrozenInfo(address(this), block.number + 1);
-        (uint256 totalFrozen, ) = userManager.getFrozenInfo(address(this), block.number + 1);
+        userManager.onWithdrawRewards(address(this));
 
-        assertEq(totalFrozen, lockAmount);
-        assertEq(userManager.memberFrozen(address(this)), totalFrozen);
-        assertEq(userManager.totalFrozen(), totalFrozen);
+        skip(3);
+        (, , uint256 effectiveLocked, ) = userManager.getStakeInfo(address(this));
+
+        assertEq(effectiveLocked, 0);
+        assertEq(userManager.memberFrozen(address(this)), lockAmount);
+        assertEq(userManager.totalFrozen(), lockAmount);
     }
 }

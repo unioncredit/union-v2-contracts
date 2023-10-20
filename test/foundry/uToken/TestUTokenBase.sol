@@ -10,12 +10,14 @@ contract TestUTokenBase is TestWrapper {
     address public constant BOB = address(3);
 
     uint256 internal constant ORIGINATION_FEE = 0.01 ether;
+    uint256 internal constant ORIGINATION_FEE_MAX = 0.05 ether;
     uint256 internal constant MIN_BORROW = 1 ether;
     uint256 internal constant MAX_BORROW = 100 ether;
     uint256 internal constant BORROW_INTEREST_PER_BLOCK = 0.000001 ether; //0.0001%
-    uint256 internal constant OVERDUE_BLOCKS = 10;
+    uint256 internal constant OVERDUE_TIME = 10; // seconds
     uint256 internal constant RESERVE_FACTOR = 0.5 ether;
     uint256 internal constant INIT_EXCHANGE_RATE = 1 ether;
+    uint256 internal constant MINT_FEE_RATE = 1e15;
 
     function setUp() public virtual {
         uint256 debtCeiling = 1000 ether;
@@ -27,18 +29,22 @@ contract TestUTokenBase is TestWrapper {
             deployProxy(
                 uTokenLogic,
                 abi.encodeWithSignature(
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
-                    "UTokenMock",
-                    "UTM",
-                    address(daiMock),
-                    INIT_EXCHANGE_RATE,
-                    RESERVE_FACTOR,
-                    ORIGINATION_FEE,
-                    debtCeiling,
-                    MAX_BORROW,
-                    MIN_BORROW,
-                    OVERDUE_BLOCKS,
-                    ADMIN
+                    "__UToken_init((string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address,uint256))",
+                    UToken.InitParams({
+                        name: "UTokenMock",
+                        symbol: "UTM",
+                        underlying: address(daiMock),
+                        initialExchangeRateMantissa: INIT_EXCHANGE_RATE,
+                        reserveFactorMantissa: RESERVE_FACTOR,
+                        originationFee: ORIGINATION_FEE,
+                        originationFeeMax: ORIGINATION_FEE_MAX,
+                        debtCeiling: debtCeiling,
+                        maxBorrow: MAX_BORROW,
+                        minBorrow: MIN_BORROW,
+                        overdueTime: OVERDUE_TIME,
+                        admin: ADMIN,
+                        mintFeeRate: MINT_FEE_RATE
+                    })
                 )
             )
         );

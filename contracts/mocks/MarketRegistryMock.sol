@@ -5,6 +5,6 @@ import {MarketRegistry} from "../market/MarketRegistry.sol";
 
 contract MarketRegistryMock is MarketRegistry {
     constructor() {
-        admin = msg.sender;
+        //admin = msg.sender;
     }
 }

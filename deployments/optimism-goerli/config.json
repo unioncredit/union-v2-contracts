@@ -1,0 +1,84 @@
+{
+  "addresses": {
+    "guardian": "0x7a0C61EdD8b5c0c5C1437AEb571d7DDbF8022Be4",
+    "unionToken": "0x23B0483E07196c425d771240E81A9c2f1E113D3A",
+    "dai": "0xD9662ae38fB577a3F6843b6b8EB5af3410889f3A",
+    "aave": {
+      "market": "0x062BB55A42875366DB1B7D227B73621C33a6cB6b",
+      "lendingPool": "0xCAd01dAdb7E97ae45b89791D986470F3dfC256f7"
+    },
+    "opL2Bridge": "0x4200000000000000000000000000000000000010",
+    "opL2CrossDomainMessenger": "0x4200000000000000000000000000000000000007",
+    "timelock": "0xe614dAf5717cab0c2abC49a7Fa9AbEFD16b6ddF0",
+    "opAdminAddress": "0x7a0C61EdD8b5c0c5C1437AEb571d7DDbF8022Be4"
+  },
+  "userManager": {
+    "maxOverdue": "86400",
+    "effectiveCount": "1",
+    "maxVouchers": "400",
+    "maxVouchees": "1000"
+  },
+  "uToken": {
+    "name": "uDAI",
+    "symbol": "uDAI",
+    "initialExchangeRateMantissa": {
+      "type": "BigNumber",
+      "hex": "0x0de0b6b3a7640000"
+    },
+    "reserveFactorMantissa": {
+      "type": "BigNumber",
+      "hex": "0x0de0b6b3a7640000"
+    },
+    "originationFee": {
+      "type": "BigNumber",
+      "hex": "0x11c37937e08000"
+    },
+    "originationFeeMax": {
+      "type": "BigNumber",
+      "hex": "0x06f05b59d3b20000"
+    },
+    "debtCeiling": {
+      "type": "BigNumber",
+      "hex": "0x34f086f3b33b68400000"
+    },
+    "maxBorrow": {
+      "type": "BigNumber",
+      "hex": "0x054b40b1f852bda00000"
+    },
+    "minBorrow": {
+      "type": "BigNumber",
+      "hex": "0x056bc75e2d63100000"
+    },
+    "overdueTime": "86400",
+    "mintFeeRate": {
+      "type": "BigNumber",
+      "hex": "0x00"
+    }
+  },
+  "fixedInterestRateModel": {
+    "interestRatePerSecond": "3170979198"
+  },
+  "comptroller": {
+    "halfDecayPoint": "500000"
+  },
+  "pureAdapter": {
+    "floor": {
+      "type": "BigNumber",
+      "hex": "0x0a968163f0a57b400000"
+    },
+    "ceiling": {
+      "type": "BigNumber",
+      "hex": "0x033b2e3c9fd0803ce8000000"
+    }
+  },
+  "aaveAdapter": {
+    "floor": {
+      "type": "BigNumber",
+      "hex": "0x054b40b1f852bda00000"
+    },
+    "ceiling": {
+      "type": "BigNumber",
+      "hex": "0x152d02c7e14af6800000"
+    }
+  }
+}

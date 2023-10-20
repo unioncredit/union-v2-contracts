@@ -62,11 +62,7 @@ interface IAssetManager {
      *  @param amount Withdraw amount, in wei
      *  @return Withdraw amount
      */
-    function withdraw(
-        address token,
-        address account,
-        uint256 amount
-    ) external returns (bool);
+    function withdraw(address token, address account, uint256 amount) external returns (uint256);
 
     /**
      *  @dev Add a new ERC20 token to support in AssetManager
@@ -108,7 +104,7 @@ interface IAssetManager {
      *  @dev Set withdraw sequence
      *  @param newSeq priority sequence of money market indices to be used while withdrawing
      */
-    function setWithdrawSequence(uint256[] calldata newSeq) external;
+    function setWithdrawSequence(address[] calldata newSeq) external;
 
     /**
      *  @dev Rebalance the tokens between integrated lending protocols

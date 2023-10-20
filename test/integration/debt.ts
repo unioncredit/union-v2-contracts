@@ -3,10 +3,12 @@ import "./testSetup";
 import {expect} from "chai";
 import {Signer} from "ethers";
 import {parseUnits} from "ethers/lib/utils";
-import {createHelpers, getDai, getDeployer, getSigners, Helpers, roll} from "../utils";
 
-import deploy, {Contracts} from "../../deploy";
+import error from "../utils/error";
+import {isForked} from "../utils/fork";
 import {getConfig} from "../../deploy/config";
+import deploy, {Contracts} from "../../deploy";
+import {fork, createHelpers, getDai, getDeployer, getSigners, Helpers, roll} from "../utils";
 
 describe("Writing off member debt", () => {
     let deployer: Signer;
@@ -17,7 +19,9 @@ describe("Writing off member debt", () => {
     let contracts: Contracts;
     let helpers: Helpers;
 
-    before(async function () {
+    const beforeContext = async () => {
+        if (isForked()) await fork();
+
         deployer = await getDeployer();
         const signers = await getSigners();
 
@@ -26,9 +30,7 @@ describe("Writing off member debt", () => {
 
         deployerAddress = await deployer.getAddress();
         borrowerAddress = await borrower.getAddress();
-    });
 
-    const beforeContext = async () => {
         contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         helpers = createHelpers(contracts);
         await contracts.userManager.addMember(deployerAddress);
@@ -60,7 +62,7 @@ describe("Writing off member debt", () => {
         });
         it("borrower is overdue", async () => {
             const amount = parseUnits("100");
-            await helpers.withOverdueblocks(10, async () => {
+            await helpers.withOverdue(10, async () => {
                 await roll(10);
                 const lockedBefore = await contracts.userManager.getLockedStake(deployerAddress, borrowerAddress);
                 await contracts.userManager.debtWriteOff(deployerAddress, borrowerAddress, amount);
@@ -81,19 +83,19 @@ describe("Writing off member debt", () => {
         it("cannot if not overdue", async () => {
             const amount = parseUnits("100");
             const resp = contracts.userManager.connect(user).debtWriteOff(deployerAddress, borrowerAddress, amount);
-            await expect(resp).to.be.revertedWith("AuthFailed()");
+            await expect(resp).to.be.revertedWith(error.AuthFailed);
         });
         it("cannot if grace period has not passed", async () => {
             const amount = parseUnits("100");
-            await helpers.withOverdueblocks(10, async () => {
+            await helpers.withOverdue(10, async () => {
                 await roll(10);
                 const resp = contracts.userManager.connect(user).debtWriteOff(deployerAddress, borrowerAddress, amount);
-                await expect(resp).to.be.revertedWith("AuthFailed()");
+                await expect(resp).to.be.revertedWith(error.AuthFailed);
             });
         });
         it("public can write off debt", async () => {
-            await contracts.userManager.setMaxOverdueBlocks(10);
-            await helpers.withOverdueblocks(10, async () => {
+            await contracts.userManager.setMaxOverdueTime(10);
+            await helpers.withOverdue(10, async () => {
                 await roll(20);
                 const locked = await contracts.userManager.getLockedStake(deployerAddress, borrowerAddress);
                 await contracts.userManager.connect(user).debtWriteOff(deployerAddress, borrowerAddress, locked);

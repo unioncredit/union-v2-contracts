@@ -60,7 +60,7 @@ interface LendingPool3 {
         uint128 isolationModeTotalDebt;
     }
 
-    function deposit(
+    function supply(
         address asset,
         uint256 amount,
         address onBehalfOf,

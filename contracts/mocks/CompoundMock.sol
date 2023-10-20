@@ -15,30 +15,30 @@ contract CompoundMock is Initializable, ERC20Upgradeable {
         underlyingToken = IERC20Upgradeable(_underlyingToken);
     }
 
-    function supplyRatePerBlock() external view returns (uint256) {
+    function supplyRatePerSecond() external view returns (uint256) {
         return rate;
     }
 
     function mint(uint256 mintAmount) external returns (uint256) {
         underlyingToken.transferFrom(msg.sender, address(this), mintAmount);
-        _mint(msg.sender, (mintAmount * EXCHANGE_RATE) / 10**18);
+        _mint(msg.sender, (mintAmount * EXCHANGE_RATE) / 10 ** 18);
         return 0;
     }
 
     function mintOther(address account, uint256 mintAmount) external returns (uint256) {
         underlyingToken.transferFrom(msg.sender, address(this), mintAmount);
-        _mint(account, (mintAmount * EXCHANGE_RATE) / 10**18);
+        _mint(account, (mintAmount * EXCHANGE_RATE) / 10 ** 18);
         return 0;
     }
 
     function redeemUnderlying(uint256 redeemAmount) external returns (uint256) {
         underlyingToken.transfer(msg.sender, redeemAmount);
-        _burn(msg.sender, (redeemAmount * EXCHANGE_RATE) / 10**18);
+        _burn(msg.sender, (redeemAmount * EXCHANGE_RATE) / 10 ** 18);
         return 0;
     }
 
     function balanceOfUnderlying(address owner) external view returns (uint256) {
-        return (balanceOf(owner) * EXCHANGE_RATE) / 10**18;
+        return (balanceOf(owner) * EXCHANGE_RATE) / 10 ** 18;
     }
 
     function exchangeRateStored() external pure returns (uint256) {

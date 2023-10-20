@@ -1,0 +1,34 @@
+name: audit finding tests
+
+on:
+    push:
+        branches:
+            - "findings/**"
+
+jobs:
+    AuditFindingTest:
+        name: Audit finding tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  submodules: recursive
+            - uses: actions/setup-node@v3
+              with:
+                  node-version: 14
+
+            - name: Install dependencies
+              run: yarn install
+
+            - name: Compile hardhat
+              run: yarn hh:compile
+
+            - name: Check tests existence
+              id: check_tests
+              uses: andstor/file-existence-action@v2
+              with:
+                  files: "test/findings/*"
+
+            - name: Run the tests
+              if: steps.check_tests.outputs.files_exists == 'true'
+              run: CONFIG=local yarn hardhat test test/findings/*

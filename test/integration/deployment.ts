@@ -4,9 +4,10 @@ import {expect} from "chai";
 import {Signer} from "ethers";
 import {ethers} from "hardhat";
 
-import deploy, {Contracts, DeployConfig} from "../../deploy";
+import {isForked} from "../utils/fork";
+import {getDeployer, fork} from "../utils";
 import {getConfig} from "../../deploy/config";
-import {getDeployer} from "../utils";
+import deploy, {Contracts, DeployConfig} from "../../deploy";
 
 describe("Test deployment configs", () => {
     let deployer: Signer;
@@ -15,6 +16,8 @@ describe("Test deployment configs", () => {
     let config: Omit<DeployConfig, "admin">;
 
     before(async function () {
+        if (isForked()) await fork();
+
         deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
 
@@ -44,7 +47,7 @@ describe("Test deployment configs", () => {
             expect(isAdmin).eq(true);
         });
         it("has the correct maxOverdue", async () => {
-            const maxOverdue = await contracts.userManager.maxOverdueBlocks();
+            const maxOverdue = await contracts.userManager.maxOverdueTime();
             expect(maxOverdue).eq(config.userManager.maxOverdue);
         });
         it("has the correct effectiveCount", async () => {
@@ -81,7 +84,7 @@ describe("Test deployment configs", () => {
 
     context("checking PureTokenAdapter deployment config", () => {
         it("has the correct assetManager address", async () => {
-            const assetManager = await contracts.adapters.pureToken.assetManager();
+            const assetManager = await contracts.adapters.pureTokenAdapter.assetManager();
             expect(assetManager).eq(contracts.assetManager.address);
         });
     });
@@ -123,9 +126,9 @@ describe("Test deployment configs", () => {
             const minBorrow = await contracts.uToken.minBorrow();
             expect(minBorrow).eq(config.uToken.minBorrow);
         });
-        it("has the correct overdueBlocks", async () => {
-            const overdueBlocks = await contracts.uToken.overdueBlocks();
-            expect(overdueBlocks).eq(config.uToken.overdueBlocks);
+        it("has the correct overdueTime", async () => {
+            const overdueTime = await contracts.uToken.overdueTime();
+            expect(overdueTime).eq(config.uToken.overdueTime);
         });
         it("has the correct admin", async () => {
             const isAdmin = await contracts.uToken.isAdmin(deployerAddress);

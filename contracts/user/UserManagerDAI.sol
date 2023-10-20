@@ -1,10 +1,13 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {UserManager} from "./UserManager.sol";
 import {IDai} from "../interfaces/IDai.sol";
 
 contract UserManagerDAI is UserManager {
+    using SafeCastUpgradeable for uint256;
+
     /**
      *  @dev Stake using DAI permit
      *  @param amount Amount to stake
@@ -25,6 +28,6 @@ contract UserManagerDAI is UserManager {
         IDai erc20Token = IDai(stakingToken);
         erc20Token.permit(msg.sender, address(this), nonce, expiry, true, v, r, s);
 
-        stake(uint96(amount));
+        stake(amount.toUint96());
     }
 }

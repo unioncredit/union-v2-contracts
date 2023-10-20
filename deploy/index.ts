@@ -1,18 +1,16 @@
-import {BigNumberish, Signer} from "ethers";
+import {BigNumberish, Signer, ethers} from "ethers";
 
 import {
     AssetManager__factory,
     Comptroller,
     Comptroller__factory,
-    UserManager,
-    UserManager__factory,
-    UToken,
-    UToken__factory,
+    UserManagerERC20,
+    UserManagerERC20__factory,
+    UErc20,
+    UErc20__factory,
     AssetManager,
     PureTokenAdapter,
     PureTokenAdapter__factory,
-    FaucetERC20,
-    FaucetERC20__factory,
     IUnionToken,
     IUnionToken__factory,
     FaucetERC20_ERC20Permit,
@@ -24,7 +22,9 @@ import {
     AaveV3Adapter,
     AaveV3Adapter__factory,
     IDai__factory,
-    IDai
+    IDai,
+    VouchFaucet,
+    VouchFaucet__factory
 } from "../typechain-types";
 import {deployProxy, deployContract} from "./helpers";
 
@@ -47,7 +47,14 @@ export interface Addresses {
     };
     whales?: {
         dai?: string;
+        union?: string;
     };
+    opL2Bridge?: string;
+    opL1Bridge?: string;
+    opL2CrossDomainMessenger?: string;
+    opOwner?: string;
+    opAdmin?: string;
+    opUnion?: string;
 }
 
 export interface DeployConfig {
@@ -57,6 +64,7 @@ export interface DeployConfig {
         maxOverdue: BigNumberish;
         effectiveCount: BigNumberish;
         maxVouchers: BigNumberish;
+        maxVouchees: BigNumberish;
     };
     uToken: {
         name: string;
@@ -64,13 +72,15 @@ export interface DeployConfig {
         initialExchangeRateMantissa: BigNumberish;
         reserveFactorMantissa: BigNumberish;
         originationFee: BigNumberish;
+        originationFeeMax: BigNumberish;
         debtCeiling: BigNumberish;
         maxBorrow: BigNumberish;
         minBorrow: BigNumberish;
-        overdueBlocks: BigNumberish;
+        overdueTime: BigNumberish;
+        mintFeeRate: BigNumberish;
     };
     fixedInterestRateModel: {
-        interestRatePerBlock: BigNumberish;
+        interestRatePerSecond: BigNumberish;
     };
     comptroller: {
         halfDecayPoint: BigNumberish;
@@ -78,25 +88,27 @@ export interface DeployConfig {
 }
 
 export interface Contracts {
-    userManager: UserManager;
-    uToken: UToken;
+    userManager: UserManagerERC20;
+    uToken: UErc20;
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
     assetManager: AssetManager;
-    dai: IDai | FaucetERC20;
+    dai: IDai | FaucetERC20_ERC20Permit;
     marketRegistry: MarketRegistry;
     unionToken: IUnionToken | FaucetERC20_ERC20Permit;
     adapters: {
-        pureToken: PureTokenAdapter;
+        pureTokenAdapter: PureTokenAdapter;
         aaveV3Adapter?: AaveV3Adapter;
     };
+    vouchFaucet?: VouchFaucet;
 }
 
 export default async function (
     config: DeployConfig,
     signer: Signer,
     debug = false,
-    waitForBlocks: number | undefined = undefined
+    waitForBlocks: number | undefined = undefined,
+    isTestnet: boolean = false
 ): Promise<Contracts> {
     // deploy market registry
     let marketRegistry: MarketRegistry;
@@ -107,18 +119,18 @@ export default async function (
             new MarketRegistry__factory(signer),
             "MarketRegistry",
             {
-                signature: "__MarketRegistry_init()",
-                args: []
+                signature: "__MarketRegistry_init(address)",
+                args: [config.admin]
             },
             debug
         );
         marketRegistry = MarketRegistry__factory.connect(proxy.address, signer);
     }
-
     // deploy UNION
+    const unionTokenAddress = config.addresses.unionToken || config.addresses.opUnion;
     let unionToken: IUnionToken | FaucetERC20_ERC20Permit;
-    if (config.addresses.unionToken) {
-        unionToken = IUnionToken__factory.connect(config.addresses.unionToken, signer);
+    if (unionTokenAddress) {
+        unionToken = IUnionToken__factory.connect(unionTokenAddress, signer);
     } else {
         unionToken = await deployContract<FaucetERC20_ERC20Permit>(
             new FaucetERC20_ERC20Permit__factory(signer),
@@ -128,29 +140,27 @@ export default async function (
             waitForBlocks
         );
     }
-
     // deploy DAI
-    let dai: IDai | FaucetERC20;
+    let dai: IDai | FaucetERC20_ERC20Permit;
     if (config.addresses.dai) {
         dai = IDai__factory.connect(config.addresses.dai, signer);
     } else {
-        dai = await deployContract<FaucetERC20>(
-            new FaucetERC20__factory(signer),
+        dai = await deployContract<FaucetERC20_ERC20Permit>(
+            new FaucetERC20_ERC20Permit__factory(signer),
             "DAI",
             ["DAI", "DAI"],
             debug,
             waitForBlocks
         );
     }
-
     // deploy comptroller
     let comptroller: Comptroller;
     if (config.addresses.comptroller) {
         comptroller = Comptroller__factory.connect(config.addresses.comptroller, signer);
     } else {
         const {proxy} = await deployProxy<Comptroller>(new Comptroller__factory(signer), "Comptroller", {
-            signature: "__Comptroller_init(address,address,uint256)",
-            args: [unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint]
+            signature: "__Comptroller_init(address,address,address,uint256)",
+            args: [config.admin, unionToken.address, marketRegistry.address, config.comptroller.halfDecayPoint]
         });
         comptroller = Comptroller__factory.connect(proxy.address, signer);
     }
@@ -164,8 +174,8 @@ export default async function (
             new AssetManager__factory(signer),
             "AssetManager",
             {
-                signature: "__AssetManager_init(address)",
-                args: [marketRegistry.address]
+                signature: "__AssetManager_init(address,address)",
+                args: [config.admin, marketRegistry.address]
             },
             debug
         );
@@ -173,15 +183,16 @@ export default async function (
     }
 
     // deploy user manager
-    let userManager: UserManager;
+    let userManager: UserManagerERC20;
     if (config.addresses.userManager) {
-        userManager = UserManager__factory.connect(config.addresses.userManager, signer);
+        userManager = UserManagerERC20__factory.connect(config.addresses.userManager, signer);
     } else {
-        const {proxy} = await deployProxy<UserManager>(
-            new UserManager__factory(signer),
-            "UserManager",
+        const {proxy} = await deployProxy<UserManagerERC20>(
+            new UserManagerERC20__factory(signer),
+            "UserManagerERC20",
             {
-                signature: "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256)",
+                signature:
+                    "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
                 args: [
                     assetManager.address,
                     unionToken.address,
@@ -190,13 +201,27 @@ export default async function (
                     config.admin,
                     config.userManager.maxOverdue,
                     config.userManager.effectiveCount,
-                    config.userManager.maxVouchers
+                    config.userManager.maxVouchers,
+                    config.userManager.maxVouchees
                 ]
             },
             debug
         );
-        userManager = UserManager__factory.connect(proxy.address, signer);
-        await marketRegistry.setUserManager(dai.address, userManager.address);
+        userManager = UserManagerERC20__factory.connect(proxy.address, signer);
+        const tx = await marketRegistry.setUserManager(dai.address, userManager.address);
+        await tx.wait(waitForBlocks);
+    }
+
+    // deploy vouch faucet if we are deploying to a testnet
+    let vouchFaucet: VouchFaucet | undefined = undefined;
+    if (isTestnet) {
+        vouchFaucet = await deployContract<VouchFaucet>(
+            new VouchFaucet__factory(signer),
+            "VouchFaucet",
+            [userManager.address],
+            debug,
+            waitForBlocks
+        );
     }
 
     // deploy fixedInterestRateModel
@@ -210,62 +235,76 @@ export default async function (
         fixedInterestRateModel = await deployContract<FixedInterestRateModel>(
             new FixedInterestRateModel__factory(signer),
             "FixedInterestRateModel",
-            [config.fixedInterestRateModel.interestRatePerBlock],
+            [config.fixedInterestRateModel.interestRatePerSecond],
             debug,
             waitForBlocks
         );
     }
 
     // deploy uToken
-    let uToken: UToken;
+    let uToken: UErc20;
     if (config.addresses.uToken) {
-        uToken = UToken__factory.connect(config.addresses.uToken, signer);
+        uToken = UErc20__factory.connect(config.addresses.uToken, signer);
     } else {
-        const {proxy} = await deployProxy<UToken>(
-            new UToken__factory(signer),
-            "UToken",
+        const {proxy} = await deployProxy<UErc20>(
+            new UErc20__factory(signer),
+            "UErc20",
             {
                 signature:
-                    "__UToken_init(string,string,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,address)",
+                    "__UToken_init((string name,string symbol,address underlying,uint256 initialExchangeRateMantissa,uint256 reserveFactorMantissa,uint256 originationFee,uint256 originationFeeMax,uint256 debtCeiling,uint256 maxBorrow,uint256 minBorrow,uint256 overdueTime,address admin,uint256 mintFeeRate))",
                 args: [
-                    config.uToken.name,
-                    config.uToken.symbol,
-                    dai.address,
-                    config.uToken.initialExchangeRateMantissa,
-                    config.uToken.reserveFactorMantissa,
-                    config.uToken.originationFee,
-                    config.uToken.debtCeiling,
-                    config.uToken.maxBorrow,
-                    config.uToken.minBorrow,
-                    config.uToken.overdueBlocks,
-                    config.admin
+                    {
+                        name: config.uToken.name,
+                        symbol: config.uToken.symbol,
+                        underlying: dai.address,
+                        initialExchangeRateMantissa: config.uToken.initialExchangeRateMantissa,
+                        reserveFactorMantissa: config.uToken.reserveFactorMantissa,
+                        originationFee: config.uToken.originationFee,
+                        originationFeeMax: config.uToken.originationFeeMax,
+                        debtCeiling: config.uToken.debtCeiling,
+                        maxBorrow: config.uToken.maxBorrow,
+                        minBorrow: config.uToken.minBorrow,
+                        overdueTime: config.uToken.overdueTime,
+                        admin: config.admin,
+                        mintFeeRate: config.uToken.mintFeeRate
+                    }
                 ]
             },
             debug
         );
-        uToken = UToken__factory.connect(proxy.address, signer);
-        await userManager.setUToken(uToken.address);
-        await marketRegistry.setUToken(dai.address, uToken.address);
-        await uToken.setUserManager(userManager.address);
-        await uToken.setAssetManager(assetManager.address);
-        await uToken.setInterestRateModel(fixedInterestRateModel.address);
+        uToken = UErc20__factory.connect(proxy.address, signer);
+
+        let tx = await userManager.setUToken(uToken.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await marketRegistry.setUToken(dai.address, uToken.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await uToken.setUserManager(userManager.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await uToken.setAssetManager(assetManager.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await uToken.setInterestRateModel(fixedInterestRateModel.address);
+        await tx.wait(waitForBlocks);
     }
 
     // deploy pure token
-    let pureToken: PureTokenAdapter;
+    let pureTokenAdapter: PureTokenAdapter;
     if (config.addresses.adapters?.pureTokenAdapter) {
-        pureToken = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
+        pureTokenAdapter = PureTokenAdapter__factory.connect(config.addresses.adapters?.pureTokenAdapter, signer);
     } else {
         const {proxy} = await deployProxy<PureTokenAdapter>(
             new PureTokenAdapter__factory(signer),
             "PureTokenAdapter",
             {
-                signature: "__PureTokenAdapter_init(address)",
-                args: [assetManager.address]
+                signature: "__PureTokenAdapter_init(address,address)",
+                args: [config.admin, assetManager.address]
             },
             debug
         );
-        pureToken = PureTokenAdapter__factory.connect(proxy.address, signer);
+        pureTokenAdapter = PureTokenAdapter__factory.connect(proxy.address, signer);
     }
 
     // deploy aave v3 adapter
@@ -274,13 +313,18 @@ export default async function (
         aaveV3Adapter = AaveV3Adapter__factory.connect(config.addresses.adapters?.aaveV3Adapter, signer);
     } else {
         // Only deploy the aaveV3Adapter if the lendingPool and aave market address are in the config
-        if (config.addresses.aave?.lendingPool && config.addresses.aave?.market) {
+        if ((config.addresses.aave?.lendingPool && config.addresses.aave?.market) != ethers.constants.AddressZero) {
             const {proxy} = await deployProxy<AaveV3Adapter>(
                 new AaveV3Adapter__factory(signer),
                 "AaveV3Adapter",
                 {
-                    signature: "__AaveV3Adapter_init(address,address,address)",
-                    args: [assetManager.address, config.addresses.aave?.lendingPool, config.addresses.aave?.market]
+                    signature: "__AaveV3Adapter_init(address,address,address,address)",
+                    args: [
+                        config.admin,
+                        assetManager.address,
+                        config.addresses.aave?.lendingPool,
+                        config.addresses.aave?.market
+                    ]
                 },
                 debug
             );
@@ -290,11 +334,15 @@ export default async function (
 
     if (!config.addresses.assetManager) {
         // Add pure token adapter to assetManager
-        await assetManager.addToken(dai.address);
-        await assetManager.addAdapter(pureToken.address);
+        let tx = await assetManager.addToken(dai.address);
+        await tx.wait(waitForBlocks);
+
+        tx = await assetManager.addAdapter(pureTokenAdapter.address);
+        await tx.wait(waitForBlocks);
 
         if (aaveV3Adapter?.address) {
-            await assetManager.addAdapter(aaveV3Adapter.address);
+            tx = await assetManager.addAdapter(aaveV3Adapter.address);
+            await tx.wait(waitForBlocks);
         }
     }
 
@@ -307,6 +355,7 @@ export default async function (
         comptroller,
         assetManager,
         dai,
-        adapters: {pureToken, aaveV3Adapter}
+        adapters: {pureTokenAdapter, aaveV3Adapter},
+        vouchFaucet
     };
 }

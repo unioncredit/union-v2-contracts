@@ -1,0 +1,15 @@
+name: slither analyzer
+
+on: [pull_request]
+
+jobs:
+    slither:
+        name: Run slither
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - uses: crytic/slither-action@v0.3.0
+              with:
+                  node-version: 16
+                  target: "."
+                  slither-args: '--filter-path "test|node_modules|contracts/mocks"'

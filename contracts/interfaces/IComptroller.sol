@@ -8,10 +8,10 @@ pragma solidity 0.8.16;
 interface IComptroller {
     function setHalfDecayPoint(uint256 point) external;
 
-    function inflationPerBlock(uint256 effectiveTotalStake) external view returns (uint256);
+    function inflationPerSecond(uint256 effectiveTotalStake) external view returns (uint256);
 
     /**
-     *  @dev Get the reward multipier based on the account status
+     *  @dev Get the reward multiplier based on the account status
      *  @param account Account address
      *  @return Multiplier number (in wei)
      */
@@ -19,27 +19,20 @@ interface IComptroller {
 
     /**
      *  @dev Withdraw rewards
+     *  @param account User address
+     *  @param token address
      *  @return Amount of rewards
      */
-    function withdrawRewards(address sender, address token) external returns (uint256);
+    function withdrawRewards(address account, address token) external returns (uint256);
+
+    function accrueRewards(address account, address token) external;
 
     function updateTotalStaked(address token, uint256 totalStaked) external returns (bool);
 
     /**
-     *  @dev Calculate unclaimed rewards based on blocks
-     *  @param account User address
-     *  @param futureBlocks Number of blocks in the future
-     *  @return Unclaimed rewards
-     */
-    function calculateRewardsByBlocks(
-        address account,
-        address token,
-        uint256 futureBlocks
-    ) external view returns (uint256);
-
-    /**
      *  @dev Calculate currently unclaimed rewards
      *  @param account Account address
+     *  @param token address
      *  @return Unclaimed rewards
      */
     function calculateRewards(address account, address token) external view returns (uint256);

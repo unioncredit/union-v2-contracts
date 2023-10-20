@@ -12,18 +12,15 @@ contract FixedInterestRateModel is Ownable, IInterestRateModel {
     /* -------------------------------------------------------------------
       Storage 
     ------------------------------------------------------------------- */
-
-    bool public constant isInterestRateModel = true;
+    /**
+     * @dev Maximum borrow rate that can ever be applied (0.005% / 12 second)
+     */
+    uint256 public constant BORROW_RATE_MAX_MANTISSA = 4_166_666_666_667; // 0.005e16 / 12
 
     /**
-     * @dev Maximum borrow rate that can ever be applied (0.005% / block)
+     * @dev IInterest rate per second
      */
-    uint256 public constant BORROW_RATE_MAX_MANTISSA = 0.005e16;
-
-    /**
-     * @dev IInterest rate per block
-     */
-    uint256 public interestRatePerBlock;
+    uint256 public interestRatePerSecond;
 
     /* -------------------------------------------------------------------
       Errors 
@@ -46,10 +43,10 @@ contract FixedInterestRateModel is Ownable, IInterestRateModel {
       Constructor/Initializer 
     ------------------------------------------------------------------- */
 
-    constructor(uint256 interestRatePerBlock_) {
-        interestRatePerBlock = interestRatePerBlock_;
+    constructor(uint256 interestRatePerSecond_) {
+        interestRatePerSecond = interestRatePerSecond_;
 
-        emit LogNewInterestParams(interestRatePerBlock_);
+        emit LogNewInterestParams(interestRatePerSecond_);
     }
 
     /* -------------------------------------------------------------------
@@ -57,22 +54,22 @@ contract FixedInterestRateModel is Ownable, IInterestRateModel {
     ------------------------------------------------------------------- */
 
     /**
-     * @dev Get borrow rate per block
+     * @dev Get borrow rate per second
      */
     function getBorrowRate() public view override returns (uint256) {
-        return interestRatePerBlock;
+        return interestRatePerSecond;
     }
 
     /**
      * @dev Get supply rate for given reserve factor
-     * @dev If reserve factor is 100% interest acrues to the reserves
-     * @dev If reserves factor is 0 interest acrues to uDAI minters
+     * @dev If reserve factor is 100% interest accrued to the reserves
+     * @dev If reserves factor is 0 interest accrued to uDAI minters
      * @param reserveFactorMantissa The reserve factor (scaled)
      */
     function getSupplyRate(uint256 reserveFactorMantissa) public view override returns (uint256) {
         if (reserveFactorMantissa > 1e18) revert ReserveFactorExceeded();
         uint256 ratio = uint256(1e18) - reserveFactorMantissa;
-        return (interestRatePerBlock * ratio) / 1e18;
+        return (interestRatePerSecond * ratio) / 1e18;
     }
 
     /* -------------------------------------------------------------------
@@ -80,14 +77,14 @@ contract FixedInterestRateModel is Ownable, IInterestRateModel {
     ------------------------------------------------------------------- */
 
     /**
-     * @dev Set new interest rate per block
-     * @dev Interest rate per block must be less than the max rate 0.005% / block
-     * @param _interestRatePerBlock Interest rate
+     * @dev Set new interest rate per second
+     * @dev Interest rate per second must be less than the max rate
+     * @param _interestRatePerSecond Interest rate
      */
-    function setInterestRate(uint256 _interestRatePerBlock) external override onlyOwner {
-        if (_interestRatePerBlock > BORROW_RATE_MAX_MANTISSA) revert BorrowRateExceeded();
-        interestRatePerBlock = _interestRatePerBlock;
+    function setInterestRate(uint256 _interestRatePerSecond) external override onlyOwner {
+        if (_interestRatePerSecond > BORROW_RATE_MAX_MANTISSA) revert BorrowRateExceeded();
+        interestRatePerSecond = _interestRatePerSecond;
 
-        emit LogNewInterestParams(_interestRatePerBlock);
+        emit LogNewInterestParams(_interestRatePerSecond);
     }
 }

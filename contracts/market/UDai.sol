@@ -18,6 +18,8 @@ contract UDai is UToken, IUDai {
         IDai erc20Token = IDai(underlying);
         erc20Token.permit(msg.sender, address(this), nonce, expiry, true, v, r, s);
 
-        _repayBorrowFresh(msg.sender, borrower, amount);
+        if (!accrueInterest()) revert AccrueInterestFailed();
+        uint256 interest = calculatingInterest(borrower);
+        _repayBorrowFresh(msg.sender, borrower, amount, interest);
     }
 }

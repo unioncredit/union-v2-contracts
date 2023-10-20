@@ -7,7 +7,10 @@ import {ethers} from "hardhat";
 
 import deploy, {Contracts} from "../../deploy";
 import {getConfig} from "../../deploy/config";
-import {createHelpers, getDai, getDeployer, getSigners, Helpers, roll} from "../utils";
+import {createHelpers, fork, getDai, getDeployer, getSigners, Helpers, roll} from "../utils";
+import {isForked} from "../utils/fork";
+import error from "../utils/error";
+import {signERC2612Permit} from "eth-permit";
 
 describe("Borrowing and repaying", () => {
     let signers: Signer[];
@@ -22,13 +25,13 @@ describe("Borrowing and repaying", () => {
     const stakeAmount = parseUnits("1500");
     const mintAmount = parseUnits("10000");
 
-    before(async function () {
+    const beforeContext = async () => {
+        if (isForked()) await fork();
+
         signers = await getSigners();
         deployer = await getDeployer();
         deployerAddress = await deployer.getAddress();
-    });
 
-    const beforeContext = async () => {
         contracts = await deploy({...getConfig(), admin: deployerAddress}, deployer);
         helpers = createHelpers(contracts);
         staker = signers[0];
@@ -50,7 +53,7 @@ describe("Borrowing and repaying", () => {
         before(beforeContext);
         it("cannot borrow with no DAI in reserves", async () => {
             const resp = helpers.borrow(borrower, borrowAmount);
-            await expect(resp).to.be.revertedWith("InsufficientFundsLeft()");
+            await expect(resp).to.be.revertedWith(error.InsufficientFundsLeft);
         });
         it("add DAI to reservers", async () => {
             await contracts.uToken.addReserves(mintAmount);
@@ -59,7 +62,7 @@ describe("Borrowing and repaying", () => {
             const [creditLimit] = await helpers.getCreditLimits(borrower);
             expect(creditLimit).eq(0);
             const resp = helpers.borrow(borrower, borrowAmount);
-            await expect(resp).to.be.revertedWith("LockedRemaining()");
+            await expect(resp).to.be.revertedWith(error.LockedRemaining);
         });
         it("vouch for member", async () => {
             await helpers.updateTrust(staker, borrower, mintAmount);
@@ -72,10 +75,10 @@ describe("Borrowing and repaying", () => {
             expect(locked).eq(await helpers.borrowWithFee(borrowAmount));
         });
         it("cannot borrow if overdue", async () => {
-            await helpers.withOverdueblocks(1, async () => {
+            await helpers.withOverdue(1, async () => {
                 const minBorrow = await contracts.uToken.minBorrow();
                 const resp = helpers.borrow(borrower, minBorrow);
-                await expect(resp).to.be.revertedWith("MemberIsOverdue()");
+                await expect(resp).to.be.revertedWith(error.MemberIsOverdue);
             });
         });
     });
@@ -103,16 +106,16 @@ describe("Borrowing and repaying", () => {
             expect(totalBorrowsAfter.sub(totalBorrowsBefore)).gte(borrowAmount);
         });
         it("Interest is accrued", async () => {
-            const totalBorrowsBefore = await contracts.uToken.totalBorrows();
+            const borrowIndexBefore = await contracts.uToken.borrowIndex();
             await roll(10);
             await contracts.uToken.accrueInterest();
-            const totalBorrowsAfter = await contracts.uToken.totalBorrows();
-            expect(totalBorrowsAfter).gt(totalBorrowsBefore);
+            const borrowIndexAfter = await contracts.uToken.borrowIndex();
+            expect(borrowIndexAfter).gt(borrowIndexBefore);
         });
     });
 
     context("Member repays debt", () => {
-        before(async () => {
+        beforeEach(async () => {
             await beforeContext();
             await contracts.uToken.addReserves(mintAmount);
             await helpers.updateTrust(staker, borrower, mintAmount);
@@ -120,7 +123,42 @@ describe("Borrowing and repaying", () => {
         });
         it("cannot repay 0", async () => {
             const resp = contracts.uToken.repayBorrow(deployerAddress, 0);
-            await expect(resp).to.be.revertedWith("AmountZero()");
+            await expect(resp).to.be.revertedWith(error.AmountZero);
+        });
+        it("repay borrow with permit", async () => {
+            const borrowerAddress = await borrower.getAddress();
+            let amount = await contracts.uToken.borrowBalanceView(borrowerAddress);
+            //ensure full repayment
+            amount = amount.mul(BigNumber.from(2));
+            //repay by deployer
+            const daiBalance = await contracts.dai.balanceOf(deployerAddress);
+            if (daiBalance.lt(amount) && "mint" in contracts.dai) {
+                await contracts.dai.mint(deployerAddress, amount);
+            }
+
+            const result = await signERC2612Permit(
+                ethers.provider,
+                {
+                    name: "DAI",
+                    chainId: 31337,
+                    version: "1",
+                    verifyingContract: contracts.dai.address
+                },
+                deployerAddress,
+                contracts.uToken.address,
+                amount.toString()
+            );
+
+            await contracts.uToken.repayBorrowWithERC20Permit(
+                borrowerAddress,
+                amount,
+                result.deadline,
+                result.v,
+                result.r,
+                result.s
+            );
+            const borrowed = await contracts.uToken.getBorrowed(borrowerAddress);
+            expect(borrowed).eq(0);
         });
         it("repaying less than interest doesn't update last repaid", async () => {
             const [lastRepayBefore] = await helpers.getBorrowed(borrower);

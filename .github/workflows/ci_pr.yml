@@ -12,7 +12,7 @@ jobs:
                   submodules: recursive
             - uses: actions/setup-node@v2
               with:
-                  node-version: 14
+                  node-version: 18
 
             - name: Install dependencies
               run: yarn install
@@ -22,36 +22,20 @@ jobs:
               with:
                   version: nightly
 
+            - name: Forge build
+              run: forge build
+
             - name: Run unit tests (forge)
               run: forge test
 
-            - name: Compile hardhat
-              run: yarn hh:compile
+            - name: Run coverage
+              run: forge coverage --report lcov
+
+            - name: Report coverage
+              uses: codecov/codecov-action@v3
+              with:
+                  files: lcov.info
+                  token: ${{ secrets.CODECOV_TOKEN }}
 
             - name: Run int tests
               run: yarn hh:test
-
-            - name: Run int coverage
-              run: yarn coverage
-    slither:
-        name: Slither analyzer
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v3
-              with:
-                  submodules: recursive
-            - uses: actions/setup-node@v2
-              with:
-                  node-version: 14
-
-            - uses: actions/setup-python@v2
-              with:
-                  python-version: "3.x"
-
-            - name: Install dependencies
-              run: yarn install
-
-            - name: Run Slither
-              run: |
-                  pip3 install slither-analyzer
-                  yarn slither
