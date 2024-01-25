@@ -16,6 +16,10 @@ import {
     OpUNION__factory,
     OpOwner,
     OpOwner__factory,
+    Comptroller,
+    Comptroller__factory,
+    UserManagerOp,
+    UserManagerOp__factory,
     OpConnector,
     OpConnector__factory
 } from "../typechain-types";
@@ -124,6 +128,134 @@ task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
             JSON.stringify(
                 {
                     opConnector: opConector.address
+                },
+                null,
+                2
+            )
+        );
+        console.log(`    - deployment: ${connDeploymentPath}`);
+
+        console.log("[*] Complete");
+    });
+
+task("deploy:opUnion", "Deploy Optimism UNION token")
+    .addParam("pk", "Private key to use for deployment")
+    .addParam("confirmations", "How many confirmations to wait for")
+    .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
+        // ------------------------------------------------------
+        // Setup
+        // ------------------------------------------------------
+        const config = getConfig();
+        console.log("[*] Deployment config");
+        console.log(config);
+
+        const privateKey = taskArguments.pk;
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
+
+        const waitForBlocks = taskArguments.confirmations;
+
+        console.log(
+            [
+                "[*] Deploying contracts",
+                `    - waitForBlocks: ${waitForBlocks}`,
+                `    - deployer: ${await deployer.getAddress()}`
+            ].join("\n")
+        );
+
+        // get deploy directory
+        const dir = path.resolve(__dirname, "../deployments", hre.network.name);
+        if (!fs.existsSync(dir)) {
+            console.log("[!] Cannot find deployment file");
+            process.exit();
+        }
+
+        // validate addresses
+        if (!config.addresses.unionToken || !config.addresses.opL2Bridge) {
+            console.log("[!] Required address null");
+            process.exit();
+        }
+
+        const opUnion = await deployContract<OpUNION>(
+            new OpConnector__factory(deployer),
+            "opUNION",
+            [config.addresses.opL2Bridge, config.addresses.unionToken],
+            true,
+            waitForBlocks
+        );
+        console.log("\n[*] Deployment complete\n");
+
+        // save deployment
+        const connDeploymentPath = path.resolve(dir, "union.json");
+        fs.writeFileSync(
+            connDeploymentPath,
+            JSON.stringify(
+                {
+                    opUnion: opUnion.address
+                },
+                null,
+                2
+            )
+        );
+        console.log(`    - deployment: ${connDeploymentPath}`);
+
+        console.log("[*] Complete");
+    });
+
+task("deploy:logic", "Deploy userManager and comptroller logic")
+    .addParam("pk", "Private key to use for deployment")
+    .addParam("confirmations", "How many confirmations to wait for")
+    .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
+        // ------------------------------------------------------
+        // Setup
+        // ------------------------------------------------------
+        const config = getConfig();
+        console.log("[*] Deployment config");
+        console.log(config);
+
+        const privateKey = taskArguments.pk;
+        const deployer = getDeployer(privateKey, hre.ethers.provider);
+
+        const waitForBlocks = taskArguments.confirmations;
+
+        console.log(
+            [
+                "[*] Deploying contracts",
+                `    - waitForBlocks: ${waitForBlocks}`,
+                `    - deployer: ${await deployer.getAddress()}`
+            ].join("\n")
+        );
+
+        // get deploy directory
+        const dir = path.resolve(__dirname, "../deployments", hre.network.name);
+        if (!fs.existsSync(dir)) {
+            console.log("[!] Cannot find deployment file");
+            process.exit();
+        }
+
+        const comptroller = await deployContract<Comptroller>(
+            new Comptroller__factory(deployer),
+            "Comptroller",
+            [],
+            true,
+            waitForBlocks
+        );
+        const userManagerOp = await deployContract<UserManagerOp>(
+            new UserManagerOp__factory(deployer),
+            "UserManagerOp",
+            [],
+            true,
+            waitForBlocks
+        );
+        console.log("\n[*] Deployment complete\n");
+
+        // save deployment
+        const connDeploymentPath = path.resolve(dir, "logic.json");
+        fs.writeFileSync(
+            connDeploymentPath,
+            JSON.stringify(
+                {
+                    comptroller: comptroller.address,
+                    userManagerOp: userManagerOp.address
                 },
                 null,
                 2
