@@ -96,6 +96,8 @@ contract Comptroller is Controller, IComptroller {
      */
     event LogWithdrawRewards(address indexed account, uint256 amount);
 
+    event LogChangeUnionToken(address oldUnionToken, address newUnionToken);
+
     /* -------------------------------------------------------------------
       Errors
     ------------------------------------------------------------------- */
@@ -379,5 +381,16 @@ contract Comptroller is Controller, IComptroller {
      */
     function getTimestamp() internal view returns (uint256) {
         return block.timestamp;
+    }
+
+    function changeUnionToken(address unionToken_) external onlyAdmin {
+        address oldUnionToken = address(unionToken);
+        unionToken = IERC20Upgradeable(unionToken_);
+        emit LogChangeUnionToken(oldUnionToken, unionToken_);
+    }
+
+    function removeOpUnion(address receiver, address token) external onlyAdmin {
+        IERC20Upgradeable erc20 = IERC20Upgradeable(token);
+        erc20.safeTransfer(receiver, erc20.balanceOf(address(this)));
     }
 }

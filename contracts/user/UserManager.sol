@@ -300,6 +300,8 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      */
     event LogSetMaxVouchees(uint256 maxVouchees);
 
+    event LogChangeUnionToken(address oldUnionToken, address newUnionToken);
+
     /* -------------------------------------------------------------------
       Constructor/Initializer 
     ------------------------------------------------------------------- */
@@ -1137,5 +1139,11 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      */
     function getTimestamp() internal view returns (uint256) {
         return block.timestamp;
+    }
+
+    function changeUnionToken(address unionToken_) external onlyAdmin {
+        address oldUnionToken = unionToken;
+        unionToken = unionToken_;
+        emit LogChangeUnionToken(oldUnionToken, unionToken);
     }
 }
