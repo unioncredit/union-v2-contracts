@@ -9,6 +9,6 @@ export default {
             lendingPool: "0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6"
         },
         opL1Bridge: "0x636Af16bf2f682dD3109e60102b8E1A089FedAa8",
-        opUnion: "0xa5DaCCAf7E72Be629fc0F52cD55d500Fd6fa7677"
+        opUnion: "0x5EDD1521Db3AC7F188D066dbdd76e50C9482D1d6"
     }
 } as DeployConfig;

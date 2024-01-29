@@ -176,7 +176,7 @@ task("deploy:opUnion", "Deploy Optimism UNION token")
         }
 
         const opUnion = await deployContract<OpUNION>(
-            new OpConnector__factory(deployer),
+            new OpUNION__factory(deployer),
             "opUNION",
             [config.addresses.opL2Bridge, config.addresses.unionToken],
             true,
