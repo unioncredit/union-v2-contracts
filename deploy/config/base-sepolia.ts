@@ -31,6 +31,7 @@ export default {
     addresses: {
         guardian: "0xCbD1c32A1b3961cC43868B8bae431Ab0dA65beEb",
         unionToken: "0xE4ADdfdf5641EB4e15F60a81F63CEd4884B49823", // sepolia address
+        usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e", // USDC on base-sepolia
         opL2Bridge: "0x4200000000000000000000000000000000000010",
         opL2CrossDomainMessenger: "0x4200000000000000000000000000000000000007",
         timelock: "0xdA2C8b9f14e1F20a637A7B9f86d4aa78DFbDB3cF", // sepolia address

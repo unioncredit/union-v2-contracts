@@ -18,6 +18,7 @@
         "clean": "forge clean && yarn hardhat clean && rm -rf ./typechain-types",
         "coverage": "./run-coverage.sh",
         "deploy:op": "yarn clean && yarn hardhat compile && CONFIG=optimism-goerli yarn hardhat --config hardhat-task.config.ts deploy:op --network optimism-goerli",
+        "deploy:base-sepolia": "yarn clean && yarn hardhat compile && yarn hardhat --config hardhat-task.config.ts deploy --network base-sepolia",
         "upload:updateOverdueInfo": "yarn rollup -c && yarn defender-autotask update-code 81810db7-ae88-4e1f-9f76-37dcf18df9f3 ./dist"
     },
     "repository": {
