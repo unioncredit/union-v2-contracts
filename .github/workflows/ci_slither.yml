@@ -12,4 +12,3 @@ jobs:
               with:
                   node-version: 20
                   target: "."
-                  slither-args: '--filter-path "test|node_modules|contracts/mocks"'
