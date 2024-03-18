@@ -28,6 +28,9 @@ export default {
         mainnet: {
             url: process.env.NODE_URL || "https://mainnet.infura.io/v3/"
         },
+        sepolia: {
+            url: process.env.NODE_URL || "https://eth-sepolia.public.blastapi.io"
+        },
         "base-sepolia": {
             url: process.env.NODE_URL || "https://sepolia.base.org"
         }

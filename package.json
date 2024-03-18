@@ -27,9 +27,9 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "@eth-optimism/sdk": "^3.2.2",
         "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
         "@nomiclabs/hardhat-ethers": "^2.0.6",
-        "@nomiclabs/hardhat-etherscan": "^3.1.8",
         "@nomiclabs/hardhat-waffle": "^2.0.3",
         "@openzeppelin/contracts": "^4.8.0",
         "@openzeppelin/contracts-upgradeable": "^4.8.0",
@@ -61,7 +61,7 @@
     },
     "devDependencies": {
         "@eth-optimism/contracts": "^0.5.39",
-        "@eth-optimism/sdk": "^1.9.1",
+        "@nomicfoundation/hardhat-verify": "^2.0.5",
         "glob": "^8.0.3"
     }
 }

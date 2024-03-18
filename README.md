@@ -113,3 +113,9 @@ CONFIG=arbitrum FORK_NODE_URL=<URL> FORK_BLOCK=<NUMBER> yarn hh:test
 ```
 yarn format
 ```
+
+## Other Scripts
+
+Deposit to L2
+
+yarn hardhat --network sepolia --config hardhat-task.config.ts op:deposit --pk <private_key> --l1-rpc-url https://eth-sepolia.public.blastapi.io --l2-rpc-url https://sepolia.base.org --l1-union 0xE4ADdfdf5641EB4e15F60a81F63CEd4884B49823 --l2-union 0xB025ee78b54B5348BD638Fe4a6D77Ec2F813f4f9 --amount 10000
