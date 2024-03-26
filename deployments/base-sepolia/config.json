@@ -1,0 +1,70 @@
+{
+  "addresses": {
+    "guardian": "0xCbD1c32A1b3961cC43868B8bae431Ab0dA65beEb",
+    "unionToken": "0xE4ADdfdf5641EB4e15F60a81F63CEd4884B49823",
+    "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "opL2Bridge": "0x4200000000000000000000000000000000000010",
+    "opL2CrossDomainMessenger": "0x4200000000000000000000000000000000000007",
+    "timelock": "0xdA2C8b9f14e1F20a637A7B9f86d4aa78DFbDB3cF",
+    "opAdminAddress": "0xCbD1c32A1b3961cC43868B8bae431Ab0dA65beEb"
+  },
+  "userManager": {
+    "maxOverdue": "86400",
+    "effectiveCount": "0",
+    "maxVouchers": "400",
+    "maxVouchees": "1000"
+  },
+  "uToken": {
+    "name": "uUSDC",
+    "symbol": "uUSDC",
+    "initialExchangeRateMantissa": {
+      "type": "BigNumber",
+      "hex": "0x0de0b6b3a7640000"
+    },
+    "reserveFactorMantissa": {
+      "type": "BigNumber",
+      "hex": "0x0de0b6b3a7640000"
+    },
+    "originationFee": {
+      "type": "BigNumber",
+      "hex": "0x11c37937e08000"
+    },
+    "originationFeeMax": {
+      "type": "BigNumber",
+      "hex": "0x06f05b59d3b20000"
+    },
+    "debtCeiling": {
+      "type": "BigNumber",
+      "hex": "0x3a35294400"
+    },
+    "maxBorrow": {
+      "type": "BigNumber",
+      "hex": "0x05d21dba00"
+    },
+    "minBorrow": {
+      "type": "BigNumber",
+      "hex": "0x05f5e100"
+    },
+    "overdueTime": "86400",
+    "mintFeeRate": {
+      "type": "BigNumber",
+      "hex": "0x00"
+    }
+  },
+  "fixedInterestRateModel": {
+    "interestRatePerSecond": "3170979198"
+  },
+  "comptroller": {
+    "halfDecayPoint": "1000"
+  },
+  "pureAdapter": {
+    "floor": {
+      "type": "BigNumber",
+      "hex": "0x3b9aca00"
+    },
+    "ceiling": {
+      "type": "BigNumber",
+      "hex": "0x174876e800"
+    }
+  }
+}

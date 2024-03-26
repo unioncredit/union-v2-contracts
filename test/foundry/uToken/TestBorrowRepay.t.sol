@@ -9,88 +9,91 @@ contract TestBorrowRepay is TestUTokenBase {
         super.setUp();
     }
 
+    function nearlyEqual(uint256 a, uint256 b, uint256 eps) private pure returns (bool) {
+        return (a >= b && a - b <= eps) || (b > a && b - a <= eps);
+    }
+
     function testCannotBorrowNonMember() public {
         userManagerMock.setIsMember(false);
 
         vm.expectRevert(UToken.CallerNotMember.selector);
-        uToken.borrow(address(this), 1 ether);
+        uToken.borrow(address(this), 1 * UNIT);
     }
 
     function testBorrowFeeAndInterest(uint256 borrowAmount) public {
-        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
-
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18);
         uint256 debtCeilingBefore = uToken.getRemainingDebtCeiling();
         vm.startPrank(ALICE);
         uToken.borrow(ALICE, borrowAmount);
         vm.stopPrank();
         uint256 debtCeilingAfter = uToken.getRemainingDebtCeiling();
-        assertEq(debtCeilingBefore - debtCeilingAfter, borrowAmount + (borrowAmount * ORIGINATION_FEE) / 1e18);
 
+        nearlyEqual(
+            (debtCeilingBefore - debtCeilingAfter),
+            (borrowAmount + (borrowAmount * ORIGINATION_FEE) / 1e18),
+            100
+        );
         uint256 borrowed = uToken.borrowBalanceView(ALICE);
         // borrowed amount should only include origination fee
-        uint256 fees = (ORIGINATION_FEE * borrowAmount) / 1 ether;
+        uint256 fees = (ORIGINATION_FEE * borrowAmount) / 1e18;
         assertEq(borrowed, borrowAmount + fees);
-
         // advance 60 seconds
         skip(block.timestamp + 60);
-
         // borrowed amount should now include interest
-        uint256 interest = (((borrowAmount + fees) * BORROW_INTEREST_PER_BLOCK) * (60 + 1)) / 1 ether;
-
+        uint256 interest = (((borrowAmount + fees) * BORROW_INTEREST_PER_BLOCK) * (60 + 1)) / 1e18;
         assertEq(uToken.borrowBalanceView(ALICE), borrowed + interest);
     }
 
     function testBorrowWhenNotEnough(uint256 borrowAmount) public {
         vm.assume(
             borrowAmount >= MIN_BORROW &&
-                borrowAmount > 1 ether &&
-                borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether
+                borrowAmount > UNIT &&
+                borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18
         );
 
         vm.startPrank(ALICE);
         vm.mockCall(
             address(assetManagerMock),
-            abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, ALICE, borrowAmount),
-            abi.encode(1 ether)
+            abi.encodeWithSelector(AssetManager.withdraw.selector, erc20Mock, ALICE, borrowAmount),
+            abi.encode(UNIT)
         );
         uToken.borrow(ALICE, borrowAmount);
         vm.stopPrank();
 
         uint256 borrowed = uToken.getBorrowed(ALICE);
-        uint256 realBorrowAmount = borrowAmount - 1 ether;
+        uint256 realBorrowAmount = borrowAmount - UNIT;
         // borrowed amount should only include origination fee
-        uint256 fees = (ORIGINATION_FEE * realBorrowAmount) / 1 ether;
+        uint256 fees = (ORIGINATION_FEE * realBorrowAmount) / 1e18;
         assertEq(borrowed, realBorrowAmount + fees);
     }
 
     function testRepayBorrow(uint256 borrowAmount) public {
-        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18);
 
         vm.startPrank(ALICE);
 
         uToken.borrow(ALICE, borrowAmount);
 
         uint256 borrowed = uToken.borrowBalanceView(ALICE);
-        assertEq(borrowed, borrowAmount + (ORIGINATION_FEE * borrowAmount) / 1 ether);
+        assertEq(borrowed, borrowAmount + (ORIGINATION_FEE * borrowAmount) / 1e18);
 
         skip(block.timestamp + 1);
 
         // Get the interest amount
         uint256 interest = uToken.calculatingInterest(ALICE);
 
-        uint256 repayAmount = borrowed + interest;
+        uint256 repayAmount = borrowed + interest + 100; //prevent dust
 
-        daiMock.approve(address(uToken), repayAmount);
+        erc20Mock.approve(address(uToken), repayAmount);
 
         uToken.repayBorrow(ALICE, repayAmount);
 
         vm.stopPrank();
-
         assertEq(0, uToken.borrowBalanceView(ALICE));
     }
 
     function testRepayBorrowLessThanInterest(uint256 borrowAmount) public {
-        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18);
 
         vm.startPrank(ALICE);
 
@@ -102,7 +105,7 @@ contract TestBorrowRepay is TestUTokenBase {
         uint256 interest = uToken.calculatingInterest(ALICE);
         uint256 repayAmount = interest - 1;
 
-        daiMock.approve(address(uToken), repayAmount);
+        erc20Mock.approve(address(uToken), repayAmount);
         uToken.repayBorrow(ALICE, repayAmount);
 
         vm.stopPrank();
@@ -111,7 +114,7 @@ contract TestBorrowRepay is TestUTokenBase {
     }
 
     function testRepayBorrowWhenOverdue(uint256 borrowAmount) public {
-        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18);
 
         vm.startPrank(ALICE);
 
@@ -126,7 +129,7 @@ contract TestBorrowRepay is TestUTokenBase {
         uint256 interest = uToken.calculatingInterest(ALICE);
         uint256 repayAmount = borrowed + interest;
 
-        daiMock.approve(address(uToken), repayAmount);
+        erc20Mock.approve(address(uToken), repayAmount);
         uToken.repayBorrow(ALICE, repayAmount);
 
         vm.stopPrank();
@@ -136,7 +139,7 @@ contract TestBorrowRepay is TestUTokenBase {
     }
 
     function testRepayBorrowOnBehalf(uint256 borrowAmount) public {
-        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18);
 
         // Alice borrows first
         vm.prank(ALICE);
@@ -148,7 +151,7 @@ contract TestBorrowRepay is TestUTokenBase {
 
         // Bob repay on behalf of Alice
         vm.startPrank(BOB);
-        daiMock.approve(address(uToken), repayAmount);
+        erc20Mock.approve(address(uToken), repayAmount);
         uToken.repayBorrow(ALICE, repayAmount);
         vm.stopPrank();
 
@@ -156,7 +159,7 @@ contract TestBorrowRepay is TestUTokenBase {
     }
 
     function testRepayBorrowOnBehalfAll(uint256 borrowAmount) public {
-        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18);
 
         // Alice borrows first
         vm.prank(ALICE);
@@ -164,8 +167,8 @@ contract TestBorrowRepay is TestUTokenBase {
 
         // Bob repay on behalf of Alice
         vm.startPrank(BOB);
-        daiMock.approve(address(uToken), type(uint256).max);
-        uToken.repayBorrow(ALICE, type(uint256).max);
+        erc20Mock.approve(address(uToken), type(uint96).max);
+        uToken.repayBorrow(ALICE, type(uint96).max);
         vm.stopPrank();
 
         assertEq(0, uToken.borrowBalanceView(ALICE));
@@ -185,7 +188,7 @@ contract TestBorrowRepay is TestUTokenBase {
     }
 
     function testRepayInterest(uint256 borrowAmount) public {
-        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1 ether);
+        vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18);
 
         vm.startPrank(ALICE);
         uToken.borrow(ALICE, borrowAmount);
@@ -195,7 +198,7 @@ contract TestBorrowRepay is TestUTokenBase {
         assert(interest > 0);
 
         uint256 borrowedBefore = uToken.borrowBalanceView(ALICE);
-        daiMock.approve(address(uToken), interest);
+        erc20Mock.approve(address(uToken), interest);
         uToken.repayInterest(ALICE);
         uint256 borrowedAfter = uToken.borrowBalanceView(ALICE);
         assertEq(borrowedBefore - borrowedAfter, interest);

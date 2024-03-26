@@ -18,6 +18,6 @@ contract UErc20 is UToken {
 
         if (!accrueInterest()) revert AccrueInterestFailed();
         uint256 interest = calculatingInterest(borrower);
-        _repayBorrowFresh(msg.sender, borrower, amount, interest);
+        _repayBorrowFresh(msg.sender, borrower, decimalScaling(amount, underlyingDecimal), interest);
     }
 }

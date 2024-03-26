@@ -15,7 +15,7 @@ contract TestERC1155Voucher is TestWrapper {
     TestERC1155 public token;
     address public ACC = address(123);
 
-    uint256 public constant TRUST_AMOUNT = 10 ether;
+    uint256 public TRUST_AMOUNT = 10 * UNIT;
 
     function setUp() public {
         deployMocks();
@@ -31,30 +31,30 @@ contract TestERC1155Voucher is TestWrapper {
     }
 
     function testStake() public {
-        daiMock.mint(address(voucher), 1 ether);
+        erc20Mock.mint(address(voucher), 1 * UNIT);
         assertEq(userManagerMock.balances(address(voucher)), 0);
         voucher.stake();
-        assertEq(userManagerMock.balances(address(voucher)), 1 ether);
+        assertEq(userManagerMock.balances(address(voucher)), 1 * UNIT);
     }
 
     function testExit() public {
-        daiMock.mint(address(voucher), 1 ether);
+        erc20Mock.mint(address(voucher), 1 * UNIT);
         assertEq(userManagerMock.balances(address(voucher)), 0);
         voucher.stake();
-        assertEq(userManagerMock.balances(address(voucher)), 1 ether);
+        assertEq(userManagerMock.balances(address(voucher)), 1 * UNIT);
         voucher.exit();
         assertEq(userManagerMock.balances(address(voucher)), 0);
     }
 
     function testTransferERC20(address to, uint256 amount) public {
-        vm.assume(to != address(this) && to != address(voucher));
+        vm.assume(to != address(0) && to != address(this) && to != address(voucher));
 
-        daiMock.mint(address(voucher), amount);
-        uint256 balBefore = daiMock.balanceOf(address(voucher));
-        voucher.transferERC20(address(daiMock), to, amount);
-        uint256 balAfter = daiMock.balanceOf(address(voucher));
+        erc20Mock.mint(address(voucher), amount);
+        uint256 balBefore = erc20Mock.balanceOf(address(voucher));
+        voucher.transferERC20(address(erc20Mock), to, amount);
+        uint256 balAfter = erc20Mock.balanceOf(address(voucher));
         assertEq(balBefore - balAfter, amount);
-        assertEq(daiMock.balanceOf(to), amount);
+        assertEq(erc20Mock.balanceOf(to), amount);
     }
 
     function testTransferERC1155() public {

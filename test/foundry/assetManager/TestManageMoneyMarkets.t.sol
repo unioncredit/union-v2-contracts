@@ -6,7 +6,7 @@ import {Controller} from "union-v2-contracts/Controller.sol";
 import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestManageMoneyMarkets is TestAssetManagerBase {
-    uint256 public daiAmount = 1_000_000 ether;
+    uint256 public erc20Amount = 1_000_000 * UNIT;
     PureTokenAdapter public pureTokenAdapter;
 
     function setUp() public override {
@@ -62,28 +62,28 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
 
     function testCannotRemoveTokenWhenRemainingFunds() public {
         vm.startPrank(ADMIN);
-        assetManager.addToken(address(daiMock));
+        assetManager.addToken(address(erc20Mock));
         assetManager.addAdapter(address(pureTokenAdapter));
-        daiMock.mint(address(pureTokenAdapter), 10000);
+        erc20Mock.mint(address(pureTokenAdapter), 10000);
         vm.expectRevert(AssetManager.RemainingFunds.selector);
-        assetManager.removeToken(address(daiMock));
+        assetManager.removeToken(address(erc20Mock));
         vm.stopPrank();
     }
 
     function testRemoveTokenWhenRemainingFundsButTokenNotSupport() public {
         vm.startPrank(ADMIN);
-        assetManager.addToken(address(daiMock));
+        assetManager.addToken(address(erc20Mock));
         assetManager.addAdapter(address(pureTokenAdapter));
         //mock adapter remaining funds
-        daiMock.mint(address(pureTokenAdapter), 10000);
+        erc20Mock.mint(address(pureTokenAdapter), 10000);
         uint256 supportedTokensCountOld = assetManager.supportedTokensCount();
         //mock token not support
         vm.mockCall(
             address(pureTokenAdapter),
-            abi.encodeWithSelector(PureTokenAdapter.supportsToken.selector, daiMock),
+            abi.encodeWithSelector(PureTokenAdapter.supportsToken.selector, erc20Mock),
             abi.encode(false)
         );
-        assetManager.removeToken(address(daiMock));
+        assetManager.removeToken(address(erc20Mock));
         uint256 supportedTokensCount = assetManager.supportedTokensCount();
         assertEq(supportedTokensCount, supportedTokensCountOld - 1);
         vm.stopPrank();
@@ -165,9 +165,9 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
 
     function testCannotRemoveAdapterWhenRemainingFunds() public {
         vm.startPrank(ADMIN);
-        assetManager.addToken(address(daiMock));
+        assetManager.addToken(address(erc20Mock));
         assetManager.addAdapter(address(pureTokenAdapter));
-        daiMock.mint(address(pureTokenAdapter), 10000);
+        erc20Mock.mint(address(pureTokenAdapter), 10000);
         vm.expectRevert(AssetManager.RemainingFunds.selector);
         assetManager.removeAdapter(address(pureTokenAdapter));
         vm.stopPrank();
@@ -175,9 +175,9 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
 
     function testRemoveAdapterWhenRemainingFundsButAdapterNotSupport() public {
         vm.startPrank(ADMIN);
-        assetManager.addToken(address(daiMock));
+        assetManager.addToken(address(erc20Mock));
         assetManager.addAdapter(address(adapterMock));
-        daiMock.mint(address(adapterMock), 10000);
+        erc20Mock.mint(address(adapterMock), 10000);
         adapterMock.setSupport(true);
         assetManager.removeAdapter(address(adapterMock));
         vm.stopPrank();
@@ -187,9 +187,9 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
         vm.startPrank(ADMIN);
         assetManager.addAdapter(address(adapterMock));
         adapterMock.setRate(_rate);
-        daiMock.mint(address(adapterMock), daiAmount);
-        (uint256 rate, uint256 tokenSupply) = assetManager.getMoneyMarket(address(daiMock), 0);
-        assertEq(tokenSupply, daiAmount);
+        erc20Mock.mint(address(adapterMock), erc20Amount);
+        (uint256 rate, uint256 tokenSupply) = assetManager.getMoneyMarket(address(erc20Mock), 0);
+        assertEq(tokenSupply, erc20Amount);
         assertEq(rate, _rate);
         vm.stopPrank();
     }
@@ -197,20 +197,20 @@ contract TestManageMoneyMarkets is TestAssetManagerBase {
     function testRemoveTokenApprovals() public {
         vm.startPrank(ADMIN);
         assetManager.addAdapter(address(adapterMock));
-        assetManager.addToken(address(daiMock));
-        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), type(uint256).max);
+        assetManager.addToken(address(erc20Mock));
+        assertEq(erc20Mock.allowance(address(assetManager), address(adapterMock)), type(uint256).max);
         assetManager.removeAdapter(address(adapterMock));
-        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), 0);
+        assertEq(erc20Mock.allowance(address(assetManager), address(adapterMock)), 0);
         vm.stopPrank();
     }
 
     function testRemoveMarketsApprovals() public {
         vm.startPrank(ADMIN);
         assetManager.addAdapter(address(adapterMock));
-        assetManager.addToken(address(daiMock));
-        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), type(uint256).max);
-        assetManager.removeToken(address(daiMock));
-        assertEq(daiMock.allowance(address(assetManager), address(adapterMock)), 0);
+        assetManager.addToken(address(erc20Mock));
+        assertEq(erc20Mock.allowance(address(assetManager), address(adapterMock)), type(uint256).max);
+        assetManager.removeToken(address(erc20Mock));
+        assertEq(erc20Mock.allowance(address(assetManager), address(adapterMock)), 0);
         vm.stopPrank();
     }
 }

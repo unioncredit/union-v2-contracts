@@ -23,7 +23,7 @@ contract TestPureTokenAdapter is TestWrapper {
     }
 
     function supplyToken(uint256 supplyAmount) public {
-        daiMock.mint(address(pureTokenAdapter), supplyAmount);
+        erc20Mock.mint(address(pureTokenAdapter), supplyAmount);
     }
 
     function testSetAssetManager(address assetManager) public {
@@ -68,23 +68,23 @@ contract TestPureTokenAdapter is TestWrapper {
 
     function testGetSupply(uint256 amount) public {
         supplyToken(amount);
-        assertEq(amount, pureTokenAdapter.getSupply(address(daiMock)));
+        assertEq(amount, pureTokenAdapter.getSupply(address(erc20Mock)));
     }
 
     function testGetSupplyView(uint256 amount) public {
         supplyToken(amount);
-        assertEq(amount, pureTokenAdapter.getSupplyView(address(daiMock)));
+        assertEq(amount, pureTokenAdapter.getSupplyView(address(erc20Mock)));
     }
 
     function testSupportsToken() public {
         vm.expectRevert();
         pureTokenAdapter.supportsToken(address(pureTokenAdapter));
-        assert(pureTokenAdapter.supportsToken(address(daiMock)));
+        assert(pureTokenAdapter.supportsToken(address(erc20Mock)));
     }
 
     function testDeposit() public {
         // nothing to assert just check this passes
-        pureTokenAdapter.deposit(address(daiMock));
+        pureTokenAdapter.deposit(address(erc20Mock));
     }
 
     function testCannotDepositUnsupportedToken() public {
@@ -94,46 +94,46 @@ contract TestPureTokenAdapter is TestWrapper {
 
     function testWithdraw(uint256 amount) public {
         address recipient = address(123);
-        daiMock.mint(address(pureTokenAdapter), amount);
-        assertEq(daiMock.balanceOf(recipient), 0);
+        erc20Mock.mint(address(pureTokenAdapter), amount);
+        assertEq(erc20Mock.balanceOf(recipient), 0);
         vm.prank(pureTokenAdapter.assetManager());
-        pureTokenAdapter.withdraw(address(daiMock), recipient, amount);
-        assertEq(daiMock.balanceOf(recipient), amount);
+        pureTokenAdapter.withdraw(address(erc20Mock), recipient, amount);
+        assertEq(erc20Mock.balanceOf(recipient), amount);
     }
 
     function testCannotWithdrawNonAssetManager(uint256 amount) public {
         address recipient = address(123);
-        daiMock.mint(address(pureTokenAdapter), amount);
+        erc20Mock.mint(address(pureTokenAdapter), amount);
         vm.expectRevert(PureTokenAdapter.SenderNotAssetManager.selector);
-        pureTokenAdapter.withdraw(address(daiMock), recipient, amount);
+        pureTokenAdapter.withdraw(address(erc20Mock), recipient, amount);
     }
 
     function testCannotWithdrawNotEnoughBalance(uint256 amount) public {
         vm.assume(amount > 0);
         address recipient = address(123);
         vm.prank(pureTokenAdapter.assetManager());
-        bool res = pureTokenAdapter.withdraw(address(daiMock), recipient, amount);
+        bool res = pureTokenAdapter.withdraw(address(erc20Mock), recipient, amount);
         assertEq(res, false);
     }
 
     function testWithdrawAll(uint256 amount) public {
         address recipient = address(123);
-        daiMock.mint(address(pureTokenAdapter), amount);
-        assertEq(daiMock.balanceOf(recipient), 0);
+        erc20Mock.mint(address(pureTokenAdapter), amount);
+        assertEq(erc20Mock.balanceOf(recipient), 0);
         vm.prank(pureTokenAdapter.assetManager());
-        pureTokenAdapter.withdrawAll(address(daiMock), recipient);
-        assertEq(daiMock.balanceOf(recipient), amount);
+        pureTokenAdapter.withdrawAll(address(erc20Mock), recipient);
+        assertEq(erc20Mock.balanceOf(recipient), amount);
     }
 
     function testCannotWithdrawAllNonAssetManager(address recipient, uint256 amount) public {
-        daiMock.mint(address(pureTokenAdapter), amount);
+        erc20Mock.mint(address(pureTokenAdapter), amount);
         vm.expectRevert(PureTokenAdapter.SenderNotAssetManager.selector);
-        pureTokenAdapter.withdrawAll(address(daiMock), recipient);
+        pureTokenAdapter.withdrawAll(address(erc20Mock), recipient);
     }
 
     function testClaimRewards() public {
         // nothing to assert just check this passes
         vm.prank(ADMIN);
-        pureTokenAdapter.claimRewards(address(daiMock), address(0));
+        pureTokenAdapter.claimRewards(address(erc20Mock), address(0));
     }
 }
