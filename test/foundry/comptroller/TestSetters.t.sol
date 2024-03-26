@@ -43,21 +43,21 @@ contract TestSetters is TestComptrollerBase {
         vm.assume(amount >= 1 ether && amount < 1_000_000 ether);
 
         vm.prank(ADMIN);
-        marketRegistryMock.setUserManager(address(daiMock), address(this));
+        marketRegistryMock.setUserManager(address(erc20Mock), address(this));
         assertEq(comptroller.gLastUpdated(), block.timestamp);
         assertEq(comptroller.gInflationIndex(), comptroller.INIT_INFLATION_INDEX());
 
         skip(100);
 
-        comptroller.updateTotalStaked(address(daiMock), amount);
+        comptroller.updateTotalStaked(address(erc20Mock), amount);
         assertEq(comptroller.gLastUpdated(), block.timestamp);
         assert(comptroller.gInflationIndex() != comptroller.INIT_INFLATION_INDEX());
     }
 
     function testCannotUpdateTotalStakedNotUserManager() public {
         vm.prank(ADMIN);
-        marketRegistryMock.setUserManager(address(daiMock), address(1));
+        marketRegistryMock.setUserManager(address(erc20Mock), address(1));
         vm.expectRevert(Comptroller.SenderNotUserManager.selector);
-        comptroller.updateTotalStaked(address(daiMock), 1);
+        comptroller.updateTotalStaked(address(erc20Mock), 1);
     }
 }

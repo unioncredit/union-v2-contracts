@@ -1,14 +1,17 @@
 pragma solidity ^0.8.0;
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v2-contracts/user/UserManager.sol";
 import {Controller} from "union-v2-contracts/Controller.sol";
 
 contract TestSettersAndQuery is TestUserManagerBase {
+    using SafeCastUpgradeable for uint256;
+
     function setUp() public override {
         super.setUp();
         vm.startPrank(MEMBER);
-        userManager.stake(100 ether);
-        userManager.updateTrust(ACCOUNT, 100 ether);
+        userManager.stake((100 * UNIT).toUint96());
+        userManager.updateTrust(ACCOUNT, (100 * UNIT).toUint96());
         vm.stopPrank();
     }
 
@@ -18,6 +21,7 @@ contract TestSettersAndQuery is TestUserManagerBase {
     }
 
     function testSetMaxStakeAmount(uint96 amount) public {
+        vm.assume(amount < 9999999 * UNIT);
         vm.prank(ADMIN);
         userManager.setMaxStakeAmount(amount);
         uint256 maxStakeAmount = userManager.maxStakeAmount();
@@ -88,7 +92,7 @@ contract TestSettersAndQuery is TestUserManagerBase {
 
     function testGetCreditLimit() public {
         uint256 creditLimit = userManager.getCreditLimit(ACCOUNT);
-        assertEq(creditLimit, 100 ether);
+        assertEq(creditLimit, 100 * UNIT);
     }
 
     function testGetVoucherCount() public {
@@ -98,16 +102,16 @@ contract TestSettersAndQuery is TestUserManagerBase {
 
     function testGetStakerBalance() public {
         uint256 balance = userManager.getStakerBalance(MEMBER);
-        assertEq(balance, 100 ether);
+        assertEq(balance, 100 * UNIT);
     }
 
     function testGetVouchingAmount() public {
         uint256 vouchingAmount = userManager.getVouchingAmount(MEMBER, ACCOUNT);
-        assertEq(vouchingAmount, 100 ether);
+        assertEq(vouchingAmount, 100 * UNIT);
     }
 
     function testGetLockedStake(uint96 amount) public {
-        vm.assume(amount <= 100 ether);
+        vm.assume(amount <= 100 * UNIT);
         vm.prank(address(uTokenMock));
         userManager.updateLocked(ACCOUNT, amount, true);
         uint256 lockedStake = userManager.getLockedStake(MEMBER, ACCOUNT);
@@ -115,7 +119,7 @@ contract TestSettersAndQuery is TestUserManagerBase {
     }
 
     function testGetTotalLockedStake(uint96 amount) public {
-        vm.assume(amount <= 100 ether);
+        vm.assume(amount <= 100 * UNIT);
         vm.prank(address(uTokenMock));
         userManager.updateLocked(ACCOUNT, amount, true);
         uint256 lockedStake = userManager.getTotalLockedStake(MEMBER);

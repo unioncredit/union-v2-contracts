@@ -59,14 +59,16 @@ contract UnionLens {
         IUserManager userManager = IUserManager(marketRegistry.userManagers(underlying));
         IUToken uToken = IUToken(marketRegistry.uTokens(underlying));
 
-        (bool isMember, uint96 stakedAmount, uint96 locked, , , ) = userManager.stakers(user);
+        bool isMember = userManager.checkIsMember(user);
+        uint256 stakedAmount = userManager.getStakerBalance(user);
+        uint256 locked = userManager.getTotalLockedStake(user);
 
         userInfo.isOverdue = uToken.checkIsOverdue(user);
         userInfo.memberFrozen = userManager.memberFrozen(user);
 
         userInfo.isMember = isMember;
-        userInfo.locked = uint256(locked);
-        userInfo.stakedAmount = uint256(stakedAmount);
+        userInfo.locked = locked;
+        userInfo.stakedAmount = stakedAmount;
 
         userInfo.voucherCount = userManager.getVoucherCount(user);
         userInfo.voucheeCount = userManager.getVoucheeCount(user);
@@ -81,7 +83,7 @@ contract UnionLens {
     ) public view returns (uint256, uint256, uint256, uint256) {
         IUserManager userManager = IUserManager(marketRegistry.userManagers(underlying));
 
-        (, uint96 stakerStakedAmount, , , , ) = userManager.stakers(staker);
+        uint256 stakerStakedAmount = userManager.getStakerBalance(staker);
 
         bool isSet;
         uint256 idx;
@@ -95,7 +97,7 @@ contract UnionLens {
 
         return (
             uint256(trust),
-            trust > stakerStakedAmount ? stakerStakedAmount : trust, // vouch
+            uint256(trust) > stakerStakedAmount ? stakerStakedAmount : uint256(trust), // vouch
             uint256(locked),
             uint256(lastUpdated)
         );
@@ -106,32 +108,20 @@ contract UnionLens {
         address staker,
         address borrower
     ) public view returns (RelatedInfo memory related) {
-        (
-            uint256 voucherTrust,
-            uint256 voucherVouch,
-            uint256 voucherLocked,
-            uint256 voucherLastUpdated
-        ) = getVouchInfo(underlying, staker, borrower);
-
-        (
-            uint256 voucheeTrust,
-            uint256 voucheeVouch,
-            uint256 voucheeLocked,
-            uint256 voucheeLastUpdated
-        ) = getVouchInfo(underlying, borrower, staker);
-
-        related.voucher = VouchInfo(
-            voucherTrust,
-            voucherVouch,
-            voucherLocked,
-            voucherLastUpdated
+        (uint256 voucherTrust, uint256 voucherVouch, uint256 voucherLocked, uint256 voucherLastUpdated) = getVouchInfo(
+            underlying,
+            staker,
+            borrower
         );
 
-        related.vouchee = VouchInfo(
-            voucheeTrust,
-            voucheeVouch,
-            voucheeLocked,
-            voucheeLastUpdated
+        (uint256 voucheeTrust, uint256 voucheeVouch, uint256 voucheeLocked, uint256 voucheeLastUpdated) = getVouchInfo(
+            underlying,
+            borrower,
+            staker
         );
+
+        related.voucher = VouchInfo(voucherTrust, voucherVouch, voucherLocked, voucherLastUpdated);
+
+        related.vouchee = VouchInfo(voucheeTrust, voucheeVouch, voucheeLocked, voucheeLastUpdated);
     }
 }

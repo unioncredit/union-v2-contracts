@@ -94,10 +94,12 @@ contract UserManagerMock {
 
     function stake(uint96 amount) public {
         balances[msg.sender] += amount;
+        setStakerBalance(balances[msg.sender]);
     }
 
     function unstake(uint96 amount) external {
         balances[msg.sender] -= amount;
+        setStakerBalance(balances[msg.sender]);
     }
 
     function withdrawRewards() external {}

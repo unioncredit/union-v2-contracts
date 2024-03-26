@@ -37,6 +37,10 @@ contract FakeUserManager {
         return (isMember, totalStaked, totalLockedStake, totalFrozen);
     }
 
+    function getStakeInfoMantissa(address) public view returns (bool, uint256, uint256, uint256) {
+        return (isMember, totalStaked, totalLockedStake, totalFrozen);
+    }
+
     function onWithdrawRewards(address) public view returns (uint256, uint256, bool) {
         return (totalStaked, totalLockedStake, isMember);
     }

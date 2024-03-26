@@ -1,5 +1,5 @@
 pragma solidity ^0.8.0;
-
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {TestWrapper} from "./TestWrapper.sol";
 import {UserManager} from "union-v2-contracts/user/UserManager.sol";
 import {AssetManagerMock} from "union-v2-contracts/mocks/AssetManagerMock.sol";
@@ -11,6 +11,7 @@ import {Comptroller} from "union-v2-contracts/token/Comptroller.sol";
 import {UToken} from "union-v2-contracts/market/UToken.sol";
 
 contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
+    using SafeCastUpgradeable for uint256;
     UserManager public userManager;
     Comptroller public comptroller;
 
@@ -21,7 +22,7 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
     uint256 public constant effectiveCount = 3;
     uint256 public constant maxVouchers = 500;
     uint256 public constant maxVouchees = 1000;
-    uint96 private constant stakeAmount = 100 ether;
+    uint96 private stakeAmount = (100 * UNIT).toUint96();
 
     address staker = MEMBER;
     address borrower = ACCOUNT;
@@ -55,7 +56,7 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
                     "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
                     address(assetManagerMock),
                     address(unionTokenMock),
-                    address(daiMock),
+                    address(erc20Mock),
                     address(comptroller),
                     ADMIN,
                     maxOverdue,
@@ -68,8 +69,8 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
 
         vm.startPrank(ADMIN);
         // setup comptroller
-        unionTokenMock.mint(address(comptroller), 1_000_000 ether);
-        marketRegistryMock.setUserManager(address(daiMock), address(userManager));
+        unionTokenMock.mint(address(comptroller), 1_000_000 * UNIT);
+        marketRegistryMock.setUserManager(address(erc20Mock), address(userManager));
 
         // setup userManager
         userManager.setUToken(address(uTokenMock));
@@ -77,10 +78,10 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
 
         vm.stopPrank();
 
-        daiMock.mint(MEMBER, stakeAmount);
+        erc20Mock.mint(MEMBER, stakeAmount);
 
         vm.startPrank(staker);
-        daiMock.approve(address(userManager), type(uint256).max);
+        erc20Mock.approve(address(userManager), type(uint256).max);
         userManager.stake(stakeAmount);
         userManager.updateTrust(borrower, stakeAmount);
         vm.stopPrank();
@@ -121,21 +122,23 @@ contract TestWriteOffDebtAndWithdrawRewards is TestWrapper {
         uint256 snapshot = vm.snapshot();
         currTimestamp = block.timestamp;
         // withdraw rewards in the same block
-        claimedRewards = comptroller.withdrawRewards(staker, address(daiMock));
+        claimedRewards = comptroller.withdrawRewards(staker, address(erc20Mock));
         skip(++currTimestamp);
         skip(++currTimestamp);
         // record the total rewards from the same block rewards withdraw
-        uint256 rewardsFromSameBlockWithdraw = claimedRewards + comptroller.calculateRewards(staker, address(daiMock));
+        uint256 rewardsFromSameBlockWithdraw = claimedRewards +
+            comptroller.calculateRewards(staker, address(erc20Mock));
 
         // revert back to before claiming the rewards
         vm.revertTo(snapshot);
         currTimestamp = block.timestamp;
         skip(++currTimestamp);
         // withdraw rewards 1 block after the debtWriteOff() call
-        claimedRewards = comptroller.withdrawRewards(staker, address(daiMock));
+        claimedRewards = comptroller.withdrawRewards(staker, address(erc20Mock));
         skip(++currTimestamp);
         // record total rewards
-        uint256 rewardsFromDiffBlockWithdraw = claimedRewards + comptroller.calculateRewards(staker, address(daiMock));
+        uint256 rewardsFromDiffBlockWithdraw = claimedRewards +
+            comptroller.calculateRewards(staker, address(erc20Mock));
 
         emit log_named_decimal_uint("Rewards 1", rewardsFromSameBlockWithdraw, 18);
         emit log_named_decimal_uint("Rewards 2", rewardsFromDiffBlockWithdraw, 18);

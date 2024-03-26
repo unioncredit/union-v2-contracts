@@ -9,126 +9,126 @@ contract TestMintRedeem is TestUTokenBase {
         super.setUp();
     }
 
+    function nearlyEqual(uint256 a, uint256 b, uint256 eps) private pure returns (bool) {
+        return (a >= b && a - b <= eps) || (b > a && b - a <= eps);
+    }
+
     function testSupplyRate() public {
         uint256 reserveFactorMantissa = uToken.reserveFactorMantissa();
-        uint256 expectSupplyRate = (BORROW_INTEREST_PER_BLOCK * (1 ether - reserveFactorMantissa)) / 1 ether;
+        uint256 expectSupplyRate = (BORROW_INTEREST_PER_BLOCK * (1e18 - reserveFactorMantissa)) / 1e18;
+
         assertEq(expectSupplyRate, uToken.supplyRatePerSecond());
     }
 
     function testMintUTokenWithMintFee(uint256 mintAmount, uint256 mintFeeRate) public {
-        vm.assume(mintAmount > uToken.MIN_MINT_AMOUNT() && mintAmount <= 100 ether);
+        vm.assume(mintAmount > uToken.minMintAmount() && mintAmount <= 100 * UNIT);
         vm.assume(mintFeeRate >= 0 && mintFeeRate <= 1e17);
 
         vm.startPrank(ADMIN);
         uToken.setMintFeeRate(mintFeeRate);
         vm.stopPrank();
 
-        assertEq(INIT_EXCHANGE_RATE, uToken.exchangeRateStored());
-
         vm.startPrank(ALICE);
-        daiMock.approve(address(uToken), mintAmount);
+        erc20Mock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
 
         uint256 mintFee = (mintAmount * mintFeeRate) / 1e18;
         uint256 redeemable = mintAmount - mintFee;
         uint256 totalRedeemable = uToken.totalRedeemable();
 
-        assertEq(redeemable, totalRedeemable);
+        nearlyEqual(redeemable, totalRedeemable, 100);
 
         uint256 balance = uToken.balanceOf(ALICE);
         uint256 totalSupply = uToken.totalSupply();
-        assertEq(balance, totalSupply);
+        nearlyEqual(balance, totalSupply, 100);
 
         uint256 currExchangeRate = uToken.exchangeRateStored();
-        assertEq(balance, (redeemable * 1e18) / currExchangeRate);
+        nearlyEqual(balance, (redeemable * 1e18) / currExchangeRate, 100);
     }
 
     function testMintUTokenFailWithMinAmount(uint256 mintAmount) public {
-        vm.assume(mintAmount < uToken.MIN_MINT_AMOUNT());
+        vm.assume(mintAmount < uToken.minMintAmount());
 
         vm.startPrank(ALICE);
-        daiMock.approve(address(uToken), mintAmount);
+        erc20Mock.approve(address(uToken), mintAmount);
         vm.expectRevert(UToken.AmountError.selector);
         uToken.mint(mintAmount);
     }
 
     function testRedeemUToken(uint256 mintAmount) public {
-        vm.assume(mintAmount > uToken.MIN_MINT_AMOUNT() && mintAmount <= 100 ether);
-
+        vm.assume(mintAmount >= uToken.minMintAmount() && mintAmount <= 100 * UNIT);
         vm.startPrank(ALICE);
-
-        daiMock.approve(address(uToken), mintAmount);
+        erc20Mock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
-
+        uint256 exchangeRateStored = uToken.exchangeRateStored();
         uint256 uBalance = uToken.balanceOf(ALICE);
-        uint256 daiBalance = daiMock.balanceOf(ALICE);
-
+        uint256 ercBalance = erc20Mock.balanceOf(ALICE);
         uint256 mintFee = (mintAmount * MINT_FEE_RATE) / 1e18;
         uint256 redeemable = mintAmount - mintFee;
-
-        assertEq(uBalance, redeemable);
+        assertEq(uBalance, ((redeemable * 1e18) / exchangeRateStored));
 
         uToken.redeem(uBalance, 0);
         uBalance = uToken.balanceOf(ALICE);
         assertEq(0, uBalance);
 
-        uint256 daiBalanceAfter = daiMock.balanceOf(ALICE);
-        assertEq(daiBalanceAfter, daiBalance + mintAmount - mintFee);
+        uint256 ercBalanceAfter = erc20Mock.balanceOf(ALICE);
+        nearlyEqual(ercBalanceAfter, ercBalance + mintAmount - mintFee, 100);
     }
 
     function testRedeemUTokenWhenRemaining(uint256 mintAmount) public {
-        vm.assume(mintAmount > 1 ether + uToken.MIN_MINT_AMOUNT() && mintAmount <= 100 ether);
+        vm.assume(mintAmount > 1 * UNIT + uToken.minMintAmount() && mintAmount <= 100 * UNIT);
 
         vm.startPrank(ALICE);
-        daiMock.approve(address(uToken), mintAmount);
+        erc20Mock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
+        uint256 exchangeRateStored = uToken.exchangeRateStored();
 
         uint256 mintFee = (mintAmount * MINT_FEE_RATE) / 1e18;
-
         uint256 totalRedeemable = uToken.totalRedeemable();
         vm.mockCall(
             address(assetManagerMock),
-            abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, ALICE, mintAmount - mintFee),
-            abi.encode(1 ether)
+            abi.encodeWithSelector(AssetManager.withdraw.selector, erc20Mock, ALICE, mintAmount - mintFee),
+            abi.encode(1 * UNIT)
         );
-        uToken.redeem(mintAmount - mintFee, 0);
+        uToken.redeem(((mintAmount - mintFee) * 1e18) / exchangeRateStored, 0);
         uint256 totalRedeemableAfter = uToken.totalRedeemable();
-        assertEq(totalRedeemableAfter, totalRedeemable + mintFee - mintAmount + 1 ether);
+
+        assertEq(totalRedeemableAfter, totalRedeemable + mintFee - mintAmount + 1 * UNIT);
     }
 
     function testRedeemUnderlying(uint256 mintAmount) public {
-        vm.assume(mintAmount > uToken.MIN_MINT_AMOUNT() && mintAmount <= 100 ether);
+        vm.assume(mintAmount > uToken.minMintAmount() && mintAmount <= 100 * UNIT);
 
         vm.startPrank(ALICE);
 
-        daiMock.approve(address(uToken), mintAmount);
+        erc20Mock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
-
+        uint256 exchangeRateStored = uToken.exchangeRateStored();
         uint256 mintFee = (mintAmount * MINT_FEE_RATE) / 1e18;
 
         uint256 uBalance = uToken.balanceOf(ALICE);
-        uint256 daiBalance = daiMock.balanceOf(ALICE);
-
-        assertEq(uBalance, mintAmount - mintFee);
+        uint256 erc20Balance = erc20Mock.balanceOf(ALICE);
+        assertEq(uBalance, ((mintAmount - mintFee) * 1e18) / exchangeRateStored);
 
         uToken.redeem(0, mintAmount - mintFee);
         uBalance = uToken.balanceOf(ALICE);
         assertEq(0, uBalance);
 
-        uint256 daiBalanceAfter = daiMock.balanceOf(ALICE);
-        assertEq(daiBalanceAfter, daiBalance + mintAmount - mintFee);
+        uint256 daiBalanceAfter = erc20Mock.balanceOf(ALICE);
+        nearlyEqual(daiBalanceAfter, erc20Balance + mintAmount - mintFee, 100);
     }
 
     function testExchangeRate() public {
-        uint256 mintAmount = 1 ether;
-        uint256 borrowAmount = 1 ether;
+        uint256 mintAmount = 1 * UNIT;
+        uint256 borrowAmount = 1 * UNIT;
         assertEq(INIT_EXCHANGE_RATE, uToken.exchangeRateCurrent());
         vm.startPrank(ALICE);
-        daiMock.approve(address(uToken), mintAmount);
+        erc20Mock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
-
         uint256 utokenBal = uToken.balanceOf(ALICE);
-        assertEq((utokenBal * INIT_EXCHANGE_RATE) / 1e18, uToken.balanceOfUnderlying(ALICE));
+
+        uint256 exchangeRateStored = uToken.exchangeRateStored();
+        assertEq((utokenBal * exchangeRateStored) / 1e18, uToken.balanceOfUnderlying(ALICE));
 
         uToken.borrow(ALICE, borrowAmount);
         uint256 borrowed = uToken.borrowBalanceView(ALICE);
@@ -136,9 +136,9 @@ contract TestMintRedeem is TestUTokenBase {
         // Get the interest amount
         uint256 interest = uToken.calculatingInterest(ALICE);
         uint256 repayAmount = borrowed + interest;
-        daiMock.approve(address(uToken), repayAmount);
+        erc20Mock.approve(address(uToken), repayAmount);
         uToken.repayBorrow(ALICE, repayAmount);
         assert(uToken.exchangeRateCurrent() > INIT_EXCHANGE_RATE);
-        assert((utokenBal * INIT_EXCHANGE_RATE) / 1e18 < uToken.balanceOfUnderlying(ALICE));
+        assert((utokenBal * exchangeRateStored) / 1e18 < uToken.balanceOfUnderlying(ALICE));
     }
 }

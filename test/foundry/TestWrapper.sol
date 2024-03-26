@@ -11,17 +11,19 @@ import {UTokenMock} from "union-v2-contracts/mocks/UTokenMock.sol";
 import {MarketRegistryMock} from "union-v2-contracts/mocks/MarketRegistryMock.sol";
 import {UserManagerMock} from "union-v2-contracts/mocks/UserManagerMock.sol";
 import {FixedInterestRateModelMock} from "union-v2-contracts/mocks/FixedInterestRateModelMock.sol";
+import {console} from "forge-std/console.sol";
 
 contract TestWrapper is Test {
     AssetManagerMock public assetManagerMock;
     AdapterMock public adapterMock;
     UnionTokenMock public unionTokenMock;
-    FaucetERC20 public daiMock;
+    FaucetERC20 public erc20Mock;
     ComptrollerMock public comptrollerMock;
     UTokenMock public uTokenMock;
     MarketRegistryMock public marketRegistryMock;
     UserManagerMock public userManagerMock;
     FixedInterestRateModelMock public interestRateMock;
+    uint256 public UNIT = 10 ** uint8(vm.envUint("DECIMALS"));
 
     function deployProxy(address implementation, bytes memory signature) public returns (address) {
         ERC1967Proxy proxy = new ERC1967Proxy(implementation, signature);
@@ -32,11 +34,11 @@ contract TestWrapper is Test {
         assetManagerMock = new AssetManagerMock();
         adapterMock = new AdapterMock();
         unionTokenMock = new UnionTokenMock("UnionMock", "UNM");
-        daiMock = new FaucetERC20("MockDAI", "MDAI");
+        erc20Mock = new FaucetERC20("MockERc20)", "MERC20");
         comptrollerMock = new ComptrollerMock();
         uTokenMock = new UTokenMock();
         marketRegistryMock = new MarketRegistryMock();
-        userManagerMock = new UserManagerMock(address(daiMock));
+        userManagerMock = new UserManagerMock(address(erc20Mock));
         uint256 borrowInterestPerBlock = 0.000001 ether; //0.0001%
         interestRateMock = new FixedInterestRateModelMock(borrowInterestPerBlock);
     }

@@ -14,12 +14,12 @@ contract FakeAMarket3 is AMarket3 {
 }
 
 contract FakeLendingPool3 is LendingPool3 {
-    function getReserveData(address asset) external view returns (ReserveData memory data) {
+    function getReserveData(address) external pure returns (ReserveData memory data) {
         data.aTokenAddress = address(11);
         return data;
     }
 
-    function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external {}
+    function supply(address, uint256 amount, address onBehalfOf, uint16 referralCode) external {}
 
     function withdraw(address tokenAddress, uint256, address recipient) external returns (uint256) {
         uint256 amount = IERC20Upgradeable(tokenAddress).balanceOf(address(this));
@@ -52,11 +52,11 @@ contract TestAaveV3Adapter is TestWrapper {
             )
         );
         vm.prank(ADMIN);
-        adapter.mapTokenToAToken(address(daiMock));
+        adapter.mapTokenToAToken(address(erc20Mock));
     }
 
     function supplyToken(uint256 supplyAmount) public {
-        daiMock.mint(address(adapter), supplyAmount);
+        erc20Mock.mint(address(adapter), supplyAmount);
     }
 
     function testInit() public {
@@ -80,7 +80,7 @@ contract TestAaveV3Adapter is TestWrapper {
         vm.prank(ADMIN);
         vm.mockCall(
             token,
-            abi.encodeWithSelector(daiMock.allowance.selector, address(adapter), address(lendingPool)),
+            abi.encodeWithSelector(erc20Mock.allowance.selector, address(adapter), address(lendingPool)),
             abi.encode(type(uint256).max)
         );
         adapter.mapTokenToAToken(address(token));
@@ -100,8 +100,8 @@ contract TestAaveV3Adapter is TestWrapper {
 
     function testSetFloor(uint256 amount) public {
         vm.prank(ADMIN);
-        adapter.setFloor(address(daiMock), amount);
-        assertEq(adapter.floorMap(address(daiMock)), amount);
+        adapter.setFloor(address(erc20Mock), amount);
+        assertEq(adapter.floorMap(address(erc20Mock)), amount);
     }
 
     function testCannotSetFloorNonAdmin() public {
@@ -112,14 +112,14 @@ contract TestAaveV3Adapter is TestWrapper {
 
     function testSetCeiling(uint256 amount) public {
         vm.prank(ADMIN);
-        adapter.setCeiling(address(daiMock), amount);
-        assertEq(adapter.ceilingMap(address(daiMock)), amount);
+        adapter.setCeiling(address(erc20Mock), amount);
+        assertEq(adapter.ceilingMap(address(erc20Mock)), amount);
     }
 
     function testCannotSetCeilingNonAdmin() public {
         vm.prank(address(1));
         vm.expectRevert(Controller.SenderNotAdmin.selector);
-        adapter.setCeiling(address(daiMock), 0);
+        adapter.setCeiling(address(erc20Mock), 0);
     }
 
     function testGetRate() public {
@@ -127,35 +127,35 @@ contract TestAaveV3Adapter is TestWrapper {
     }
 
     function testGetSupply(uint256 amount) public {
-        vm.assume(amount >= 1 ether);
+        vm.assume(amount >= 1 * UNIT);
         supplyToken(amount);
         vm.mockCall(
             address(11),
-            abi.encodeWithSelector(daiMock.balanceOf.selector, address(adapter)),
+            abi.encodeWithSelector(erc20Mock.balanceOf.selector, address(adapter)),
             abi.encode(amount)
         );
-        assertEq(amount, adapter.getSupply(address(daiMock)));
+        assertEq(amount, adapter.getSupply(address(erc20Mock)));
     }
 
     function testGetSupplyView(uint256 amount) public {
-        vm.assume(amount >= 1 ether);
+        vm.assume(amount >= 1 * UNIT);
         supplyToken(amount);
         vm.mockCall(
             address(11),
-            abi.encodeWithSelector(daiMock.balanceOf.selector, address(adapter)),
+            abi.encodeWithSelector(erc20Mock.balanceOf.selector, address(adapter)),
             abi.encode(amount)
         );
-        assertEq(amount, adapter.getSupplyView(address(daiMock)));
+        assertEq(amount, adapter.getSupplyView(address(erc20Mock)));
     }
 
     function testSupportsToken() public {
-        assertEq(adapter.supportsToken(address(daiMock)), true);
+        assertEq(adapter.supportsToken(address(erc20Mock)), true);
         assertEq(adapter.supportsToken(address(22)), false);
     }
 
     function testDeposit() public {
         vm.prank(address(assetManagerMock));
-        adapter.deposit(address(daiMock));
+        adapter.deposit(address(erc20Mock));
     }
 
     function testCannotDepositUnsupportedToken() public {
@@ -165,48 +165,48 @@ contract TestAaveV3Adapter is TestWrapper {
 
     function testWithdraw(uint256 amount) public {
         address recipient = address(123);
-        daiMock.mint(address(lendingPool), amount);
-        assertEq(daiMock.balanceOf(recipient), 0);
+        erc20Mock.mint(address(lendingPool), amount);
+        assertEq(erc20Mock.balanceOf(recipient), 0);
         vm.prank(adapter.assetManager());
         vm.mockCall(
             address(11),
-            abi.encodeWithSelector(daiMock.balanceOf.selector, address(adapter)),
+            abi.encodeWithSelector(erc20Mock.balanceOf.selector, address(adapter)),
             abi.encode(amount)
         );
-        adapter.withdraw(address(daiMock), recipient, amount);
-        assertEq(daiMock.balanceOf(recipient), amount);
+        adapter.withdraw(address(erc20Mock), recipient, amount);
+        assertEq(erc20Mock.balanceOf(recipient), amount);
     }
 
     function testCannotWithdrawNonAssetManager(uint256 amount) public {
         address recipient = address(123);
-        daiMock.mint(address(adapter), amount);
+        erc20Mock.mint(address(adapter), amount);
         vm.expectRevert(AaveV3Adapter.SenderNotAssetManager.selector);
-        adapter.withdraw(address(daiMock), recipient, amount);
+        adapter.withdraw(address(erc20Mock), recipient, amount);
     }
 
     function testWithdrawAll(uint256 amount) public {
-        vm.assume(amount >= 1 ether);
+        vm.assume(amount >= 1 * UNIT);
         address recipient = address(123);
-        daiMock.mint(address(lendingPool), amount);
-        assertEq(daiMock.balanceOf(recipient), 0);
+        erc20Mock.mint(address(lendingPool), amount);
+        assertEq(erc20Mock.balanceOf(recipient), 0);
         vm.prank(adapter.assetManager());
         vm.mockCall(
             address(11),
-            abi.encodeWithSelector(daiMock.balanceOf.selector, address(adapter)),
+            abi.encodeWithSelector(erc20Mock.balanceOf.selector, address(adapter)),
             abi.encode(amount)
         );
-        adapter.withdrawAll(address(daiMock), recipient);
-        assertEq(daiMock.balanceOf(recipient), amount);
+        adapter.withdrawAll(address(erc20Mock), recipient);
+        assertEq(erc20Mock.balanceOf(recipient), amount);
     }
 
     function testCannotWithdrawAllNonAssetManager(address recipient, uint256 amount) public {
-        daiMock.mint(address(adapter), amount);
+        erc20Mock.mint(address(adapter), amount);
         vm.expectRevert(AaveV3Adapter.SenderNotAssetManager.selector);
-        adapter.withdrawAll(address(daiMock), recipient);
+        adapter.withdrawAll(address(erc20Mock), recipient);
     }
 
     function testClaimRewards() public {
         vm.prank(ADMIN);
-        adapter.claimRewards(address(daiMock), address(0));
+        adapter.claimRewards(address(erc20Mock), address(0));
     }
 }

@@ -20,6 +20,6 @@ contract UDai is UToken, IUDai {
 
         if (!accrueInterest()) revert AccrueInterestFailed();
         uint256 interest = calculatingInterest(borrower);
-        _repayBorrowFresh(msg.sender, borrower, amount, interest);
+        _repayBorrowFresh(msg.sender, borrower, decimalScaling(amount, underlyingDecimal), interest);
     }
 }
