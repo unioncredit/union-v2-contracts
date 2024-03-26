@@ -14,4 +14,6 @@ interface IDai is IERC20 {
         bytes32 r,
         bytes32 s
     ) external;
+
+    function decimals() external view returns (uint8);
 }

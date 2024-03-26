@@ -15,8 +15,8 @@ import {
     AssetManager,
     PureTokenAdapter,
     PureTokenAdapter__factory,
-    FaucetERC20_ERC20Permit,
-    FaucetERC20_ERC20Permit__factory,
+    FaucetERC20,
+    FaucetERC20__factory,
     MarketRegistry,
     MarketRegistry__factory,
     FixedInterestRateModel,
@@ -106,7 +106,7 @@ export interface OpContracts {
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
     assetManager: AssetManager;
-    underlying: IDai | FaucetERC20_ERC20Permit;
+    underlying: IDai | FaucetERC20;
     marketRegistry: MarketRegistry;
     adapters: {
         pureTokenAdapter: PureTokenAdapter;
@@ -150,15 +150,15 @@ export default async function (
     }
 
     // deploy DAI
-    let underlying: IDai | FaucetERC20_ERC20Permit;
+    let underlying: IDai | FaucetERC20;
     if (config.addresses.dai) {
         underlying = IDai__factory.connect(config.addresses.dai, signer);
     } else if (config.addresses.usdc) {
-        underlying = FaucetERC20_ERC20Permit__factory.connect(config.addresses.usdc, signer);
+        underlying = FaucetERC20__factory.connect(config.addresses.usdc, signer);
     } else {
         // create a DAI mock token for testing
-        underlying = await deployContract<FaucetERC20_ERC20Permit>(
-            new FaucetERC20_ERC20Permit__factory(signer),
+        underlying = await deployContract<FaucetERC20>(
+            new FaucetERC20__factory(signer),
             "DAI",
             ["DAI", "DAI"],
             debug,

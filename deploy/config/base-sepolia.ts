@@ -1,5 +1,6 @@
 import {DeployConfig} from "../optimism";
 import {parseUSDC} from "../../utils";
+import {parseUnits} from "ethers/lib/utils";
 
 export default {
     userManager: {
@@ -11,15 +12,15 @@ export default {
     uToken: {
         name: "uUSDC",
         symbol: "uUSDC",
-        initialExchangeRateMantissa: parseUSDC("1"),
-        reserveFactorMantissa: parseUSDC("1"),
-        originationFee: parseUSDC("0.005"),
-        originationFeeMax: parseUSDC("0.5"),
+        initialExchangeRateMantissa: parseUnits("1"),
+        reserveFactorMantissa: parseUnits("1"),
+        originationFee: parseUnits("0.005"),
+        originationFeeMax: parseUnits("0.5"),
         debtCeiling: parseUSDC("250000"),
         maxBorrow: parseUSDC("25000"),
         minBorrow: parseUSDC("100"),
         overdueTime: "86400", // in seconds, 1 day
-        mintFeeRate: parseUSDC("0")
+        mintFeeRate: parseUnits("0")
     },
     comptroller: {
         halfDecayPoint: "1000"

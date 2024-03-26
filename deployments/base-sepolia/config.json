@@ -19,31 +19,31 @@
     "symbol": "uUSDC",
     "initialExchangeRateMantissa": {
       "type": "BigNumber",
-      "hex": "0x05f5e100"
+      "hex": "0x0de0b6b3a7640000"
     },
     "reserveFactorMantissa": {
       "type": "BigNumber",
-      "hex": "0x05f5e100"
+      "hex": "0x0de0b6b3a7640000"
     },
     "originationFee": {
       "type": "BigNumber",
-      "hex": "0x07a120"
+      "hex": "0x11c37937e08000"
     },
     "originationFeeMax": {
       "type": "BigNumber",
-      "hex": "0x02faf080"
+      "hex": "0x06f05b59d3b20000"
     },
     "debtCeiling": {
       "type": "BigNumber",
-      "hex": "0x16bcc41e9000"
+      "hex": "0x3a35294400"
     },
     "maxBorrow": {
       "type": "BigNumber",
-      "hex": "0x0246139ca800"
+      "hex": "0x05d21dba00"
     },
     "minBorrow": {
       "type": "BigNumber",
-      "hex": "0x02540be400"
+      "hex": "0x05f5e100"
     },
     "overdueTime": "86400",
     "mintFeeRate": {
@@ -60,11 +60,11 @@
   "pureAdapter": {
     "floor": {
       "type": "BigNumber",
-      "hex": "0x174876e800"
+      "hex": "0x3b9aca00"
     },
     "ceiling": {
       "type": "BigNumber",
-      "hex": "0x09184e72a000"
+      "hex": "0x174876e800"
     }
   }
 }

@@ -20,7 +20,7 @@ contract FaucetERC20 is ERC20 {
     }
 
     function decimals() public view override returns (uint8) {
-        return 6;
+        return 18;
         //return uint8(vm.envUint("DECIMALS"));
     }
 }
