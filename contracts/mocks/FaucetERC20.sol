@@ -2,9 +2,10 @@
 pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Test} from "forge-std/Test.sol";
 
-contract FaucetERC20 is ERC20, Test {
+// import {Test} from "forge-std/Test.sol";
+
+contract FaucetERC20 is ERC20 {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
     function mint(address to, uint256 value) public returns (bool) {
@@ -19,6 +20,7 @@ contract FaucetERC20 is ERC20, Test {
     }
 
     function decimals() public view override returns (uint8) {
-        return uint8(vm.envUint("DECIMALS"));
+        return 6;
+        //return uint8(vm.envUint("DECIMALS"));
     }
 }

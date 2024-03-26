@@ -23,7 +23,8 @@ contract TestWrapper is Test {
     MarketRegistryMock public marketRegistryMock;
     UserManagerMock public userManagerMock;
     FixedInterestRateModelMock public interestRateMock;
-    uint256 public UNIT = 10 ** uint8(vm.envUint("DECIMALS"));
+    // uint256 public UNIT = 10 ** uint8(vm.envUint("DECIMALS"));
+    uint256 public UNIT = 1e6;
 
     function deployProxy(address implementation, bytes memory signature) public returns (address) {
         ERC1967Proxy proxy = new ERC1967Proxy(implementation, signature);

@@ -14,7 +14,7 @@
         "hh:sim": "yarn hardhat test --config hardhat-sim.config.ts",
         "task": "yarn hardhat --config hardhat-task.config.ts",
         "f:compile": "forge build",
-        "f:test": "DECIMALS=6 forge test -vvv",
+        "f:test": "forge test -vvv",
         "clean": "forge clean && yarn hardhat clean && rm -rf ./typechain-types",
         "coverage": "./run-coverage.sh",
         "deploy:op": "yarn clean && yarn hardhat compile && CONFIG=optimism-goerli yarn hardhat --config hardhat-task.config.ts deploy:op --network optimism-goerli",
