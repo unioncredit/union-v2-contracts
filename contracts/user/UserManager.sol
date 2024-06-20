@@ -6,6 +6,7 @@ import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ER
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
+import {ScaledDecimalBase} from "../ScaledDecimalBase.sol";
 import {Controller} from "../Controller.sol";
 import {IAssetManager} from "../interfaces/IAssetManager.sol";
 import {IUserManager} from "../interfaces/IUserManager.sol";
@@ -21,7 +22,7 @@ interface IERC20 {
  * @title UserManager Contract
  * @dev Manages the Union members stake and vouches.
  */
-contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
+contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable, ScaledDecimalBase {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using SafeCastUpgradeable for uint256;
     using SafeCastUpgradeable for uint128;
@@ -1210,25 +1211,5 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable {
      */
     function getTimestamp() internal view returns (uint256) {
         return block.timestamp;
-    }
-
-    function decimalScaling(uint256 amount, uint8 decimal) internal pure returns (uint256) {
-        if (decimal > 18) {
-            uint8 diff = decimal - 18;
-            return amount / 10 ** diff;
-        } else {
-            uint8 diff = 18 - decimal;
-            return amount * 10 ** diff;
-        }
-    }
-
-    function decimalReducing(uint256 actualAmount, uint8 decimal) internal pure returns (uint256) {
-        if (decimal > 18) {
-            uint8 diff = decimal - 18;
-            return actualAmount * 10 ** diff;
-        } else {
-            uint8 diff = 18 - decimal;
-            return actualAmount / 10 ** diff;
-        }
     }
 }

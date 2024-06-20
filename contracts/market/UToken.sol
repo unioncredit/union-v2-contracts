@@ -8,6 +8,7 @@ import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
+import {ScaledDecimalBase} from "../ScaledDecimalBase.sol";
 import {Controller} from "../Controller.sol";
 import {IUserManager} from "../interfaces/IUserManager.sol";
 import {IAssetManager} from "../interfaces/IAssetManager.sol";
@@ -22,7 +23,7 @@ interface IERC20 {
  *  @title UToken Contract
  *  @dev Union accountBorrows can borrow and repay thru this component.
  */
-contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardUpgradeable {
+contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardUpgradeable, ScaledDecimalBase {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using SafeCastUpgradeable for uint256;
 
@@ -940,25 +941,5 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         }
 
         if (!IAssetManager(assetManager).deposit(underlying, amount)) revert DepositToAssetManagerFailed();
-    }
-
-    function decimalScaling(uint256 amount, uint8 decimal) internal pure returns (uint256) {
-        if (decimal > 18) {
-            uint8 diff = decimal - 18;
-            return amount / 10 ** diff;
-        } else {
-            uint8 diff = 18 - decimal;
-            return amount * 10 ** diff;
-        }
-    }
-
-    function decimalReducing(uint256 actualAmount, uint8 decimal) internal pure returns (uint256) {
-        if (decimal > 18) {
-            uint8 diff = decimal - 18;
-            return actualAmount * 10 ** diff;
-        } else {
-            uint8 diff = 18 - decimal;
-            return actualAmount / 10 ** diff;
-        }
     }
 }
