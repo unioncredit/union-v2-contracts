@@ -21,8 +21,9 @@ contract TestMintRedeem is TestUTokenBase {
     }
 
     function testMintUTokenWithMintFee(uint256 mintAmount, uint256 mintFeeRate) public {
-        vm.assume(mintAmount > uToken.minMintAmount() && mintAmount <= 100 * UNIT);
-        vm.assume(mintFeeRate >= 0 && mintFeeRate <= 1e17);
+        vm.assume(mintAmount > UNIT && mintAmount <= 100 * UNIT);
+        mintFeeRate = bound(mintFeeRate, 0, 1e17);
+        require(mintFeeRate >= 0 && mintFeeRate <= 1e17);
 
         vm.startPrank(ADMIN);
         uToken.setMintFeeRate(mintFeeRate);

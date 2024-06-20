@@ -11,8 +11,8 @@ contract TestUTokenBase is TestWrapper {
 
     uint256 internal constant ORIGINATION_FEE = 0.01 ether; //1%;
     uint256 internal constant ORIGINATION_FEE_MAX = 0.05 ether; //5%;
-    uint256 internal MIN_BORROW = UNIT;
-    uint256 internal MAX_BORROW = 100 * UNIT;
+    uint256 internal MIN_BORROW;
+    uint256 internal MAX_BORROW;
     uint256 internal constant BORROW_INTEREST_PER_BLOCK = 0.000001 ether;
     uint256 internal constant OVERDUE_TIME = 10; // seconds
     uint256 internal constant RESERVE_FACTOR = 0.5 ether;
@@ -20,6 +20,8 @@ contract TestUTokenBase is TestWrapper {
     uint256 internal constant MINT_FEE_RATE = 1e15;
 
     function setUp() public virtual {
+        MIN_BORROW = UNIT;
+        MAX_BORROW = 100 * UNIT;
         uint256 debtCeiling = 1000 * UNIT;
         address uTokenLogic = address(new UToken());
         deployMocks();
