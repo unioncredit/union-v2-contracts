@@ -35,7 +35,6 @@ contract TestStakeAndUnstake is TestUserManagerBase {
         userManager.stake(amount);
         uint256 stakeAmount = userManager.getStakerBalance(MEMBER);
         assertEq(stakeAmount, amount);
-        uint256 globalTotalStaked = userManager.globalTotalStaked();
         uint256 totalStaked = userManager.totalStaked();
         uint256 totalFrozen = userManager.totalFrozen();
         assertEq(totalFrozen, 0);

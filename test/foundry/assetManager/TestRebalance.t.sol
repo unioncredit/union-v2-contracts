@@ -15,7 +15,7 @@ contract FakeAdapter {
         IERC20(token).transfer(to, balance);
     }
 
-    function deposit(address) public returns (bool) {
+    function deposit(address) public pure returns (bool) {
         return true;
     }
 }
