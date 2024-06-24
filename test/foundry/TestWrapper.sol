@@ -23,15 +23,14 @@ contract TestWrapper is Test {
     MarketRegistryMock public marketRegistryMock;
     UserManagerMock public userManagerMock;
     FixedInterestRateModelMock public interestRateMock;
-    // uint256 public UNIT = 10 ** uint8(vm.envUint("DECIMALS"));
-    uint8 public tokenDecimals;
-    uint256 public UNIT;
+    uint8 public tokenDecimals = uint8(vm.envUint("DECIMALS"));
+    uint256 public UNIT = 10 ** tokenDecimals;
 
-    constructor() {
-        tokenDecimals = uint8(vm.envOr("DECIMALS", uint256(18)));
-        UNIT = 10 ** tokenDecimals;
-        console.log("DECIMALS: %s, UNIT: %s", tokenDecimals, UNIT);
-    }
+    // constructor() {
+    //     tokenDecimals = uint8(vm.envOr("DECIMALS", uint256(18)));
+    //     UNIT = 10 ** tokenDecimals;
+    //     console.log("DECIMALS: %s, UNIT: %s", tokenDecimals, UNIT);
+    // }
 
     function deployProxy(address implementation, bytes memory signature) public returns (address) {
         ERC1967Proxy proxy = new ERC1967Proxy(implementation, signature);
