@@ -9,11 +9,13 @@ const UnionTokenABI = require("../abis/UnionToken.json");
 const UserManagerABI = require("../abis/UserManager.json");
 const UTokenABI = require("../abis/UToken.json");
 const UsdcABI = require("../abis/USDC.json");
+const AssetManagerABI = require("../abis/AssetManager.json");
 
 const usdcAddress = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 const userManagerAddress = "0x4C52c9E49aa6a5029c0F94753c533DFEBcf8AabA";
 const uTokenAddress = "0x01Cc03de0742dF77b934C3aFA848AE2BB73576Ed";
 const opUnionAddress = "0xc124047253c87EF90aF9f4EFC12C281b479c4769";
+const assetManagerAddress = "0x311B84A6ca1196efd1CEc7E4fa09D8C2C171492A";
 
 let forkId, forkRPC, opts;
 let stakerAddress = "0x800C13848B469d207e1D02129Dc329818F652812",
@@ -24,7 +26,7 @@ let stakerAddress = "0x800C13848B469d207e1D02129Dc329818F652812",
     unionHolderSigner,
     usdcHolderAddress = "0xfaec9cdc3ef75713b48f46057b98ba04885e3391",
     usdcHolderSigner;
-let opUnion, userManager, usdc, uToken;
+let opUnion, userManager, usdc, uToken, assetManager;
 describe("Simulating test deploy contract on tenderly ...", () => {
     const startBlock = 11468000;
     const {TENDERLY_USER, TENDERLY_PROJECT, TENDERLY_ACCESS_KEY} = process.env;
@@ -64,6 +66,7 @@ describe("Simulating test deploy contract on tenderly ...", () => {
         usdcHolderSigner = await ethers.provider.getSigner(usdcHolderAddress);
         unionHolderSigner = await ethers.provider.getSigner(unionHolderAddress);
 
+        assetManager = await ethers.getContractAt(AssetManagerABI, assetManagerAddress, stakerSigner);
         opUnion = await ethers.getContractAt(UnionTokenABI, opUnionAddress, stakerSigner);
         userManager = await ethers.getContractAt(UserManagerABI, userManagerAddress, stakerSigner);
         usdc = await ethers.getContractAt(UsdcABI, usdcAddress, stakerSigner);
@@ -147,6 +150,29 @@ describe("Simulating test deploy contract on tenderly ...", () => {
     });
 
     it("borrow and repay", async () => {
+        const borrowAmount = parseUnits("500", 6);
+        const borrowTx = await uToken.connect(borrowerSigner).borrow(borrowerAddress, borrowAmount);
+        await borrowTx.wait();
+        let borrowed = await uToken.getBorrowed(borrowerAddress);
+        expect(borrowed).gte(borrowAmount.toString());
+        const repayAmount = parseUnits("1000", 6);
+        await usdc.connect(borrowerSigner).approve(uTokenAddress, repayAmount);
+        const repayTx = await uToken.connect(borrowerSigner).repayBorrow(borrowerAddress, repayAmount);
+        await repayTx.wait();
+        borrowed = await uToken.getBorrowed(borrowerAddress);
+        expect(borrowed).to.be.eq(0);
+    });
+
+    it("borrow and repay use aave adapter first", async () => {
+        await assetManager.setWithdrawSequence([
+            "0x2e89729353e075f46b40DA1D97fafE22CEBC0d9F",
+            "0x95BB25c0A11347C8DE402904dce3Be628a4521C0"
+        ]); //aaveV3Adapter, pureTokenAdapter
+        const addReservesAmount = parseUnits("1000", 6);
+        await usdc.connect(stakerSigner).approve(uTokenAddress, addReservesAmount.mul(2));
+        const addReservesTx = await uToken.connect(stakerSigner).addReserves(addReservesAmount);
+        await addReservesTx.wait();
+
         const borrowAmount = parseUnits("500", 6);
         const borrowTx = await uToken.connect(borrowerSigner).borrow(borrowerAddress, borrowAmount);
         await borrowTx.wait();
