@@ -68,6 +68,7 @@ contract TestSetters is TestUTokenBase {
     }
 
     function testSetDebtCeiling(uint256 debtCeiling) public {
+        vm.assume(debtCeiling < 9999999 * UNIT);
         vm.startPrank(ADMIN);
         uToken.setDebtCeiling(debtCeiling);
         vm.stopPrank();
@@ -81,6 +82,7 @@ contract TestSetters is TestUTokenBase {
     }
 
     function testSetMinBorrow(uint256 minBorrow) public {
+        vm.assume(minBorrow < 9999999 * UNIT);
         vm.startPrank(ADMIN);
         uToken.setMinBorrow(minBorrow);
         vm.stopPrank();
@@ -94,6 +96,7 @@ contract TestSetters is TestUTokenBase {
     }
 
     function testSetMaxBorrow(uint256 maxBorrow) public {
+        vm.assume(maxBorrow < 9999999 * UNIT);
         vm.startPrank(ADMIN);
         uToken.setMaxBorrow(maxBorrow);
         vm.stopPrank();

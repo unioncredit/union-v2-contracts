@@ -10,14 +10,14 @@ contract TestReserves is TestUTokenBase {
     }
 
     function testAddAndRemoveReserve(uint256 addReserveAmount) public {
-        vm.assume(addReserveAmount > 0 && addReserveAmount <= 100 ether);
+        vm.assume(addReserveAmount > 0 && addReserveAmount <= 100 * UNIT);
 
         uint256 totalReserves = uToken.totalReserves();
         assertEq(0, totalReserves);
 
         vm.startPrank(ALICE);
 
-        daiMock.approve(address(uToken), addReserveAmount);
+        erc20Mock.approve(address(uToken), addReserveAmount);
         uToken.addReserves(addReserveAmount);
 
         vm.stopPrank();
@@ -25,20 +25,20 @@ contract TestReserves is TestUTokenBase {
         totalReserves = uToken.totalReserves();
         assertEq(totalReserves, addReserveAmount);
 
-        uint256 daiBalanceBefore = daiMock.balanceOf(ALICE);
+        uint256 daiBalanceBefore = erc20Mock.balanceOf(ALICE);
 
         vm.startPrank(ADMIN);
 
         uToken.removeReserves(ALICE, addReserveAmount);
-        uint256 daiBalanceAfter = daiMock.balanceOf(ALICE);
+        uint256 daiBalanceAfter = erc20Mock.balanceOf(ALICE);
         assertEq(daiBalanceAfter, daiBalanceBefore + addReserveAmount);
     }
 
     function testRemoveReserveWhenRemaining(uint256 addReserveAmount) public {
-        vm.assume(addReserveAmount > 1 ether && addReserveAmount <= 100 ether);
+        vm.assume(addReserveAmount > 1 * UNIT && addReserveAmount <= 100 * UNIT);
 
         vm.startPrank(ALICE);
-        daiMock.approve(address(uToken), addReserveAmount);
+        erc20Mock.approve(address(uToken), addReserveAmount);
         uToken.addReserves(addReserveAmount);
         vm.stopPrank();
 
@@ -48,11 +48,11 @@ contract TestReserves is TestUTokenBase {
         vm.startPrank(ADMIN);
         vm.mockCall(
             address(assetManagerMock),
-            abi.encodeWithSelector(AssetManager.withdraw.selector, daiMock, ALICE, addReserveAmount),
-            abi.encode(1 ether)
+            abi.encodeWithSelector(AssetManager.withdraw.selector, erc20Mock, ALICE, addReserveAmount),
+            abi.encode(1 * UNIT)
         );
         uToken.removeReserves(ALICE, addReserveAmount);
         uint256 totalReservesAfter = uToken.totalReserves();
-        assertEq(totalReservesAfter, totalReserves - addReserveAmount + 1 ether);
+        assertEq(totalReservesAfter, totalReserves - addReserveAmount + 1 * UNIT);
     }
 }

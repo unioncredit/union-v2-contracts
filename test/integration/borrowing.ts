@@ -21,10 +21,7 @@ describe("Borrowing and repaying", () => {
     let borrower: Signer;
     let staker: Signer;
 
-    const borrowAmount = parseUnits("1000");
-    const stakeAmount = parseUnits("1500");
-    const mintAmount = parseUnits("10000");
-
+    let borrowAmount: any, stakeAmount: any, mintAmount: any;
     const beforeContext = async () => {
         if (isForked()) await fork();
 
@@ -41,6 +38,10 @@ describe("Borrowing and repaying", () => {
         const borrowerAddress = await borrower.getAddress();
         await contracts.userManager.addMember(stakerAddress);
         await contracts.userManager.addMember(borrowerAddress);
+        const decimals = await contracts.dai.decimals();
+        borrowAmount = parseUnits("1000", decimals);
+        stakeAmount = parseUnits("1500", decimals);
+        mintAmount = parseUnits("10000", decimals);
 
         await getDai(contracts.dai, deployer, mintAmount);
         await contracts.dai.approve(contracts.uToken.address, ethers.constants.MaxUint256);

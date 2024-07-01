@@ -1,5 +1,4 @@
 pragma solidity ^0.8.0;
-
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v2-contracts/user/UserManager.sol";
@@ -8,17 +7,17 @@ contract TestUpdateLocked is TestUserManagerBase {
     using SafeCastUpgradeable for uint256;
 
     address[] public MEMBERS = [address(10), address(11), address(12)];
-    uint96 stakeAmount = 100 ether;
+    uint96 stakeAmount = (100 * UNIT).toUint96();
 
     function setUp() public override {
         super.setUp();
         for (uint256 i = 0; i < MEMBERS.length; i++) {
             vm.prank(ADMIN);
             userManager.addMember(MEMBERS[i]);
-            daiMock.mint(MEMBERS[i], stakeAmount);
+            erc20Mock.mint(MEMBERS[i], stakeAmount);
 
             vm.startPrank(MEMBERS[i]);
-            daiMock.approve(address(userManager), type(uint256).max);
+            erc20Mock.approve(address(userManager), type(uint256).max);
             userManager.stake(stakeAmount);
             userManager.updateTrust(ACCOUNT, stakeAmount);
             vm.stopPrank();
@@ -77,7 +76,7 @@ contract TestUpdateLocked is TestUserManagerBase {
     }
 
     function testCannotUpdateWithRemaining(uint96 lockAmount) public {
-        vm.assume(lockAmount > (stakeAmount * MEMBERS.length).toUint96());
+        vm.assume(lockAmount > (stakeAmount * MEMBERS.length).toUint96() && lockAmount < 9999999 * UNIT);
         _prankMarket();
         vm.expectRevert(UserManager.LockedRemaining.selector);
         userManager.updateLocked(ACCOUNT, lockAmount, true);

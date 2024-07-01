@@ -6,7 +6,7 @@ import {VouchFaucet} from "union-v2-contracts/peripheral/VouchFaucet.sol";
 contract TestVouchFaucet is TestWrapper {
     VouchFaucet public vouchFaucet;
 
-    uint256 public constant TRUST_AMOUNT = 10 ether;
+    uint256 public TRUST_AMOUNT = 10 * UNIT;
 
     function setUp() public {
         deployMocks();
@@ -37,29 +37,31 @@ contract TestVouchFaucet is TestWrapper {
     }
 
     function testStake() public {
-        daiMock.mint(address(vouchFaucet), 1 ether);
+        erc20Mock.mint(address(vouchFaucet), 1 * UNIT);
         assertEq(userManagerMock.balances(address(vouchFaucet)), 0);
         vouchFaucet.stake();
-        assertEq(userManagerMock.balances(address(vouchFaucet)), 1 ether);
+        assertEq(userManagerMock.balances(address(vouchFaucet)), 1 * UNIT);
     }
 
     function testExit() public {
-        daiMock.mint(address(vouchFaucet), 1 ether);
+        erc20Mock.mint(address(vouchFaucet), 1 * UNIT);
         assertEq(userManagerMock.balances(address(vouchFaucet)), 0);
         vouchFaucet.stake();
-        assertEq(userManagerMock.balances(address(vouchFaucet)), 1 ether);
+        assertEq(userManagerMock.balances(address(vouchFaucet)), 1 * UNIT);
         vouchFaucet.exit();
         assertEq(userManagerMock.balances(address(vouchFaucet)), 0);
     }
 
     function testTransferERC20(address to, uint256 amount) public {
-        vm.assume(to != address(0) && to != address(this) && to != address(vouchFaucet));
+        vm.assume(
+            to != address(0) && to != address(this) && to != address(vouchFaucet) && address(vouchFaucet) != address(0)
+        );
 
-        daiMock.mint(address(vouchFaucet), amount);
-        uint256 balBefore = daiMock.balanceOf(address(vouchFaucet));
-        vouchFaucet.transferERC20(address(daiMock), to, amount);
-        uint256 balAfter = daiMock.balanceOf(address(vouchFaucet));
+        erc20Mock.mint(address(vouchFaucet), amount);
+        uint256 balBefore = erc20Mock.balanceOf(address(vouchFaucet));
+        vouchFaucet.transferERC20(address(erc20Mock), to, amount);
+        uint256 balAfter = erc20Mock.balanceOf(address(vouchFaucet));
         assertEq(balBefore - balAfter, amount);
-        assertEq(daiMock.balanceOf(to), amount);
+        assertEq(erc20Mock.balanceOf(to), amount);
     }
 }

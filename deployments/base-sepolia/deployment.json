@@ -1,0 +1,15 @@
+{
+    "opUnion": "0xc124047253c87EF90aF9f4EFC12C281b479c4769",
+    "opOwner": "0x0D25131E098DfB65746ecC3C527865A7bBA71886",
+    "userManager": "0x4C52c9E49aa6a5029c0F94753c533DFEBcf8AabA",
+    "uToken": "0x01Cc03de0742dF77b934C3aFA848AE2BB73576Ed",
+    "marketRegistry": "0x4AA4868189e2A650B8423d3A36F6c044005cc8C4",
+    "fixedRateInterestModel": "0x8eA0454fb9044Ed9B086AaecCd20a221a981d061",
+    "comptroller": "0x84CEE16a05C48268724f11512cb405097f96eDB2",
+    "assetManager": "0x311B84A6ca1196efd1CEc7E4fa09D8C2C171492A",
+    "underlying": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "adapters": {
+        "pureTokenAdapter": "0x95BB25c0A11347C8DE402904dce3Be628a4521C0",
+        "aaveV3Adapter": "0x2e89729353e075f46b40DA1D97fafE22CEBC0d9F"
+    }
+}

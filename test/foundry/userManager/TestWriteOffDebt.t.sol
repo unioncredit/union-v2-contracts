@@ -1,9 +1,11 @@
 pragma solidity ^0.8.0;
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v2-contracts/user/UserManager.sol";
 import {UToken} from "union-v2-contracts/market/UToken.sol";
 
 contract TestWriteOffDebt is TestUserManagerBase {
+    using SafeCastUpgradeable for uint256;
     address staker = MEMBER;
     address borrower = ACCOUNT;
 
@@ -12,8 +14,8 @@ contract TestWriteOffDebt is TestUserManagerBase {
         comptrollerMock.setUserManager(address(userManager));
 
         vm.startPrank(staker);
-        userManager.stake(100 ether);
-        userManager.updateTrust(borrower, 100 ether);
+        userManager.stake((100 * UNIT).toUint96());
+        userManager.updateTrust(borrower, (100 * UNIT).toUint96());
         vm.stopPrank();
         vm.mockCall(
             address(uTokenMock),
@@ -51,9 +53,9 @@ contract TestWriteOffDebt is TestUserManagerBase {
 
     function testDebtWriteOffAll() public {
         vm.prank(address(uTokenMock));
-        userManager.updateLocked(borrower, 100 ether, true);
+        userManager.updateLocked(borrower, (100 * UNIT).toUint96(), true);
         vm.prank(staker);
-        userManager.debtWriteOff(staker, borrower, 100 ether);
+        userManager.debtWriteOff(staker, borrower, (100 * UNIT).toUint96());
         uint256 stakeAmount = userManager.getStakerBalance(staker);
         assertEq(stakeAmount, 0);
 
@@ -62,7 +64,7 @@ contract TestWriteOffDebt is TestUserManagerBase {
     }
 
     function testDebtWriteOffPart(uint96 writeOffAmount, uint96 amount) public {
-        vm.assume(amount > 2 && amount < 100 ether);
+        vm.assume(amount > 2 && amount < (100 * UNIT).toUint96());
         vm.assume(writeOffAmount > 1 && writeOffAmount < amount);
         vm.prank(address(uTokenMock));
         userManager.updateLocked(borrower, amount, true);
@@ -70,13 +72,13 @@ contract TestWriteOffDebt is TestUserManagerBase {
         userManager.debtWriteOff(staker, borrower, writeOffAmount);
         uint256 stakeAmount = userManager.getStakerBalance(staker);
 
-        assertEq(stakeAmount, 100 ether - writeOffAmount);
+        assertEq(stakeAmount, 100 * UNIT - writeOffAmount);
         (bool isSet, ) = userManager.voucherIndexes(borrower, staker);
         assertEq(isSet, true);
     }
 
     function testDebtWriteOffPartWithFrozen(uint96 writeOffAmount, uint96 amount) public {
-        vm.assume(amount > 2 && amount < 100 ether);
+        vm.assume(amount > 2 && amount < (100 * UNIT).toUint96());
         vm.assume(writeOffAmount > 1 && writeOffAmount < amount);
 
         vm.prank(address(uTokenMock));
@@ -90,7 +92,7 @@ contract TestWriteOffDebt is TestUserManagerBase {
         vm.prank(staker);
         userManager.debtWriteOff(staker, borrower, writeOffAmount);
         uint256 stakeAmount = userManager.getStakerBalance(staker);
-        assertEq(stakeAmount, 100 ether - writeOffAmount);
+        assertEq(stakeAmount, 100 * UNIT - writeOffAmount);
 
         assertEq(userManager.totalFrozen(), 0);
         assertEq(userManager.memberFrozen(staker), 0);
@@ -100,7 +102,7 @@ contract TestWriteOffDebt is TestUserManagerBase {
     }
 
     function testDebtWriteOffPartWithoutFrozen(uint96 writeOffAmount, uint96 amount) public {
-        vm.assume(amount > 2 && amount < 100 ether);
+        vm.assume(amount > 2 && amount < (100 * UNIT).toUint96());
         vm.assume(writeOffAmount > 1 && writeOffAmount < amount);
 
         vm.prank(address(uTokenMock));
@@ -121,7 +123,7 @@ contract TestWriteOffDebt is TestUserManagerBase {
         vm.prank(staker);
         userManager.debtWriteOff(staker, borrower, writeOffAmount);
         uint256 stakeAmount = userManager.getStakerBalance(staker);
-        assertEq(stakeAmount, 100 ether - writeOffAmount);
+        assertEq(stakeAmount, 100 * UNIT - writeOffAmount);
 
         assertEq(userManager.totalFrozen(), totalFrozen - writeOffAmount);
         assertEq(userManager.memberFrozen(staker), memberFrozen - writeOffAmount);

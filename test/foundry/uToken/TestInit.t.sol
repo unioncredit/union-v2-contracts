@@ -10,7 +10,7 @@ contract TestInit is TestUTokenBase {
     }
 
     function testUTokenInit() public {
-        uint256 debtCeiling = 1000 ether;
+        uint256 debtCeiling = 1000 * UNIT;
         address uTokenLogic = address(new UToken());
         UToken uToken = UToken(deployProxy(uTokenLogic, ""));
 
@@ -18,7 +18,7 @@ contract TestInit is TestUTokenBase {
             UToken.InitParams({
                 name: "UTokenMock",
                 symbol: "UTM",
-                underlying: address(daiMock),
+                underlying: address(erc20Mock),
                 initialExchangeRateMantissa: INIT_EXCHANGE_RATE,
                 reserveFactorMantissa: RESERVE_FACTOR,
                 originationFee: ORIGINATION_FEE,
@@ -34,7 +34,7 @@ contract TestInit is TestUTokenBase {
 
         assertEq(uToken.name(), "UTokenMock");
         assertEq(uToken.symbol(), "UTM");
-        assertEq(uToken.underlying(), address(daiMock));
+        assertEq(uToken.underlying(), address(erc20Mock));
         assertEq(uToken.initialExchangeRateMantissa(), INIT_EXCHANGE_RATE);
         assertEq(uToken.reserveFactorMantissa(), RESERVE_FACTOR);
         assertEq(uToken.originationFee(), ORIGINATION_FEE);

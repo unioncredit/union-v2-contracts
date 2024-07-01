@@ -1,25 +1,26 @@
 pragma solidity ^0.8.0;
-
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v2-contracts/user/UserManager.sol";
 import {UToken} from "union-v2-contracts/market/UToken.sol";
 
 contract TestUpdateTrust is TestUserManagerBase {
+    using SafeCastUpgradeable for uint256;
+
     function setUp() public override {
         super.setUp();
         vm.prank(MEMBER);
-        userManager.stake(100 ether);
+        userManager.stake((100 * UNIT).toUint96());
     }
 
     function verifyVouches(address acc) private {
         uint256 voucheeLen = userManager.getVoucheeCount(acc);
-        uint256 voucherLen = userManager.getVoucherCount(acc);
 
         // Loop through all the vouchees and get the voucher index of their
         // staker and then check their staker is correct
         for (uint256 i = 0; i < voucheeLen; i++) {
             (address borrower, uint96 voucherIndex) = userManager.vouchees(acc, i);
-            (address staker, uint96 t, uint96 l, uint64 lu) = userManager.vouchers(borrower, voucherIndex);
+            (address staker, , , ) = userManager.vouchers(borrower, voucherIndex);
             (, uint128 voucheeIdx) = userManager.voucheeIndexes(borrower, acc);
             (, uint128 voucherIdx) = userManager.voucherIndexes(borrower, acc);
 
@@ -30,7 +31,7 @@ contract TestUpdateTrust is TestUserManagerBase {
     }
 
     function testGetCreditLimit(uint96 trustAmount) public {
-        vm.assume(trustAmount <= 100 ether);
+        vm.assume(trustAmount <= (100 * UNIT).toUint96());
         vm.startPrank(MEMBER);
         userManager.updateTrust(ACCOUNT, trustAmount);
         vm.stopPrank();
@@ -39,6 +40,7 @@ contract TestUpdateTrust is TestUserManagerBase {
     }
 
     function testCreatesVouch(uint96 trustAmount) public {
+        vm.assume(trustAmount <= 9999999 * UNIT);
         vm.startPrank(MEMBER);
         userManager.updateTrust(ACCOUNT, trustAmount);
         (, uint256 vouchIndex) = userManager.voucherIndexes(ACCOUNT, address(this));
@@ -50,6 +52,7 @@ contract TestUpdateTrust is TestUserManagerBase {
     }
 
     function testExistingVouch(uint96 amount0, uint96 amount1) public {
+        vm.assume(amount0 <= 9999999 * UNIT && amount1 <= 9999999 * UNIT);
         vm.startPrank(MEMBER);
         userManager.updateTrust(ACCOUNT, amount0);
         (, uint256 vouchIndex) = userManager.voucherIndexes(ACCOUNT, MEMBER);
@@ -86,8 +89,8 @@ contract TestUpdateTrust is TestUserManagerBase {
     }
 
     function testCancelVouch(uint96 amount) public {
+        vm.assume(amount <= 9999999 * UNIT);
         vm.startPrank(MEMBER);
-
         userManager.updateTrust(ACCOUNT, amount);
         assertEq(userManager.getVoucheeCount(MEMBER), 1);
 
@@ -104,6 +107,7 @@ contract TestUpdateTrust is TestUserManagerBase {
     }
 
     function testCancelVouchMultiple(uint96 amount) public {
+        vm.assume(amount <= 9999999 * UNIT);
         vm.startPrank(MEMBER);
 
         address ACC0 = address(123456);
@@ -173,10 +177,10 @@ contract TestUpdateTrust is TestUserManagerBase {
         userManager.setMaxVouchees(2);
 
         vm.startPrank(MEMBER);
-        userManager.updateTrust(address(123), 10 ether);
-        userManager.updateTrust(address(1234), 10 ether);
+        userManager.updateTrust(address(123), (10 * UNIT).toUint96());
+        userManager.updateTrust(address(1234), (10 * UNIT).toUint96());
         vm.expectRevert(UserManager.MaxVouchees.selector);
-        userManager.updateTrust(address(12345), 10 ether);
+        userManager.updateTrust(address(12345), (10 * UNIT).toUint96());
         vm.stopPrank();
     }
 
@@ -193,10 +197,10 @@ contract TestUpdateTrust is TestUserManagerBase {
         address vouchTo = address(789);
 
         vm.prank(member0);
-        userManager.updateTrust(vouchTo, 10 ether);
+        userManager.updateTrust(vouchTo, (10 * UNIT).toUint96());
 
         vm.prank(member1);
         vm.expectRevert(UserManager.MaxVouchers.selector);
-        userManager.updateTrust(vouchTo, 10 ether);
+        userManager.updateTrust(vouchTo, (10 * UNIT).toUint96());
     }
 }

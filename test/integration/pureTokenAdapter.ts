@@ -48,8 +48,8 @@ describe("Pure Token Adapter", () => {
         await getDai(contracts.dai, staker, mintAmount);
         await contracts.dai.connect(staker).approve(contracts.userManager.address, ethers.constants.MaxUint256);
 
-        adapter = contracts.adapters.pureToken;
-        await contracts.adapters.pureToken.setCeiling(contracts.dai.address, ethers.constants.MaxUint256);
+        adapter = contracts.adapters.pureTokenAdapter;
+        await adapter.setCeiling(contracts.dai.address, ethers.constants.MaxUint256);
         await contracts.userManager.connect(staker).stake(stakeAmount);
         await helpers.updateTrust(staker, borrower, stakeAmount);
     };
@@ -81,10 +81,10 @@ describe("Pure Token Adapter", () => {
         });
 
         it("cannot borrow if overdue", async () => {
-            await helpers.withOverdueblocks(1, async () => {
+            await helpers.withOverdue(1, async () => {
                 const minBorrow = await contracts.uToken.minBorrow();
                 const resp = helpers.borrow(borrower, minBorrow);
-                await expect(resp).to.be.revertedWith("MemberIsOverdue()");
+                await expect(resp).to.be.revertedWithCustomError(contracts.uToken, "MemberIsOverdue");
             });
         });
 

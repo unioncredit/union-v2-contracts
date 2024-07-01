@@ -14,11 +14,11 @@
         "hh:sim": "yarn hardhat test --config hardhat-sim.config.ts",
         "task": "yarn hardhat --config hardhat-task.config.ts",
         "f:compile": "forge build",
-        "f:test": "forge test -vv",
+        "f:test": "forge test -vvv",
         "clean": "forge clean && yarn hardhat clean && rm -rf ./typechain-types",
         "coverage": "./run-coverage.sh",
         "deploy:op": "yarn clean && yarn hardhat compile && CONFIG=optimism-goerli yarn hardhat --config hardhat-task.config.ts deploy:op --network optimism-goerli",
-        "upload:updateOverdueInfo": "yarn rollup -c && yarn defender-autotask update-code 81810db7-ae88-4e1f-9f76-37dcf18df9f3 ./dist"
+        "deploy:base-sepolia": "yarn clean && yarn hardhat compile && yarn hardhat --config hardhat-task.config.ts deploy --network base-sepolia"
     },
     "repository": {
         "type": "git",
@@ -27,9 +27,9 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "@eth-optimism/sdk": "^3.2.2",
         "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
         "@nomiclabs/hardhat-ethers": "^2.0.6",
-        "@nomiclabs/hardhat-etherscan": "^3.1.0",
         "@nomiclabs/hardhat-waffle": "^2.0.3",
         "@openzeppelin/contracts": "^4.8.0",
         "@openzeppelin/contracts-upgradeable": "^4.8.0",
@@ -44,12 +44,9 @@
         "@types/node": "^18.0.1",
         "axios": "^1.2.1",
         "chai": "^4.3.6",
-        "defender-autotask-client": "^1.37.0",
-        "defender-relay-client": "^1.37.0",
         "eth-permit": "^0.2.3",
         "ethers": "^5.6.7",
-        "graphql-request": "^5.1.0",
-        "hardhat": "^2.12.0",
+        "hardhat": "^2.22.0",
         "mocha": "^10.0.0",
         "ora": "5.0.0",
         "prettier": "^2.6.2",
@@ -64,7 +61,7 @@
     },
     "devDependencies": {
         "@eth-optimism/contracts": "^0.5.39",
-        "@eth-optimism/sdk": "^1.9.1",
+        "@nomicfoundation/hardhat-verify": "^2.0.5",
         "glob": "^8.0.3"
     }
 }

@@ -1,8 +1,11 @@
 pragma solidity ^0.8.0;
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v2-contracts/user/UserManager.sol";
 
 contract TestRegister is TestUserManagerBase {
+    using SafeCastUpgradeable for uint256;
+
     function setUp() public override {
         super.setUp();
     }
@@ -21,7 +24,7 @@ contract TestRegister is TestUserManagerBase {
         vm.prank(ADMIN);
         userManager.setEffectiveCount(1);
         vm.prank(MEMBER);
-        userManager.updateTrust(ACCOUNT, 1 ether);
+        userManager.updateTrust(ACCOUNT, (1 * UNIT).toUint96());
         vm.expectRevert(UserManager.NotEnoughStakers.selector);
         userManager.registerMember(ACCOUNT);
     }
@@ -36,8 +39,8 @@ contract TestRegister is TestUserManagerBase {
         vm.stopPrank();
         vm.startPrank(MEMBER);
         unionTokenMock.approve(address(userManager), newMemberFee);
-        userManager.stake(10 ether);
-        userManager.updateTrust(ACCOUNT, 1 ether);
+        userManager.stake((10 * UNIT).toUint96());
+        userManager.updateTrust(ACCOUNT, (1 * UNIT).toUint96());
 
         vm.expectEmit(true, true, true, true, address(userManager));
         emit LogRegisterMember(MEMBER, ACCOUNT);
@@ -55,8 +58,8 @@ contract TestRegister is TestUserManagerBase {
         vm.stopPrank();
         vm.startPrank(MEMBER);
         unionTokenMock.approve(address(userManagerOp), newMemberFee);
-        userManagerOp.stake(10 ether);
-        userManagerOp.updateTrust(ACCOUNT, 1 ether);
+        userManagerOp.stake((10 * UNIT).toUint96());
+        userManagerOp.updateTrust(ACCOUNT, (1 * UNIT).toUint96());
 
         // Make sure the Union tokens are transferred to the comptroller
         vm.expectEmit(true, true, false, true, address(unionTokenMock));

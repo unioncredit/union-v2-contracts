@@ -4,60 +4,60 @@ import {TestAssetManagerBase} from "./TestAssetManagerBase.sol";
 import {AssetManager} from "union-v2-contracts/asset/AssetManager.sol";
 
 contract TestDepositWithdraw is TestAssetManagerBase {
-    uint256 public daiAmount = 1_000_000 ether;
+    uint256 public erc20Amount = 1_000_000 * UNIT;
 
     function setUp() public override {
         super.setUp();
 
-        daiMock.mint(address(this), daiAmount);
-        daiMock.approve(address(assetManager), daiAmount);
+        erc20Mock.mint(address(this), erc20Amount);
+        erc20Mock.approve(address(assetManager), erc20Amount);
         vm.startPrank(ADMIN);
-        assetManager.addToken(address(daiMock));
+        assetManager.addToken(address(erc20Mock));
         assetManager.addAdapter(address(adapterMock));
         vm.stopPrank();
     }
 
     function setTokens(address a, address b) public {
-        marketRegistryMock.setUserManager(address(daiMock), a);
-        marketRegistryMock.setUToken(address(daiMock), b);
+        marketRegistryMock.setUserManager(address(erc20Mock), a);
+        marketRegistryMock.setUToken(address(erc20Mock), b);
     }
 
     function testDeposit(uint256 amount) public {
-        vm.assume(amount != 0 && amount < daiAmount);
+        vm.assume(amount != 0 && amount < erc20Amount);
         vm.startPrank(ADMIN);
-        adapterMock.setCeiling(address(daiMock), amount);
+        adapterMock.setCeiling(address(erc20Mock), amount);
         setTokens(address(this), address(123));
         vm.stopPrank();
-        assetManager.deposit(address(daiMock), amount);
-        assertEq(assetManager.totalPrincipal(address(daiMock)), amount);
-        assertEq(assetManager.balances(address(this), address(daiMock)), amount);
-        assertEq(daiMock.balanceOf(address(assetManager)), 0);
+        assetManager.deposit(address(erc20Mock), amount);
+        assertEq(assetManager.totalPrincipal(address(erc20Mock)), amount);
+        assertEq(assetManager.balances(address(this), address(erc20Mock)), amount);
+        assertEq(erc20Mock.balanceOf(address(assetManager)), 0);
     }
 
     function testDepositWhenAdapterRevert(uint256 amount) public {
-        vm.assume(amount != 0 && amount < daiAmount);
+        vm.assume(amount != 0 && amount < erc20Amount);
         vm.startPrank(ADMIN);
         adapterMock.setRevert();
-        adapterMock.setCeiling(address(daiMock), amount);
+        adapterMock.setCeiling(address(erc20Mock), amount);
         setTokens(address(this), address(123));
         vm.stopPrank();
-        assetManager.deposit(address(daiMock), amount);
-        assertEq(assetManager.totalPrincipal(address(daiMock)), amount);
-        assertEq(assetManager.balances(address(this), address(daiMock)), amount);
-        assertEq(daiMock.balanceOf(address(assetManager)), amount);
+        assetManager.deposit(address(erc20Mock), amount);
+        assertEq(assetManager.totalPrincipal(address(erc20Mock)), amount);
+        assertEq(assetManager.balances(address(this), address(erc20Mock)), amount);
+        assertEq(erc20Mock.balanceOf(address(assetManager)), amount);
     }
 
     function testDepositAsUToken(uint256 amount) public {
-        vm.assume(amount != 0 && amount < daiAmount);
+        vm.assume(amount != 0 && amount < erc20Amount);
         vm.startPrank(ADMIN);
         setTokens(address(123), address(this));
         vm.stopPrank();
-        uint256 balBefore = daiMock.balanceOf(address(assetManager));
-        assetManager.deposit(address(daiMock), amount);
-        uint256 balAfter = daiMock.balanceOf(address(assetManager));
+        uint256 balBefore = erc20Mock.balanceOf(address(assetManager));
+        assetManager.deposit(address(erc20Mock), amount);
+        uint256 balAfter = erc20Mock.balanceOf(address(assetManager));
 
-        assertEq(assetManager.totalPrincipal(address(daiMock)), 0);
-        assertEq(assetManager.balances(address(this), address(daiMock)), 0);
+        assertEq(assetManager.totalPrincipal(address(erc20Mock)), 0);
+        assertEq(assetManager.balances(address(this), address(erc20Mock)), 0);
         assertEq(balAfter - balBefore, amount);
     }
 
@@ -66,42 +66,42 @@ contract TestDepositWithdraw is TestAssetManagerBase {
 
     function testCannotDepositNotAdmin() public {
         vm.expectRevert(AssetManager.AuthFailed.selector);
-        assetManager.deposit(address(daiMock), 1);
+        assetManager.deposit(address(erc20Mock), 1);
     }
 
     function testCannotWithdrawNotAdmin() public {
         vm.expectRevert(AssetManager.AuthFailed.selector);
-        assetManager.withdraw(address(daiMock), address(1), 1);
+        assetManager.withdraw(address(erc20Mock), address(1), 1);
     }
 
     function testWithdraw(uint256 amount) public {
-        vm.assume(amount != 0 && amount < daiAmount);
+        vm.assume(amount != 0 && amount < erc20Amount);
         vm.startPrank(ADMIN);
         setTokens(address(123), address(this));
         vm.stopPrank();
-        assetManager.deposit(address(daiMock), amount);
-        assetManager.withdraw(address(daiMock), address(123), amount);
-        assertEq(daiMock.balanceOf(address(123)), amount);
+        assetManager.deposit(address(erc20Mock), amount);
+        assetManager.withdraw(address(erc20Mock), address(123), amount);
+        assertEq(erc20Mock.balanceOf(address(123)), amount);
     }
 
     function testWithdrawAsUToken(uint256 amount) public {
-        vm.assume(amount != 0 && amount < daiAmount);
+        vm.assume(amount != 0 && amount < erc20Amount);
         vm.startPrank(ADMIN);
         setTokens(address(this), address(123));
         vm.stopPrank();
-        assetManager.deposit(address(daiMock), amount);
-        assetManager.withdraw(address(daiMock), address(123), amount);
-        assertEq(daiMock.balanceOf(address(123)), amount);
-        assertEq(assetManager.totalPrincipal(address(daiMock)), 0);
-        assertEq(assetManager.balances(address(this), address(daiMock)), 0);
+        assetManager.deposit(address(erc20Mock), amount);
+        assetManager.withdraw(address(erc20Mock), address(123), amount);
+        assertEq(erc20Mock.balanceOf(address(123)), amount);
+        assertEq(assetManager.totalPrincipal(address(erc20Mock)), 0);
+        assertEq(assetManager.balances(address(this), address(erc20Mock)), 0);
     }
 
     // TODO:
     // function testWithdrawWithMoneyMarkets() public {}
 
     function testCannotWithdrawBalanceTooLow(uint256 amount) public {
-        vm.assume(amount != 0 && amount < daiAmount);
+        vm.assume(amount != 0 && amount < erc20Amount);
         vm.expectRevert(AssetManager.AuthFailed.selector);
-        assetManager.withdraw(address(daiMock), address(123), amount);
+        assetManager.withdraw(address(erc20Mock), address(123), amount);
     }
 }

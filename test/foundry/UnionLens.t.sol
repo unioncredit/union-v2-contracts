@@ -10,28 +10,28 @@ contract TestUnionLens is TestWrapper {
     function setUp() public virtual {
         deployMocks();
         vm.startPrank(ADMIN);
-        marketRegistryMock.setUToken(address(daiMock), address(uTokenMock));
-        marketRegistryMock.setUserManager(address(daiMock), address(userManagerMock));
+        marketRegistryMock.setUToken(address(erc20Mock), address(uTokenMock));
+        marketRegistryMock.setUserManager(address(erc20Mock), address(userManagerMock));
         vm.stopPrank();
         unionLens = new UnionLens(marketRegistryMock);
     }
 
     function testGetStakerAddresses() public {
-        address[] memory addresses = unionLens.getStakerAddresses(address(daiMock), address(1));
+        address[] memory addresses = unionLens.getStakerAddresses(address(erc20Mock), address(1));
         assertEq(addresses.length, 0);
 
         userManagerMock.updateTrust(address(1), 1 ether);
-        addresses = unionLens.getStakerAddresses(address(daiMock), address(1));
+        addresses = unionLens.getStakerAddresses(address(erc20Mock), address(1));
         assertEq(addresses.length, 1);
     }
 
     function testGetBorrowerAddresses() public {
-        address[] memory addresses = unionLens.getBorrowerAddresses(address(daiMock), address(1));
+        address[] memory addresses = unionLens.getBorrowerAddresses(address(erc20Mock), address(1));
         assertEq(addresses.length, 0);
 
         vm.startPrank(address(1));
         userManagerMock.updateTrust(address(2), 1 ether);
-        addresses = unionLens.getBorrowerAddresses(address(daiMock), address(1));
+        addresses = unionLens.getBorrowerAddresses(address(erc20Mock), address(1));
         assertEq(addresses.length, 1);
         vm.stopPrank();
     }
