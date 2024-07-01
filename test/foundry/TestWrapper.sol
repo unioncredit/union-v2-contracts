@@ -23,7 +23,7 @@ contract TestWrapper is Test {
     MarketRegistryMock public marketRegistryMock;
     UserManagerMock public userManagerMock;
     FixedInterestRateModelMock public interestRateMock;
-    uint8 public tokenDecimals = uint8(vm.envUint("DECIMALS"));
+    uint8 public tokenDecimals = uint8(vm.envOr("DECIMALS", uint256(18)));
     uint256 public UNIT = 10 ** tokenDecimals;
 
     // constructor() {
