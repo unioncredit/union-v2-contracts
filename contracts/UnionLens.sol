@@ -76,6 +76,34 @@ contract UnionLens {
         userInfo.accountBorrow = uToken.getBorrowed(user);
     }
 
+    function getBorrowerAddresses(address underlying, address account) public view returns (address[] memory) {
+        IUserManager userManager = IUserManager(marketRegistry.userManagers(underlying));
+
+        uint256 voucheeCount = userManager.getVoucheeCount(account);
+        address[] memory addresses = new address[](voucheeCount);
+
+        for (uint256 i = 0; i < voucheeCount; i++) {
+            (address borrower, ) = userManager.vouchees(account, i);
+            addresses[i] = borrower;
+        }
+
+        return addresses;
+    }
+
+    function getStakerAddresses(address underlying, address account) public view returns (address[] memory) {
+        IUserManager userManager = IUserManager(marketRegistry.userManagers(underlying));
+
+        uint256 voucherCount = userManager.getVoucherCount(account);
+        address[] memory addresses = new address[](voucherCount);
+
+        for (uint256 i = 0; i < voucherCount; i++) {
+            (address staker, , ,) = userManager.vouchers(account, i);
+            addresses[i] = staker;
+        }
+
+        return addresses;
+    }
+
     function getVouchInfo(
         address underlying,
         address staker,
