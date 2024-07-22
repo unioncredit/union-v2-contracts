@@ -220,12 +220,12 @@ contract Comptroller is Controller, IComptroller {
     function _accrueRewards(address account, address token) private returns (uint256) {
         IUserManager userManager = _getUserManager(token);
 
-        // Lookup global state from UserManager
-        uint256 globalTotalStaked = userManager.globalTotalStaked();
-
         // Lookup account state from UserManager
         UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
         (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.onWithdrawRewards(account);
+
+        // Lookup global state from UserManager
+        uint256 globalTotalStaked = userManager.globalTotalStaked();
 
         uint256 amount = _calculateRewardsInternal(account, token, globalTotalStaked, user);
 
