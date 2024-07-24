@@ -330,7 +330,7 @@ contract AssetManager is Controller, ReentrancyGuardUpgradeable, IAssetManager {
      *  @param token ERC20 token address
      *  @param account User address
      *  @param amount ERC20 token address
-     *  @return Withdraw amount
+     *  @return The difference between the amount withdrawn and the amount transferred to the caller
      */
     function withdraw(
         address token,
