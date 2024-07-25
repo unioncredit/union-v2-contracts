@@ -655,7 +655,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
 
         IUserManager(userManager).updateLocked(
             msg.sender,
-            decimalReducing(actualAmount + fee, underlyingDecimal),
+            decimalReducing(actualAmount + fee, underlyingDecimal, true),
             true
         );
 
