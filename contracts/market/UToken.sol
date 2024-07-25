@@ -546,7 +546,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
     }
 
     function exchangeRateStored() public view returns (uint256) {
-        return decimalReducing(_exchangeRateStored(), underlyingDecimal);
+        return _exchangeRateStored();
     }
 
     /**
