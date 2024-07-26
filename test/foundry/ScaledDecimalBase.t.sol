@@ -17,12 +17,19 @@ contract TestScaledDecimalBase is TestWrapper, ScaledDecimalBase {
         uint256 resp = decimalScaling(1e6 * 123, 6);
         uint256 resp2 = decimalReducing(resp, 6);
         assertEq(resp2, 1e6 * 123);
+
+        resp = decimalScaling(1e30 * 123, 30);
+        resp2 = decimalReducing(resp, 30);
+        assertEq(resp2, 1e30 * 123);
     }
 
     function testDecimalReducingRound() public {
         uint amount = 999999900000000000;
         uint expectAmount = 1000000;
+        uint expectAmount2 = 999999;
         uint256 resp = decimalReducing(amount, 6, true);
         assertEq(resp, expectAmount);
+        resp = decimalReducing(amount, 6, false);
+        assertEq(resp, expectAmount2);
     }
 }
