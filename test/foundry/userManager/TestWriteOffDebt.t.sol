@@ -59,6 +59,9 @@ contract TestWriteOffDebt is TestUserManagerBase {
         uint256 stakeAmount = userManager.getStakerBalance(staker);
         assertEq(stakeAmount, 0);
 
+        uint256 totalStaked = userManager.totalStaked();
+        assertEq(totalStaked, 0);
+
         (bool isSet, ) = userManager.voucherIndexes(borrower, staker);
         assertEq(isSet, false);
     }

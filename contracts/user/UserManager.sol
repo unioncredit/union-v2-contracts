@@ -831,7 +831,7 @@ contract UserManager is Controller, IUserManager, ReentrancyGuardUpgradeable, Sc
         staker.locked -= actualAmount.toUint96();
         staker.lastUpdated = currTime.toUint64();
 
-        _totalStaked -= amount;
+        _totalStaked -= actualAmount;
 
         // update vouch trust amount
         vouch.trust -= actualAmount.toUint96();
