@@ -62,6 +62,7 @@ contract TestMintRedeem is TestUTokenBase {
         erc20Mock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
         uint256 exchangeRateStored = uToken.exchangeRateStored();
+        if (tokenDecimals < 18) exchangeRateStored = exchangeRateStored / 10 ** (18 - tokenDecimals);
         uint256 uBalance = uToken.balanceOf(ALICE);
         uint256 ercBalance = erc20Mock.balanceOf(ALICE);
         uint256 mintFee = (mintAmount * MINT_FEE_RATE) / 1e18;
@@ -83,6 +84,7 @@ contract TestMintRedeem is TestUTokenBase {
         erc20Mock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
         uint256 exchangeRateStored = uToken.exchangeRateStored();
+        if (tokenDecimals < 18) exchangeRateStored = exchangeRateStored / 10 ** (18 - tokenDecimals);
 
         uint256 mintFee = (mintAmount * MINT_FEE_RATE) / 1e18;
         uint256 totalRedeemable = uToken.totalRedeemable();
@@ -105,6 +107,7 @@ contract TestMintRedeem is TestUTokenBase {
         erc20Mock.approve(address(uToken), mintAmount);
         uToken.mint(mintAmount);
         uint256 exchangeRateStored = uToken.exchangeRateStored();
+        if (tokenDecimals < 18) exchangeRateStored = exchangeRateStored / 10 ** (18 - tokenDecimals);
         uint256 mintFee = (mintAmount * MINT_FEE_RATE) / 1e18;
 
         uint256 uBalance = uToken.balanceOf(ALICE);
@@ -129,6 +132,7 @@ contract TestMintRedeem is TestUTokenBase {
         uint256 utokenBal = uToken.balanceOf(ALICE);
 
         uint256 exchangeRateStored = uToken.exchangeRateStored();
+        if (tokenDecimals < 18) exchangeRateStored = exchangeRateStored / 10 ** (18 - tokenDecimals);
         assertEq((utokenBal * exchangeRateStored) / 1e18, uToken.balanceOfUnderlying(ALICE));
 
         uToken.borrow(ALICE, borrowAmount);
