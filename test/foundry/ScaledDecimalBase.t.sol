@@ -21,6 +21,8 @@ contract TestScaledDecimalBase is TestWrapper, ScaledDecimalBase {
         resp = decimalScaling(1e30 * 123, 30);
         resp2 = decimalReducing(resp, 30);
         assertEq(resp2, 1e30 * 123);
+        resp3 = decimalReducing(resp, 30, false);
+        assertEq(resp3, 1e30 * 123);
     }
 
     function testDecimalReducingRound() public {
