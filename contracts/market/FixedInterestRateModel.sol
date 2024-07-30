@@ -13,9 +13,9 @@ contract FixedInterestRateModel is Ownable, IInterestRateModel {
       Storage 
     ------------------------------------------------------------------- */
     /**
-     * @dev Maximum borrow rate that can ever be applied (0.005% / 12 second)
+     * @dev Maximum borrow rate that can ever be applied (100%, 1e18 / 3600 / 24 / 365)
      */
-    uint256 public constant BORROW_RATE_MAX_MANTISSA = 4_166_666_666_667; // 0.005e16 / 12
+    uint256 public constant BORROW_RATE_MAX_MANTISSA = 31_709_791_983;
 
     /**
      * @dev IInterest rate per second
