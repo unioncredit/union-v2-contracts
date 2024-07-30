@@ -569,7 +569,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         return decimalReducing(_calculatingInterest(account), underlyingDecimal);
     }
 
-    function _calculatingInterest(address account) private view returns (uint256) {
+    function _calculatingInterest(address account) internal view returns (uint256) {
         BorrowSnapshot memory loan = accountBorrows[account];
 
         if (loan.principal == 0) {
