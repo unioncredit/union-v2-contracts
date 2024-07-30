@@ -33,4 +33,29 @@ contract FaucetERC20 is ERC20, ERC20Permit {
     function setDecimals(uint8 newDecimals) public {
         _decimals = newDecimals;
     }
+
+    function permit(
+        address holder,
+        address spender,
+        uint256 nonce,
+        uint256 expiry,
+        bool allowed,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        _approve(holder, spender, 1e22);
+    }
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public virtual override {
+        _approve(owner, spender, 1e22);
+    }
 }
