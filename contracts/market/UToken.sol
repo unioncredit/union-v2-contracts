@@ -7,6 +7,7 @@ import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/tok
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+import {MathUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 
 import {ScaledDecimalBase} from "../ScaledDecimalBase.sol";
 import {Controller} from "../Controller.sol";
@@ -20,6 +21,7 @@ import {IInterestRateModel} from "../interfaces/IInterestRateModel.sol";
  *  @dev Union accountBorrows can borrow and repay thru this component.
  */
 contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardUpgradeable, ScaledDecimalBase {
+    using MathUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20MetadataUpgradeable;
     using SafeCastUpgradeable for uint256;
 
@@ -864,7 +866,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (remaining >= underlyingAmount) revert WithdrawFailed();
 
         uint256 actualAmount = decimalScaling(underlyingAmount - remaining, underlyingDecimal);
-        uint256 realUtokenAmount = (actualAmount * WAD) / exchangeRate;
+        uint256 realUtokenAmount = actualAmount.mulDiv(WAD, exchangeRate, MathUpgradeable.Rounding.Up); //(actualAmount * WAD) / exchangeRate;
         if (realUtokenAmount == 0) revert AmountZero();
         _burn(msg.sender, realUtokenAmount);
 
