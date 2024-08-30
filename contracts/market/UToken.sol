@@ -3,7 +3,7 @@ pragma solidity 0.8.16;
 
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {ERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
-import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
@@ -16,17 +16,13 @@ import {IAssetManager} from "../interfaces/IAssetManager.sol";
 import {IUToken} from "../interfaces/IUToken.sol";
 import {IInterestRateModel} from "../interfaces/IInterestRateModel.sol";
 
-interface IERC20 {
-    function decimals() external view returns (uint8);
-}
-
 /**
  *  @title UToken Contract
  *  @dev Union accountBorrows can borrow and repay thru this component.
  */
 contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardUpgradeable, ScaledDecimalBase {
     using MathUpgradeable for uint256;
-    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeERC20Upgradeable for IERC20MetadataUpgradeable;
     using SafeCastUpgradeable for uint256;
 
     /* -------------------------------------------------------------------
@@ -291,7 +287,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         ERC20PermitUpgradeable.__ERC20Permit_init(params.name);
         ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
         underlying = params.underlying;
-        underlyingDecimal = IERC20(params.underlying).decimals();
+        underlyingDecimal = IERC20MetadataUpgradeable(params.underlying).decimals();
         minMintAmount = 10 ** underlyingDecimal;
         originationFee = params.originationFee;
         originationFeeMax = params.originationFeeMax;
@@ -635,14 +631,17 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (remaining > amount) revert WithdrawFailed();
         actualAmount -= decimalScaling(remaining, underlyingDecimal);
 
+        // Ensure the actual withdrawal amount is not less than the minimum borrow amount
+        if (actualAmount < _minBorrow) revert AmountLessMinBorrow();
+
         fee = calculatingFee(actualAmount);
         uint256 accountBorrowsNew = borrowedAmount + actualAmount + fee;
         uint256 totalBorrowsNew = _totalBorrows + actualAmount + fee;
         if (totalBorrowsNew > _debtCeiling) revert AmountExceedGlobalMax();
 
         // Update internal balances
-        accountBorrows[msg.sender].principal += actualAmount + fee;
-        uint256 newPrincipal = _getBorrowed(msg.sender);
+        uint256 newPrincipal = actualAmount + fee;
+        accountBorrows[msg.sender].principal += newPrincipal;
         accountBorrows[msg.sender].interest = accountBorrowsNew - newPrincipal;
         accountBorrows[msg.sender].interestIndex = borrowIndex;
         _totalBorrows = totalBorrowsNew;
@@ -760,7 +759,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // then in the asset manager so they can be distributed between the
         // underlying money markets
         uint256 sendAmount = decimalReducing(repayAmount, underlyingDecimal);
-        IERC20Upgradeable(underlying).safeTransferFrom(payer, address(this), sendAmount);
+        IERC20MetadataUpgradeable(underlying).safeTransferFrom(payer, address(this), sendAmount);
         _depositToAssetManager(sendAmount);
 
         emit LogRepay(payer, borrower, sendAmount);
@@ -813,7 +812,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (amountIn < minMintAmount) revert AmountError();
         if (!accrueInterest()) revert AccrueInterestFailed();
         uint256 exchangeRate = _exchangeRateStored();
-        IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
+        IERC20MetadataUpgradeable assetToken = IERC20MetadataUpgradeable(underlying);
         uint256 balanceBefore = assetToken.balanceOf(address(this));
         assetToken.safeTransferFrom(msg.sender, address(this), amountIn);
         uint256 balanceAfter = assetToken.balanceOf(address(this));
@@ -885,7 +884,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      */
     function addReserves(uint256 addAmount) external override whenNotPaused nonReentrant {
         if (!accrueInterest()) revert AccrueInterestFailed();
-        IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
+        IERC20MetadataUpgradeable assetToken = IERC20MetadataUpgradeable(underlying);
         uint256 balanceBefore = assetToken.balanceOf(address(this));
         assetToken.safeTransferFrom(msg.sender, address(this), addAmount);
         uint256 balanceAfter = assetToken.balanceOf(address(this));
@@ -935,7 +934,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
      *  @dev Deposit tokens to the asset manager
      */
     function _depositToAssetManager(uint256 amount) internal {
-        IERC20Upgradeable assetToken = IERC20Upgradeable(underlying);
+        IERC20MetadataUpgradeable assetToken = IERC20MetadataUpgradeable(underlying);
 
         uint256 currentAllowance = assetToken.allowance(address(this), assetManager);
         if (currentAllowance < amount) {
