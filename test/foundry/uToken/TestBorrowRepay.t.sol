@@ -46,9 +46,7 @@ contract TestBorrowRepay is TestUTokenBase {
 
     function testBorrowWhenNotEnough(uint256 borrowAmount) public {
         vm.assume(
-            borrowAmount >= MIN_BORROW &&
-                borrowAmount > UNIT &&
-                borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18
+            borrowAmount >= MIN_BORROW + UNIT && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18
         );
 
         vm.startPrank(ALICE);
@@ -62,8 +60,10 @@ contract TestBorrowRepay is TestUTokenBase {
 
         uint256 borrowed = uToken.getBorrowed(ALICE);
         uint256 realBorrowAmount = borrowAmount - UNIT;
+
         // borrowed amount should only include origination fee
         uint256 fees = (ORIGINATION_FEE * realBorrowAmount) / 1e18;
+
         assertEq(borrowed, realBorrowAmount + fees);
     }
 
@@ -202,6 +202,21 @@ contract TestBorrowRepay is TestUTokenBase {
         uToken.repayInterest(ALICE);
         uint256 borrowedAfter = uToken.borrowBalanceView(ALICE);
         assertEq(borrowedBefore - borrowedAfter, interest);
+
+        vm.stopPrank();
+    }
+
+    function testBorrowReturnLessThanMinBorrow() public {
+        uint256 borrowAmount = MIN_BORROW;
+
+        vm.startPrank(ALICE);
+        vm.mockCall(
+            address(assetManagerMock),
+            abi.encodeWithSelector(AssetManager.withdraw.selector, erc20Mock, ALICE, borrowAmount),
+            abi.encode(MIN_BORROW - 1)
+        );
+        vm.expectRevert(UToken.AmountLessMinBorrow.selector);
+        uToken.borrow(ALICE, borrowAmount);
 
         vm.stopPrank();
     }
