@@ -4,7 +4,7 @@ import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import "solidity-coverage";
 import "@nomicfoundation/hardhat-chai-matchers";
-import "@nomicfoundation/hardhat-verify";
+// import "@nomicfoundation/hardhat-verify";
 
 console.log("[*] Environment");
 console.log(`    - ETHERSCAN_API_KEY: ${process.env.BASE_SEPOLIA_API_KEY}`);
