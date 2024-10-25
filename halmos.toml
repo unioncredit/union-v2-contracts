@@ -1,0 +1,6 @@
+[global]
+# run tests matching the given prefix
+# Shortcut for `--match-test '^{PREFIX}'`.
+# function = "check_"
+function = "test"
+solver-timeout-assertion = 30000
