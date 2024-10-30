@@ -10,9 +10,15 @@ jobs:
             - uses: actions/checkout@v3
               with:
                   submodules: recursive
-            - uses: actions/setup-node@v2
+
+            - uses: actions/setup-python@v4
+              with:
+                  python-version: "3.11"
+
+            - uses: actions/setup-node@v3
               with:
                   node-version: 18
+                  cache: yarn
 
             - name: Install dependencies
               run: yarn install
@@ -21,6 +27,14 @@ jobs:
               uses: foundry-rs/foundry-toolchain@v1
               with:
                   version: nightly
+
+            - name: Foundry compilation cache
+              uses: actions/cache@v3
+              with:
+                  path: |
+                      out
+                      cache
+                  key: compilation-${{ github.base_ref || github.ref_name }}
 
             - name: Forge build
               run: forge build
@@ -37,5 +51,11 @@ jobs:
                   files: lcov.info
                   token: ${{ secrets.CODECOV_TOKEN }}
 
-            - name: Run int tests
+            - name: Run integration tests
               run: yarn hh:test
+
+            - name: Install halmos
+              run: python3 -m pip install --upgrade halmos
+
+            - name: Run halmos
+              run: yarn hm:test
