@@ -25,6 +25,9 @@ import mainnetConfig from "./mainnet";
 // Base Sepolia configs
 import baseSepoliaConfig from "./base-sepolia";
 
+// Base Mainnet configs
+import baseMainnetConfig from "./base-mainnet";
+
 export const baseConfig = {
     addresses: {
         aave: {
@@ -77,6 +80,8 @@ export const getConfig = (network: string) => {
             return {...baseConfig, ...mainnetConfig};
         case "base-sepolia":
             return {...baseConfig, ...baseSepoliaConfig};
+        case "base-mainnet":
+            return {...baseConfig, ...baseMainnetConfig};
         default:
             return baseConfig;
     }

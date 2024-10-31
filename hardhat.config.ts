@@ -34,6 +34,9 @@ export default {
         },
         "base-sepolia": {
             url: process.env.NODE_URL || "https://sepolia.base.org"
+        },
+        "base-mainnet": {
+            url: process.env.NODE_URL || "https://mainnet.base.org"
         }
     },
     solidity: {
@@ -56,7 +59,8 @@ export default {
         apiKey: {
             sepolia: process.env.BASE_SEPOLIA_API_KEY,
             "base-sepolia": process.env.BASE_SEPOLIA_API_KEY,
-            optimisticEthereum: process.env.ETHERSCAN_API_KEY
+            optimisticEthereum: process.env.ETHERSCAN_API_KEY,
+            "base-mainnet": process.env.BASE_MAINNET_API_KEY
         },
         customChains: [
             {
