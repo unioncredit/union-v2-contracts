@@ -44,11 +44,6 @@ export default {
         opL2Bridge: "0x4200000000000000000000000000000000000010",
         opL2CrossDomainMessenger: "0x4200000000000000000000000000000000000007",
         timelock: "0xBBD3321f377742c4b3fe458b270c2F271d3294D8", // mainnet address
-        opAdminAddress: "0x567e418D831969142b52228b65a88f894e2D79a8", //use l2 multi-sig address
-        opUnion: "0x946A2C918F3D928B918C01D813644f27Bcd29D96",
-        opOwner: "0x20473Af81162B3E79F0333A2d8D64C88a71B88e8",
-        marketRegistry: "0x46A48D1e81F6002501251AD563a0e16655525E85",
-        comptroller: "0x37C092D275E48e3c9001059D9B7d55802CbDbE04",
-        assetManager: "0x393d7299c2caA940b777b014a094C3B2ea45ee2B"
+        opAdminAddress: "0x567e418D831969142b52228b65a88f894e2D79a8" //use l2 multi-sig address
     }
 } as DeployConfig;

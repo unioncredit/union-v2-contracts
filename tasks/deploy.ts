@@ -57,10 +57,11 @@ const getDeployer = (privateKey: string, provider: Provider) => {
     return new ethers.Wallet(privateKey, provider);
 };
 
-task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
+task("deploy:connector", "Deploy L1 connector for L2 UNION token")
     .addParam("pk", "Private key to use for deployment")
     .addParam("confirmations", "How many confirmations to wait for")
     .addParam("l2comptroller", "Receive token address")
+    .addParam("l1bridge", "L1 bridge address")
     // .addParam("members", "Initial union members")
     .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
         // ------------------------------------------------------
@@ -91,7 +92,7 @@ task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
         }
 
         // validate addresses
-        if (!config.addresses.unionToken || !config.addresses.opUnion || !config.addresses.opL1Bridge) {
+        if (!config.addresses.unionToken || !config.addresses.opUnion || !taskArguments.l1bridge) {
             console.log("[!] Required address null");
             process.exit();
         }
@@ -103,7 +104,7 @@ task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
                 config.addresses.unionToken,
                 config.addresses.opUnion,
                 taskArguments.l2comptroller,
-                config.addresses.opL1Bridge
+                taskArguments.l1bridge
             ],
             true,
             waitForBlocks
