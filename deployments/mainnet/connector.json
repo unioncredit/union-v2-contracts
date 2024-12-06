@@ -1,3 +1,4 @@
 {
-  "opConnector": "0xF5690129Bf7AD35358Eb2304f4F5B10E0a9B9d65"
+    "opConnector": "0xF5690129Bf7AD35358Eb2304f4F5B10E0a9B9d65",
+    "baseConnector": "0x08447c9a86efe321fc3c54b8cddb7d5d516ce121"
 }

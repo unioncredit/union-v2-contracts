@@ -27,8 +27,14 @@ Built using [foundry](https://book.getfoundry.sh/) and [hardhat](https://hardhat
 
 -   Base Sepolia
 
-    -   [contract addresses](https://github.com/unioncredit/union-v2-contracts/blob/master/deployments/optimism-goerli/deployment.json)
-    -   [deployment config](https://github.com/unioncredit/union-v2-contracts/blob/master/deployments/optimism-goerli/config.json)
+    -   [contract addresses](https://github.com/unioncredit/union-v2-contracts/blob/f6290f5d795e4498574a856dd3d165364dee2b34/deployments/base-sepolia/deployment.json)
+    -   [deployment config](https://github.com/unioncredit/union-v2-contracts/blob/f6290f5d795e4498574a856dd3d165364dee2b34/deployments/base-sepolia/config.json)
+ 
+-  Base Mainnet
+  
+    -   [contract addresses](https://github.com/unioncredit/union-v2-contracts/blob/f6290f5d795e4498574a856dd3d165364dee2b34/deployments/base-mainnet/deployment.json)
+    -   [deployment config](https://github.com/unioncredit/union-v2-contracts/blob/f6290f5d795e4498574a856dd3d165364dee2b34/deployments/base-mainnet/config.json)
+  
 
 ## Install
 
