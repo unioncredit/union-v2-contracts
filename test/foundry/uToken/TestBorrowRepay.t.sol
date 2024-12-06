@@ -67,6 +67,21 @@ contract TestBorrowRepay is TestUTokenBase {
         assertEq(borrowed, realBorrowAmount + fees);
     }
 
+    function testBorrowTwoTimes() public {
+        vm.startPrank(ALICE);
+        uint256 originationFee = uToken.originationFee();
+        uint256 borrowRatePerSecond = uToken.borrowRatePerSecond();
+        uToken.borrow(ALICE, 1 * UNIT);
+        uToken.borrow(ALICE, 1 * UNIT);
+        skip(block.timestamp);
+        uint256 interest = uToken.calculatingInterest(ALICE);
+        uint256 borrowed = 2 * UNIT;
+        uint256 fee = (borrowed * 10 ** (18 - tokenDecimals) * originationFee) / 1e18;
+        uint256 expectInterest = ((borrowed + fee) * borrowRatePerSecond) / 1e18; //1 sec
+        assertEq(interest, expectInterest);
+        vm.stopPrank();
+    }
+
     function testRepayBorrow(uint256 borrowAmount) public {
         vm.assume(borrowAmount >= MIN_BORROW && borrowAmount < MAX_BORROW - (MAX_BORROW * ORIGINATION_FEE) / 1e18);
 
