@@ -34,7 +34,7 @@ contract TestUserManagerBase is TestWrapper {
                     "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
                     address(assetManagerMock),
                     address(unionTokenMock),
-                    address(daiMock),
+                    address(erc20Mock),
                     address(comptrollerMock),
                     ADMIN,
                     maxOverdue,
@@ -52,7 +52,7 @@ contract TestUserManagerBase is TestWrapper {
                     "__UserManager_init(address,address,address,address,address,uint256,uint256,uint256,uint256)",
                     address(assetManagerMock),
                     address(unionTokenMock),
-                    address(daiMock),
+                    address(erc20Mock),
                     address(comptrollerMock),
                     ADMIN,
                     maxOverdue,
@@ -70,14 +70,14 @@ contract TestUserManagerBase is TestWrapper {
         userManagerOp.addMember(MEMBER);
         vm.stopPrank();
 
-        daiMock.mint(MEMBER, 100 ether);
-        daiMock.mint(address(this), 100 ether);
+        erc20Mock.mint(MEMBER, 100 ether);
+        erc20Mock.mint(address(this), 100 ether);
 
-        daiMock.approve(address(userManager), type(uint256).max);
+        erc20Mock.approve(address(userManager), type(uint256).max);
 
         vm.startPrank(MEMBER);
-        daiMock.approve(address(userManager), type(uint256).max);
-        daiMock.approve(address(userManagerOp), type(uint256).max);
+        erc20Mock.approve(address(userManager), type(uint256).max);
+        erc20Mock.approve(address(userManagerOp), type(uint256).max);
         vm.stopPrank();
     }
 }

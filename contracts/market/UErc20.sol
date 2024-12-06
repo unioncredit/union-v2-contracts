@@ -17,7 +17,7 @@ contract UErc20 is UToken {
         erc20Token.permit(msg.sender, address(this), amount, deadline, v, r, s);
 
         if (!accrueInterest()) revert AccrueInterestFailed();
-        uint256 interest = calculatingInterest(borrower);
-        _repayBorrowFresh(msg.sender, borrower, amount, interest);
+        uint256 interest = _calculatingInterest(borrower);
+        _repayBorrowFresh(msg.sender, borrower, decimalScaling(amount, underlyingDecimal), interest);
     }
 }

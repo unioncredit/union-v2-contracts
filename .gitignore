@@ -13,3 +13,4 @@ docs
 .envrc
 dist
 report
+arguments.js

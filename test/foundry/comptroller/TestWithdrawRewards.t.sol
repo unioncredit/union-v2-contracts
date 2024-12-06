@@ -12,12 +12,12 @@ contract TestWithdrawRewards is TestComptrollerBase {
     function testWithdrawRewards() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, false);
         vm.prank(ADMIN);
-        marketRegistryMock.setUserManager(address(daiMock), address(um));
+        marketRegistryMock.setUserManager(address(erc20Mock), address(um));
         uint256 balanceBefore = unionTokenMock.balanceOf(address(this));
 
-        comptroller.withdrawRewards(address(this), address(daiMock));
+        comptroller.withdrawRewards(address(this), address(erc20Mock));
         skip(100);
-        comptroller.withdrawRewards(address(this), address(daiMock));
+        comptroller.withdrawRewards(address(this), address(erc20Mock));
 
         uint256 balanceAfter = unionTokenMock.balanceOf(address(this));
         assert(balanceAfter > balanceBefore);

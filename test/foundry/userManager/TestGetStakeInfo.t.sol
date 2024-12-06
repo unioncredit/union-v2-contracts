@@ -1,11 +1,12 @@
 pragma solidity ^0.8.0;
-
+import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {TestUserManagerBase} from "./TestUserManagerBase.sol";
 import {UserManager} from "union-v2-contracts/user/UserManager.sol";
 
 contract TestGetStakeInfo is TestUserManagerBase {
-    uint96 stakeAmount = 100 ether;
-    uint96 lockAmount = 1 ether;
+    using SafeCastUpgradeable for uint256;
+    uint96 stakeAmount = (100 * UNIT).toUint96();
+    uint96 lockAmount = (1 * UNIT).toUint96();
 
     function setUp() public override {
         super.setUp();

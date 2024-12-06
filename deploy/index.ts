@@ -13,8 +13,8 @@ import {
     PureTokenAdapter__factory,
     IUnionToken,
     IUnionToken__factory,
-    FaucetERC20_ERC20Permit,
-    FaucetERC20_ERC20Permit__factory,
+    FaucetERC20,
+    FaucetERC20__factory,
     MarketRegistry,
     MarketRegistry__factory,
     FixedInterestRateModel,
@@ -93,9 +93,9 @@ export interface Contracts {
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
     assetManager: AssetManager;
-    dai: IDai | FaucetERC20_ERC20Permit;
+    dai: IDai | FaucetERC20;
     marketRegistry: MarketRegistry;
-    unionToken: IUnionToken | FaucetERC20_ERC20Permit;
+    unionToken: IUnionToken | FaucetERC20;
     adapters: {
         pureTokenAdapter: PureTokenAdapter;
         aaveV3Adapter?: AaveV3Adapter;
@@ -128,12 +128,12 @@ export default async function (
     }
     // deploy UNION
     const unionTokenAddress = config.addresses.unionToken || config.addresses.opUnion;
-    let unionToken: IUnionToken | FaucetERC20_ERC20Permit;
+    let unionToken: IUnionToken | FaucetERC20;
     if (unionTokenAddress) {
         unionToken = IUnionToken__factory.connect(unionTokenAddress, signer);
     } else {
-        unionToken = await deployContract<FaucetERC20_ERC20Permit>(
-            new FaucetERC20_ERC20Permit__factory(signer),
+        unionToken = await deployContract<FaucetERC20>(
+            new FaucetERC20__factory(signer),
             "UnionToken",
             ["Union Token", "UNION"],
             debug,
@@ -141,12 +141,12 @@ export default async function (
         );
     }
     // deploy DAI
-    let dai: IDai | FaucetERC20_ERC20Permit;
+    let dai: IDai | FaucetERC20;
     if (config.addresses.dai) {
         dai = IDai__factory.connect(config.addresses.dai, signer);
     } else {
-        dai = await deployContract<FaucetERC20_ERC20Permit>(
-            new FaucetERC20_ERC20Permit__factory(signer),
+        dai = await deployContract<FaucetERC20>(
+            new FaucetERC20__factory(signer),
             "DAI",
             ["DAI", "DAI"],
             debug,

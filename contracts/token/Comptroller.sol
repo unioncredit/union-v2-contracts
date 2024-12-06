@@ -158,7 +158,7 @@ contract Comptroller is Controller, IComptroller {
      */
     function getRewardsMultiplier(address account, address token) external view override returns (uint256) {
         IUserManager userManager = _getUserManager(token);
-        (bool isMember, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfo(account);
+        (bool isMember, uint256 effectiveStaked, uint256 effectiveLocked, ) = userManager.getStakeInfoMantissa(account);
         return _getRewardsMultiplier(UserManagerAccountState(effectiveStaked, effectiveLocked, isMember));
     }
 
@@ -173,7 +173,7 @@ contract Comptroller is Controller, IComptroller {
 
         // Lookup account state from UserManager
         UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
-        (user.isMember, user.effectiveStaked, user.effectiveLocked, ) = userManager.getStakeInfo(account);
+        (user.isMember, user.effectiveStaked, user.effectiveLocked, ) = userManager.getStakeInfoMantissa(account);
 
         return _calculateRewardsInternal(account, token, userManager.globalTotalStaked(), user);
     }
@@ -220,12 +220,12 @@ contract Comptroller is Controller, IComptroller {
     function _accrueRewards(address account, address token) private returns (uint256) {
         IUserManager userManager = _getUserManager(token);
 
-        // Lookup global state from UserManager
-        uint256 globalTotalStaked = userManager.globalTotalStaked();
-
         // Lookup account state from UserManager
         UserManagerAccountState memory user = UserManagerAccountState(0, 0, false);
         (user.effectiveStaked, user.effectiveLocked, user.isMember) = userManager.onWithdrawRewards(account);
+
+        // Lookup global state from UserManager
+        uint256 globalTotalStaked = userManager.globalTotalStaked();
 
         uint256 amount = _calculateRewardsInternal(account, token, globalTotalStaked, user);
 

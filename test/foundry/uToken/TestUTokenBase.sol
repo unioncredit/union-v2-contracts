@@ -9,20 +9,21 @@ contract TestUTokenBase is TestWrapper {
     address public constant ALICE = address(2);
     address public constant BOB = address(3);
 
-    uint256 internal constant ORIGINATION_FEE = 0.01 ether;
-    uint256 internal constant ORIGINATION_FEE_MAX = 0.05 ether;
-    uint256 internal constant MIN_BORROW = 1 ether;
-    uint256 internal constant MAX_BORROW = 100 ether;
-    uint256 internal constant BORROW_INTEREST_PER_BLOCK = 0.000001 ether; //0.0001%
+    uint256 internal constant ORIGINATION_FEE = 0.01 ether; //1%;
+    uint256 internal constant ORIGINATION_FEE_MAX = 0.05 ether; //5%;
+    uint256 internal MIN_BORROW;
+    uint256 internal MAX_BORROW;
+    uint256 internal constant BORROW_INTEREST_PER_BLOCK = 0.000001 ether;
     uint256 internal constant OVERDUE_TIME = 10; // seconds
     uint256 internal constant RESERVE_FACTOR = 0.5 ether;
     uint256 internal constant INIT_EXCHANGE_RATE = 1 ether;
     uint256 internal constant MINT_FEE_RATE = 1e15;
 
     function setUp() public virtual {
-        uint256 debtCeiling = 1000 ether;
+        MIN_BORROW = UNIT;
+        MAX_BORROW = 100 * UNIT;
+        uint256 debtCeiling = 1000 * UNIT;
         address uTokenLogic = address(new UToken());
-
         deployMocks();
 
         uToken = UToken(
@@ -33,7 +34,7 @@ contract TestUTokenBase is TestWrapper {
                     UToken.InitParams({
                         name: "UTokenMock",
                         symbol: "UTM",
-                        underlying: address(daiMock),
+                        underlying: address(erc20Mock),
                         initialExchangeRateMantissa: INIT_EXCHANGE_RATE,
                         reserveFactorMantissa: RESERVE_FACTOR,
                         originationFee: ORIGINATION_FEE,
@@ -48,16 +49,15 @@ contract TestUTokenBase is TestWrapper {
                 )
             )
         );
-
         vm.startPrank(ADMIN);
         uToken.setUserManager(address(userManagerMock));
         uToken.setAssetManager(address(assetManagerMock));
         uToken.setInterestRateModel(address(interestRateMock));
         vm.stopPrank();
 
-        daiMock.mint(address(assetManagerMock), 100 ether);
-        daiMock.mint(ALICE, 100 ether);
-        daiMock.mint(BOB, 100 ether);
+        erc20Mock.mint(address(assetManagerMock), 100 * UNIT);
+        erc20Mock.mint(ALICE, 100 * UNIT);
+        erc20Mock.mint(BOB, 100 * UNIT);
 
         userManagerMock.setIsMember(true);
     }

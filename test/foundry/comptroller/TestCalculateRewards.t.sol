@@ -1,6 +1,4 @@
 pragma solidity ^0.8.0;
-
-import {console} from "forge-std/console.sol";
 import {TestComptrollerBase} from "./TestComptrollerBase.sol";
 import {FakeUserManager} from "./FakeUserManager.sol";
 
@@ -9,52 +7,52 @@ contract TestCalculateRewards is TestComptrollerBase {
     function testGetRewardsMultiplierNonMember() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, false);
         vm.prank(ADMIN);
-        marketRegistryMock.setUserManager(address(daiMock), address(um));
-        uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
+        marketRegistryMock.setUserManager(address(erc20Mock), address(um));
+        uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(erc20Mock));
         assertEq(multiplier, comptroller.nonMemberRatio());
     }
 
     function testGetRewardsMultiplierMember() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
         vm.prank(ADMIN);
-        marketRegistryMock.setUserManager(address(daiMock), address(um));
+        marketRegistryMock.setUserManager(address(erc20Mock), address(um));
         assertEq(true, um.checkIsMember(address(this)));
-        uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
+        uint256 multiplier = comptroller.getRewardsMultiplier(address(this), address(erc20Mock));
         assertEq(multiplier, comptroller.memberRatio());
 
         //member no stake
         FakeUserManager um2 = new FakeUserManager(0, 0, 0, 0, 0, true);
         vm.prank(ADMIN);
-        marketRegistryMock.setUserManager(address(daiMock), address(um2));
+        marketRegistryMock.setUserManager(address(erc20Mock), address(um2));
         assertEq(true, um2.checkIsMember(address(this)));
-        multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
+        multiplier = comptroller.getRewardsMultiplier(address(this), address(erc20Mock));
         assertEq(multiplier, comptroller.memberRatio());
 
         //no member
         FakeUserManager um3 = new FakeUserManager(0, 0, 0, 0, 0, false);
         vm.prank(ADMIN);
-        marketRegistryMock.setUserManager(address(daiMock), address(um3));
+        marketRegistryMock.setUserManager(address(erc20Mock), address(um3));
         assertEq(false, um3.checkIsMember(address(this)));
-        multiplier = comptroller.getRewardsMultiplier(address(this), address(daiMock));
+        multiplier = comptroller.getRewardsMultiplier(address(this), address(erc20Mock));
         assertEq(multiplier, comptroller.nonMemberRatio());
     }
 
     function testCalculateRewards() public {
         FakeUserManager um = new FakeUserManager(100 ether, 100 ether, 0, 0, 0, true);
         vm.prank(ADMIN);
-        marketRegistryMock.setUserManager(address(daiMock), address(um));
-        comptroller.withdrawRewards(address(this), address(daiMock));
+        marketRegistryMock.setUserManager(address(erc20Mock), address(um));
+        comptroller.withdrawRewards(address(this), address(erc20Mock));
         skip(1000);
-        uint256 rewards = comptroller.calculateRewards(address(this), address(daiMock));
+        uint256 rewards = comptroller.calculateRewards(address(this), address(erc20Mock));
         assertEq(rewards, 900000000000000000000 / 12);
 
         //no stake
         FakeUserManager um2 = new FakeUserManager(0, 0, 0, 0, 0, true);
         vm.prank(ADMIN);
-        marketRegistryMock.setUserManager(address(daiMock), address(um2));
-        comptroller.withdrawRewards(address(this), address(daiMock));
+        marketRegistryMock.setUserManager(address(erc20Mock), address(um2));
+        comptroller.withdrawRewards(address(this), address(erc20Mock));
         skip(1000);
-        rewards = comptroller.calculateRewards(address(this), address(daiMock));
+        rewards = comptroller.calculateRewards(address(this), address(erc20Mock));
         assertEq(rewards, 0);
     }
 

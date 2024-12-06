@@ -15,7 +15,7 @@ contract FakeAdapter {
         IERC20(token).transfer(to, balance);
     }
 
-    function deposit(address) public returns (bool) {
+    function deposit(address) public pure returns (bool) {
         return true;
     }
 }
@@ -34,13 +34,13 @@ contract TestRebalance is TestAssetManagerBase {
         adapter0 = new FakeAdapter();
         adapter1 = new FakeAdapter();
 
-        uint256 amount = 100 ether;
-        daiMock.mint(address(adapter0), amount);
-        daiMock.mint(address(adapter1), amount);
+        uint256 amount = 100 * UNIT;
+        erc20Mock.mint(address(adapter0), amount);
+        erc20Mock.mint(address(adapter1), amount);
         vm.startPrank(ADMIN);
         assetManager.addAdapter(address(adapter0));
         assetManager.addAdapter(address(adapter1));
-        assetManager.addToken(address(daiMock));
+        assetManager.addToken(address(erc20Mock));
         vm.stopPrank();
     }
 
@@ -48,26 +48,26 @@ contract TestRebalance is TestAssetManagerBase {
         uint256[] memory weights = new uint256[](1);
         weights[0] = 7000;
         vm.prank(ADMIN);
-        assetManager.rebalance(address(daiMock), weights);
+        assetManager.rebalance(address(erc20Mock), weights);
 
-        uint256 balance0 = daiMock.balanceOf(address(adapter0));
-        uint256 balance1 = daiMock.balanceOf(address(adapter1));
+        uint256 balance0 = erc20Mock.balanceOf(address(adapter0));
+        uint256 balance1 = erc20Mock.balanceOf(address(adapter1));
 
-        assertEq(balance0, 140 ether);
-        assertEq(balance1, 60 ether);
+        assertEq(balance0, 140 * UNIT);
+        assertEq(balance1, 60 * UNIT);
     }
 
     function testRebalance5050() public {
         uint256[] memory weights = new uint256[](1);
         weights[0] = 5000;
         vm.prank(ADMIN);
-        assetManager.rebalance(address(daiMock), weights);
+        assetManager.rebalance(address(erc20Mock), weights);
 
-        uint256 balance0 = daiMock.balanceOf(address(adapter0));
-        uint256 balance1 = daiMock.balanceOf(address(adapter1));
+        uint256 balance0 = erc20Mock.balanceOf(address(adapter0));
+        uint256 balance1 = erc20Mock.balanceOf(address(adapter1));
 
-        assertEq(balance0, 100 ether);
-        assertEq(balance1, 100 ether);
+        assertEq(balance0, 100 * UNIT);
+        assertEq(balance1, 100 * UNIT);
     }
 
     function testCannotRebalanceUnsupported() public {
@@ -83,6 +83,6 @@ contract TestRebalance is TestAssetManagerBase {
         weights[0] = 7000;
         vm.prank(address(1));
         vm.expectRevert(Controller.SenderNotAdmin.selector);
-        assetManager.rebalance(address(daiMock), weights);
+        assetManager.rebalance(address(erc20Mock), weights);
     }
 }

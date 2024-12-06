@@ -3,22 +3,15 @@ import * as path from "path";
 import {ethers} from "ethers";
 import {Interface} from "ethers/lib/utils";
 import {task} from "hardhat/config";
-import {HardhatRuntimeEnvironment, TaskArguments} from "hardhat/types";
+import {HardhatRuntimeEnvironment, TaskArguments, HttpNetworkUserConfig} from "hardhat/types";
 
 import deploy, {Contracts} from "../deploy/index";
 import deployOP, {OpContracts} from "../deploy/optimism";
+
 import {getConfig} from "../deploy/config";
 import {deployContract} from "../deploy/helpers";
-import {
-    UnionLens,
-    UnionLens__factory,
-    OpUNION,
-    OpUNION__factory,
-    OpOwner,
-    OpOwner__factory,
-    OpConnector,
-    OpConnector__factory
-} from "../typechain-types";
+import {UnionLens, UnionLens__factory, OpConnector, OpConnector__factory} from "../typechain-types";
+import {Provider} from "@ethersproject/abstract-provider";
 
 const deploymentToAddresses = (contracts: Contracts): {[key: string]: string | {[key: string]: string}} => {
     return {
@@ -47,7 +40,7 @@ const deploymentOpToAddresses = (contracts: OpContracts): {[key: string]: string
         fixedRateInterestModel: contracts.fixedInterestRateModel.address,
         comptroller: contracts.comptroller.address,
         assetManager: contracts.assetManager.address,
-        dai: contracts.dai.address,
+        underlying: contracts.underlying.address,
         adapters: {
             pureTokenAdapter: contracts.adapters.pureTokenAdapter?.address || ethers.constants.AddressZero,
             aaveV3Adapter: contracts.adapters.aaveV3Adapter?.address || ethers.constants.AddressZero
@@ -55,7 +48,7 @@ const deploymentOpToAddresses = (contracts: OpContracts): {[key: string]: string
     };
 };
 
-const getDeployer = (privateKey: string, provider: ethers.providers.BaseProvider) => {
+const getDeployer = (privateKey: string, provider: Provider) => {
     if (!privateKey.match(/^[A-Fa-f0-9]{1,64}$/)) {
         console.log("[!] Invalid format of private key");
         process.exit();
@@ -73,7 +66,7 @@ task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
         // ------------------------------------------------------
         // Setup
         // ------------------------------------------------------
-        const config = getConfig();
+        const config = getConfig(hre.network.name);
         console.log("[*] Deployment config");
         console.log(config);
 
@@ -134,82 +127,18 @@ task("deploy:opConnector", "Deploy L1 connector for Optimism UNION token")
         console.log("[*] Complete");
     });
 
-task("deploy:op", "Deploy Union V2 on Optimism")
+task("accounts", "Prints the list of accounts")
     .addParam("pk", "Private key to use for deployment")
-    .addParam("confirmations", "How many confirmations to wait for")
-    .addParam("members", "Initial union members")
     .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
-        // ------------------------------------------------------
-        // Setup
-        // ------------------------------------------------------
-
-        const config = getConfig();
         const privateKey = taskArguments.pk;
-        const waitForBlocks = taskArguments.confirmations;
 
-        console.log("[*] Deployment config");
-        console.log(config);
+        const provider = hre.ethers.provider;
+        const config = getConfig(hre.network.name);
+        // console.log({config});
 
-        const deployer = getDeployer(privateKey, hre.ethers.provider);
+        const deployer = getDeployer(privateKey, provider);
 
-        console.log(
-            [
-                "[*] Deploying contracts",
-                `    - waitForBlocks: ${waitForBlocks}`,
-                `    - deployer: ${await deployer.getAddress()}`
-            ].join("\n")
-        );
-
-        // ------------------------------------------------------
-        // Deployment
-        // ------------------------------------------------------
-
-        const deployment = await deployOP({admin: deployer.address, ...config}, deployer, true, waitForBlocks);
-        const deploymentAddresses = deploymentOpToAddresses(deployment);
-
-        console.log("\n[*] Deployment complete\n");
-
-        // ------------------------------------------------------
-        // Save deployment and config
-        // ------------------------------------------------------
-
-        console.log("[*] Saving deployment addresses");
-
-        // create save directory
-        const dir = path.resolve(__dirname, "../deployments", hre.network.name);
-        !fs.existsSync(dir) && fs.mkdirSync(dir);
-
-        // save deployment
-        const saveDeploymentPath = path.resolve(dir, "deployment.json");
-        fs.writeFileSync(saveDeploymentPath, JSON.stringify(deploymentAddresses, null, 2));
-        console.log(`    - deployment: ${saveDeploymentPath}`);
-
-        // save config
-        const saveConfigPath = path.resolve(dir, "config.json");
-        fs.writeFileSync(saveConfigPath, JSON.stringify(config, null, 2));
-        console.log(`    - config: ${saveConfigPath}`);
-
-        // ------------------------------------------------------
-        // Add initial members
-        // ------------------------------------------------------
-
-        console.log("[*] Adding initial members");
-        const members = taskArguments.members.split(",");
-        const iface = new Interface([`function addMember(address) external`]);
-        for (const member of members) {
-            console.log(`    - ${member}`);
-            const encoded = iface.encodeFunctionData("addMember(address)", [member]);
-            const tx = await deployment.opOwner.execute(deployment.userManager.address, 0, encoded);
-            await tx.wait(waitForBlocks);
-        }
-
-        if (config?.addresses?.opAdminAddress) {
-            const tx = await deployment.opOwner.setPendingAdmin(config.addresses.opAdminAddress);
-            await tx.wait(waitForBlocks);
-            //TODO: Requires opAdminAddress to execute acceptAdmin
-        }
-
-        console.log("[*] Complete");
+        console.log(["[*] Deploying contracts", `    - deployer: ${await deployer.getAddress()}`].join("\n"));
     });
 
 task("deploy", "Deploy Union V2 contracts")
@@ -221,14 +150,23 @@ task("deploy", "Deploy Union V2 contracts")
         // Setup
         // ------------------------------------------------------
 
-        const config = getConfig();
+        const network = hre.network.name;
+        const config = getConfig(network);
         const privateKey = taskArguments.pk;
         const waitForBlocks = taskArguments.confirmations;
 
         console.log("[*] Deployment config");
         console.log(config);
 
-        const deployer = getDeployer(privateKey, hre.ethers.provider);
+        const signer = getDeployer(privateKey, hre.ethers.provider);
+        // console.log({signer});
+
+        let deployer = signer;
+        if (network == "hardhat") {
+            const signerAddr = await signer.getAddress();
+            await hre.ethers.getImpersonatedSigner(signerAddr);
+            await hre.ethers.provider.send("hardhat_setBalance", [signerAddr, "0x56BC75E2D63100000"]);
+        }
 
         console.log(
             [
@@ -242,8 +180,14 @@ task("deploy", "Deploy Union V2 contracts")
         // Deployment
         // ------------------------------------------------------
 
-        const deployment = await deploy({admin: deployer.address, ...config}, deployer, true, waitForBlocks);
-        const deploymentAddresses = deploymentToAddresses(deployment);
+        let deployment, deploymentAddresses;
+        if (network == "mainnet") {
+            deployment = await deploy({admin: deployer.address, ...config}, deployer, true, waitForBlocks);
+            deploymentAddresses = deploymentToAddresses(deployment);
+        } else {
+            deployment = await deployOP({admin: deployer.address, ...config}, deployer, true, waitForBlocks);
+            deploymentAddresses = deploymentOpToAddresses(deployment);
+        }
 
         console.log("\n[*] Deployment complete\n");
 
@@ -254,7 +198,7 @@ task("deploy", "Deploy Union V2 contracts")
         console.log("[*] Saving deployment addresses");
 
         // create save directory
-        const dir = path.resolve(__dirname, "../deployments", hre.network.name);
+        const dir = path.resolve(__dirname, "../deployments", network);
         !fs.existsSync(dir) && fs.mkdirSync(dir);
 
         // save deployment
@@ -273,10 +217,27 @@ task("deploy", "Deploy Union V2 contracts")
 
         console.log("[*] Adding initial members");
         const members = taskArguments.members.split(",");
-        for (const member of members) {
-            console.log(`    - ${member}`);
-            const tx = await deployment.userManager.addMember(member);
-            await tx.wait(waitForBlocks);
+
+        if (network == "mainnet") {
+            for (const member of members) {
+                console.log(`    - ${member}`);
+                const tx = await deployment.userManager.addMember(member);
+                await tx.wait(waitForBlocks);
+            }
+        } else {
+            const iface = new Interface([`function addMember(address) external`]);
+            for (const member of members) {
+                console.log(`    - ${member}`);
+                const encoded = iface.encodeFunctionData("addMember(address)", [member]);
+                const tx = await deployment.opOwner.execute(deployment.userManager.address, 0, encoded);
+                await tx.wait(waitForBlocks);
+            }
+
+            if (config?.addresses?.opAdminAddress) {
+                const tx = await deployment.opOwner.setPendingAdmin(config.addresses.opAdminAddress);
+                await tx.wait(waitForBlocks);
+                //TODO: Requires opAdminAddress to execute acceptAdmin
+            }
         }
 
         console.log("[*] Complete");

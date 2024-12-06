@@ -2,3 +2,8 @@ ignore:
     - "contracts/mocks/"
     - "test/foundry/"
     - "contracts/peripheral"
+coverage:
+    status:
+        project:
+            default:
+                threshold: 1%

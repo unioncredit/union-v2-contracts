@@ -115,6 +115,8 @@ interface IUserManager {
      */
     function getStakeInfo(address staker) external view returns (bool, uint256, uint256, uint256);
 
+    function getStakeInfoMantissa(address staker) external view returns (bool, uint256, uint256, uint256);
+
     /**
      * @dev Update the frozen info by the comptroller
      * @param staker Staker address

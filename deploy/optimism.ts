@@ -1,4 +1,4 @@
-import {BigNumberish, ContractTransaction, Signer} from "ethers";
+import {BigNumberish, Signer} from "ethers";
 import {Interface} from "ethers/lib/utils";
 import {
     AssetManager__factory,
@@ -15,8 +15,8 @@ import {
     AssetManager,
     PureTokenAdapter,
     PureTokenAdapter__factory,
-    FaucetERC20_ERC20Permit,
-    FaucetERC20_ERC20Permit__factory,
+    FaucetERC20,
+    FaucetERC20__factory,
     MarketRegistry,
     MarketRegistry__factory,
     FixedInterestRateModel,
@@ -32,6 +32,7 @@ export interface Addresses {
     userManager?: string;
     uToken?: string;
     dai?: string;
+    usdc?: string;
     marketRegistry?: string;
     fixedRateInterestModel?: string;
     comptroller?: string;
@@ -60,13 +61,13 @@ export interface Addresses {
 }
 
 export interface DeployConfig {
-    admin: string;
+    admin?: string;
     addresses: Addresses;
-    userManager: {
-        maxOverdue: BigNumberish;
-        effectiveCount: BigNumberish;
-        maxVouchers: BigNumberish;
-        maxVouchees: BigNumberish;
+    userManager?: {
+        maxOverdue?: BigNumberish;
+        effectiveCount?: BigNumberish;
+        maxVouchers?: BigNumberish;
+        maxVouchees?: BigNumberish;
     };
     uToken: {
         name: string;
@@ -81,31 +82,31 @@ export interface DeployConfig {
         overdueTime: BigNumberish;
         mintFeeRate: BigNumberish;
     };
-    fixedInterestRateModel: {
-        interestRatePerSecond: BigNumberish;
+    fixedInterestRateModel?: {
+        interestRatePerSecond?: BigNumberish;
     };
-    comptroller: {
-        halfDecayPoint: BigNumberish;
+    comptroller?: {
+        halfDecayPoint?: BigNumberish;
     };
     pureAdapter: {
         floor: BigNumberish;
         ceiling: BigNumberish;
     };
-    aaveAdapter: {
-        floor: BigNumberish;
-        ceiling: BigNumberish;
+    aaveAdapter?: {
+        floor?: BigNumberish;
+        ceiling?: BigNumberish;
     };
 }
 
 export interface OpContracts {
     userManager: UserManagerOp;
-    opUnion?: OpUNION;
-    opOwner?: OpOwner;
+    opUnion: OpUNION;
+    opOwner: OpOwner;
     uToken: UErc20;
     fixedInterestRateModel: FixedInterestRateModel;
     comptroller: Comptroller;
     assetManager: AssetManager;
-    dai: IDai | FaucetERC20_ERC20Permit;
+    underlying: IDai | FaucetERC20;
     marketRegistry: MarketRegistry;
     adapters: {
         pureTokenAdapter: PureTokenAdapter;
@@ -120,6 +121,7 @@ export default async function (
     waitForBlocks: number | undefined = undefined
 ): Promise<OpContracts> {
     // deploy opUnion
+    console.log("Deploying OpUNION ...");
     let opUnion: OpUNION;
     if (config.addresses.opUnion) {
         opUnion = OpUNION__factory.connect(config.addresses.opUnion, signer);
@@ -148,12 +150,15 @@ export default async function (
     }
 
     // deploy DAI
-    let dai: IDai | FaucetERC20_ERC20Permit;
+    let underlying: IDai | FaucetERC20;
     if (config.addresses.dai) {
-        dai = IDai__factory.connect(config.addresses.dai, signer);
+        underlying = IDai__factory.connect(config.addresses.dai, signer);
+    } else if (config.addresses.usdc) {
+        underlying = FaucetERC20__factory.connect(config.addresses.usdc, signer);
     } else {
-        dai = await deployContract<FaucetERC20_ERC20Permit>(
-            new FaucetERC20_ERC20Permit__factory(signer),
+        // create a DAI mock token for testing
+        underlying = await deployContract<FaucetERC20>(
+            new FaucetERC20__factory(signer),
             "DAI",
             ["DAI", "DAI"],
             debug,
@@ -244,7 +249,7 @@ export default async function (
                 args: [
                     assetManager.address,
                     opUnion.address,
-                    dai.address,
+                    underlying.address,
                     comptroller.address,
                     opOwner.address,
                     config.userManager.maxOverdue,
@@ -261,7 +266,10 @@ export default async function (
             `function setUserManager(address,address) external`,
             `function setGuardian(address) external`
         ]);
-        let encoded = iface.encodeFunctionData("setUserManager(address,address)", [dai.address, userManager.address]);
+        let encoded = iface.encodeFunctionData("setUserManager(address,address)", [
+            underlying.address,
+            userManager.address
+        ]);
         let tx = await opOwner.execute(marketRegistry.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
@@ -304,7 +312,7 @@ export default async function (
                     {
                         name: config.uToken.name,
                         symbol: config.uToken.symbol,
-                        underlying: dai.address,
+                        underlying: underlying.address,
                         initialExchangeRateMantissa: config.uToken.initialExchangeRateMantissa,
                         reserveFactorMantissa: config.uToken.reserveFactorMantissa,
                         originationFee: config.uToken.originationFee,
@@ -336,7 +344,7 @@ export default async function (
         await tx.wait(waitForBlocks);
 
         console.log("marketRegistry setUToken");
-        encoded = iface.encodeFunctionData("setUToken(address,address)", [dai.address, uToken.address]);
+        encoded = iface.encodeFunctionData("setUToken(address,address)", [underlying.address, uToken.address]);
         tx = await opOwner.execute(marketRegistry.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
@@ -383,12 +391,18 @@ export default async function (
             `function setGuardian(address) external`
         ]);
         console.log("pureTokenAdapter setFloor");
-        let encoded = iface.encodeFunctionData("setFloor(address,uint256)", [dai.address, config.pureAdapter.floor]);
+        let encoded = iface.encodeFunctionData("setFloor(address,uint256)", [
+            underlying.address,
+            config.pureAdapter.floor
+        ]);
         let tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
         console.log("pureTokenAdapter setCeiling");
-        encoded = iface.encodeFunctionData("setCeiling(address,uint256)", [dai.address, config.pureAdapter.ceiling]);
+        encoded = iface.encodeFunctionData("setCeiling(address,uint256)", [
+            underlying.address,
+            config.pureAdapter.ceiling
+        ]);
         tx = await opOwner.execute(pureTokenAdapter.address, 0, encoded);
         await tx.wait(waitForBlocks);
 
@@ -429,18 +443,21 @@ export default async function (
             ]);
 
             console.log("aaveV3Adapter mapTokenToAToken");
-            let encoded = iface.encodeFunctionData("mapTokenToAToken(address)", [dai.address]);
+            let encoded = iface.encodeFunctionData("mapTokenToAToken(address)", [underlying.address]);
             let tx = await opOwner.execute(aaveV3Adapter.address, 0, encoded);
             await tx.wait(waitForBlocks);
 
             console.log("aaveV3Adapter setFloor");
-            encoded = iface.encodeFunctionData("setFloor(address,uint256)", [dai.address, config.aaveAdapter.floor]);
+            encoded = iface.encodeFunctionData("setFloor(address,uint256)", [
+                underlying.address,
+                config.aaveAdapter.floor
+            ]);
             tx = await opOwner.execute(aaveV3Adapter.address, 0, encoded);
             await tx.wait(waitForBlocks);
 
             console.log("aaveV3Adapter setCeiling");
             encoded = iface.encodeFunctionData("setCeiling(address,uint256)", [
-                dai.address,
+                underlying.address,
                 config.aaveAdapter.ceiling
             ]);
             tx = await opOwner.execute(aaveV3Adapter.address, 0, encoded);
@@ -457,7 +474,7 @@ export default async function (
         const iface = new Interface([`function addToken(address) external`, `function addAdapter(address) external`]);
 
         // Add pure token adapter to assetManager
-        let encoded = iface.encodeFunctionData("addToken(address)", [dai.address]);
+        let encoded = iface.encodeFunctionData("addToken(address)", [underlying.address]);
         console.log("assetManager addToken");
         let tx = await opOwner.execute(assetManager.address, 0, encoded);
         await tx.wait(waitForBlocks);
@@ -476,29 +493,29 @@ export default async function (
     }
 
     // Enable the whitelist
-    console.log("[*] Enabling OpUNION's whitelisting ...");
+    // console.log("[*] Enabling OpUNION's whitelisting ...");
 
-    if (!(await opUnion.isWhitelisted(comptroller.address))) {
-        console.log(`    - Whitelist ${comptroller.address}`);
-        const tx = await opUnion.whitelist(comptroller.address);
-        await tx.wait(waitForBlocks);
-    }
+    // if (!(await opUnion.isWhitelisted(comptroller.address))) {
+    //     console.log(`    - Whitelist ${comptroller.address}`);
+    //     const tx = await opUnion.whitelist(comptroller.address);
+    //     await tx.wait(waitForBlocks);
+    // }
 
-    if (!(await opUnion.isWhitelisted(userManager.address))) {
-        console.log(`    - Whitelist ${userManager.address}`);
-        const tx = await opUnion.whitelist(userManager.address);
-        await tx.wait(waitForBlocks);
-    }
+    // if (!(await opUnion.isWhitelisted(userManager.address))) {
+    //     console.log(`    - Whitelist ${userManager.address}`);
+    //     const tx = await opUnion.whitelist(userManager.address);
+    //     await tx.wait(waitForBlocks);
+    // }
 
-    if (!(await opUnion.whitelistEnabled())) {
-        console.log("    - Enable the whitelist");
-        const tx = await opUnion.enableWhitelist();
-        await tx.wait(waitForBlocks);
-    }
+    // if (!(await opUnion.whitelistEnabled())) {
+    //     console.log("    - Enable the whitelist");
+    //     const tx = await opUnion.enableWhitelist();
+    //     await tx.wait(waitForBlocks);
+    // }
 
     if ((await opUnion.owner()) != opOwner.address) {
-        // set OpUnion's owner
-        console.log(`    - Transfer OpUNION's ownership to ${opOwner.address}`);
+        // set UNION token's owner
+        console.log(`    - Transfer UNION token's ownership to ${opOwner.address}`);
         const tx = await opUnion.transferOwnership(opOwner.address);
         await tx.wait(waitForBlocks);
     }
@@ -512,7 +529,7 @@ export default async function (
         fixedInterestRateModel,
         comptroller,
         assetManager,
-        dai,
+        underlying,
         adapters: {pureTokenAdapter, aaveV3Adapter}
     };
 }

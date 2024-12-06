@@ -22,6 +22,9 @@ import optimismConfig from "./optimism";
 // Mainnet configs
 import mainnetConfig from "./mainnet";
 
+// Base Sepolia configs
+import baseSepoliaConfig from "./base-sepolia";
+
 export const baseConfig = {
     addresses: {
         aave: {
@@ -53,26 +56,18 @@ export const baseConfig = {
     },
     comptroller: {
         halfDecayPoint: "500000"
-    },
-    pureAdapter: {
-        floor: parseUnits("50000"),
-        ceiling: parseUnits("1000000000")
-    },
-    aaveAdapter: {
-        floor: parseUnits("25000"),
-        ceiling: parseUnits("100000")
     }
 } as DeployConfig;
 
-export const getConfig = () => {
-    switch (process.env.CONFIG) {
+export const getConfig = (network: string) => {
+    switch (network) {
         case "arbitrum":
             return {...baseConfig, ...arbitrumConfig};
         case "goerli":
             return {...baseConfig, ...goerliConfig};
         case "goerli-fork":
             return {...baseConfig, ...goerliForkConfig};
-        case "local":
+        case "hardhat":
             return {...baseConfig, ...localConfig};
         case "optimism-goerli":
             return {...baseConfig, ...optimismGoerliConfig};
@@ -80,6 +75,8 @@ export const getConfig = () => {
             return {...baseConfig, ...optimismConfig};
         case "mainnet":
             return {...baseConfig, ...mainnetConfig};
+        case "base-sepolia":
+            return {...baseConfig, ...baseSepoliaConfig};
         default:
             return baseConfig;
     }
