@@ -837,7 +837,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // send all to asset manager
         _depositToAssetManager(balanceAfter - balanceBefore);
 
-        emit LogMint(msg.sender, decimalReducing(mintAmount, underlyingDecimal), mintTokens);
+        emit LogMint(msg.sender, actualObtained, mintTokens);
     }
 
     /**
@@ -876,7 +876,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         _burn(msg.sender, realUtokenAmount);
 
         _totalRedeemable -= actualAmount;
-        emit LogRedeem(msg.sender, amountIn, amountOut, realUtokenAmount, actualAmount);
+        emit LogRedeem(msg.sender, amountIn, amountOut, realUtokenAmount, underlyingAmount - remaining);
     }
 
     /* -------------------------------------------------------------------
@@ -920,7 +920,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 actualAmount = decimalScaling(reduceAmount - remaining, underlyingDecimal);
         _totalReserves -= actualAmount;
 
-        emit LogReservesReduced(receiver, decimalReducing(actualAmount, underlyingDecimal), _totalReserves);
+        emit LogReservesReduced(receiver, reduceAmount - remaining, _totalReserves);
     }
 
     /* -------------------------------------------------------------------
