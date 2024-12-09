@@ -640,8 +640,9 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         if (totalBorrowsNew > _debtCeiling) revert AmountExceedGlobalMax();
 
         // Update internal balances
-        uint256 newPrincipal = actualAmount + fee;
-        accountBorrows[msg.sender].principal += newPrincipal;
+        accountBorrows[msg.sender].principal += actualAmount + fee;
+        uint256 newPrincipal = _getBorrowed(msg.sender);
+
         accountBorrows[msg.sender].interest = accountBorrowsNew - newPrincipal;
         accountBorrows[msg.sender].interestIndex = borrowIndex;
         _totalBorrows = totalBorrowsNew;
