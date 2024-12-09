@@ -660,7 +660,12 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
             true
         );
 
-        emit LogBorrow(msg.sender, to, actualAmount, fee);
+        emit LogBorrow(
+            msg.sender,
+            to,
+            decimalReducing(actualAmount, underlyingDecimal),
+            decimalReducing(fee, underlyingDecimal)
+        );
     }
 
     /**
@@ -832,7 +837,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         // send all to asset manager
         _depositToAssetManager(balanceAfter - balanceBefore);
 
-        emit LogMint(msg.sender, mintAmount, mintTokens);
+        emit LogMint(msg.sender, actualObtained, mintTokens);
     }
 
     /**
@@ -871,7 +876,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         _burn(msg.sender, realUtokenAmount);
 
         _totalRedeemable -= actualAmount;
-        emit LogRedeem(msg.sender, amountIn, amountOut, realUtokenAmount, actualAmount);
+        emit LogRedeem(msg.sender, amountIn, amountOut, realUtokenAmount, underlyingAmount - remaining);
     }
 
     /* -------------------------------------------------------------------
@@ -915,7 +920,7 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
         uint256 actualAmount = decimalScaling(reduceAmount - remaining, underlyingDecimal);
         _totalReserves -= actualAmount;
 
-        emit LogReservesReduced(receiver, actualAmount, _totalReserves);
+        emit LogReservesReduced(receiver, reduceAmount - remaining, _totalReserves);
     }
 
     /* -------------------------------------------------------------------
