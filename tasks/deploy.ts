@@ -58,11 +58,10 @@ const getDeployer = (privateKey: string, provider: Provider) => {
 };
 
 task("deploy:connector", "Deploy L1 connector for L2 UNION token")
+    .addParam("l2Union", "L2 Union address")
+    .addParam("l2Comptroller", "Receive token address")
+    .addParam("l1Bridge", "L1 bridge address")
     .addParam("pk", "Private key to use for deployment")
-    .addParam("confirmations", "How many confirmations to wait for")
-    .addParam("l2comptroller", "Receive token address")
-    .addParam("l1bridge", "L1 bridge address")
-    // .addParam("members", "Initial union members")
     .setAction(async (taskArguments: TaskArguments, hre: HardhatRuntimeEnvironment) => {
         // ------------------------------------------------------
         // Setup
@@ -74,7 +73,7 @@ task("deploy:connector", "Deploy L1 connector for L2 UNION token")
         const privateKey = taskArguments.pk;
         const deployer = getDeployer(privateKey, hre.ethers.provider);
 
-        const waitForBlocks = taskArguments.confirmations;
+        const waitForBlocks = 1;
 
         console.log(
             [
@@ -92,7 +91,12 @@ task("deploy:connector", "Deploy L1 connector for L2 UNION token")
         }
 
         // validate addresses
-        if (!config.addresses.unionToken || !config.addresses.opUnion || !taskArguments.l1bridge) {
+        if (
+            !config.addresses.unionToken ||
+            !taskArguments.l2Union ||
+            !taskArguments.l2Comptroller ||
+            !taskArguments.l1Bridge
+        ) {
             console.log("[!] Required address null");
             process.exit();
         }
@@ -100,12 +104,7 @@ task("deploy:connector", "Deploy L1 connector for L2 UNION token")
         const opConector = await deployContract<OpConnector>(
             new OpConnector__factory(deployer),
             "opConnector",
-            [
-                config.addresses.unionToken,
-                config.addresses.opUnion,
-                taskArguments.l2comptroller,
-                taskArguments.l1bridge
-            ],
+            [config.addresses.unionToken, taskArguments.l2Union, taskArguments.l2Comptroller, taskArguments.l1Bridge],
             true,
             waitForBlocks
         );
