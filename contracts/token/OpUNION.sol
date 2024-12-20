@@ -10,7 +10,7 @@ contract OpUNION is L2StandardERC20, ERC20Permit, Whitelistable {
     constructor(
         address _l2Bridge,
         address _l1Token
-    ) L2StandardERC20(_l2Bridge, _l1Token, "UNION Token", "UNION") ERC20Permit("UNION Token") {
+    ) L2StandardERC20(_l2Bridge, _l1Token, "Union Token", "UNION") ERC20Permit("Union Token") {
         whitelistEnabled = false;
         whitelist(_l2Bridge);
     }
