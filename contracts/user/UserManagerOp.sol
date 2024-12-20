@@ -20,4 +20,8 @@ contract UserManagerOp is UserManagerERC20 {
 
         emit LogRegisterMember(msg.sender, newMember);
     }
+
+    function setUnionToken(address _unionToken) public onlyAdmin {
+        unionToken = _unionToken;
+    }
 }
