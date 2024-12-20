@@ -44,6 +44,7 @@ export default {
         opL2Bridge: "0x4200000000000000000000000000000000000010",
         opL2CrossDomainMessenger: "0x4200000000000000000000000000000000000007",
         timelock: "0xBBD3321f377742c4b3fe458b270c2F271d3294D8", // mainnet address
-        opAdminAddress: "0x567e418D831969142b52228b65a88f894e2D79a8" //use l2 multi-sig address
+        opAdminAddress: "0x567e418D831969142b52228b65a88f894e2D79a8", //use l2 multi-sig address
+        opOwner: "0x20473Af81162B3E79F0333A2d8D64C88a71B88e8"
     }
 } as DeployConfig;

@@ -44,6 +44,7 @@ export default {
         opL2Bridge: "0x4200000000000000000000000000000000000010",
         opL2CrossDomainMessenger: "0x4200000000000000000000000000000000000007",
         timelock: "0xdA2C8b9f14e1F20a637A7B9f86d4aa78DFbDB3cF", // sepolia address
-        opAdminAddress: "0xCbD1c32A1b3961cC43868B8bae431Ab0dA65beEb" //use l2 multi-sig address
+        opAdminAddress: "0xCbD1c32A1b3961cC43868B8bae431Ab0dA65beEb", //use l2 multi-sig address
+        opOwner: "0x5961497a15C6a5f96C63F8F0E60b548b4F3e5Ac5"
     }
 } as DeployConfig;
