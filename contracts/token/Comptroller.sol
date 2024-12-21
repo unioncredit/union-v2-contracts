@@ -380,8 +380,4 @@ contract Comptroller is Controller, IComptroller {
     function getTimestamp() internal view returns (uint256) {
         return block.timestamp;
     }
-
-    function setUnionToken(address _unionToken) external onlyAdmin {
-        unionToken = IERC20Upgradeable(_unionToken);
-    }
 }
