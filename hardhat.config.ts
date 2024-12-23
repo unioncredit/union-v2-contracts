@@ -57,18 +57,20 @@ export default {
     mocha: {timeout: 400000000000, require: ["./test/integration/helper.ts"]},
     etherscan: {
         apiKey: {
-            sepolia: process.env.BASE_SEPOLIA_API_KEY,
+            mainnet: process.env.ETHERSCAN_API_KEY,
+            sepolia: process.env.SEPOLIA_API_KEY,
             "base-sepolia": process.env.BASE_SEPOLIA_API_KEY,
             optimisticEthereum: process.env.ETHERSCAN_API_KEY,
-            "base-mainnet": process.env.BASE_MAINNET_API_KEY
+            "base-mainnet": process.env.BASE_MAINNET_API_KEY,
+            base: process.env.BASE_MAINNET_API_KEY
         },
         customChains: [
             {
                 network: "base-sepolia",
                 chainId: 84532,
                 urls: {
-                    apiURL: "https://sepolia.base.org/api",
-                    browserURL: "https://base-sepolia.blockscout.com"
+                    apiURL: "https://api-sepolia.basescan.org/api",
+                    browserURL: "https://sepolia.basescan.org"
                 }
             }
         ]
