@@ -4,12 +4,13 @@ pragma solidity 0.8.16;
 import {IUToken} from "./interfaces/IUToken.sol";
 import {IUserManager} from "./interfaces/IUserManager.sol";
 import {IMarketRegistry} from "./interfaces/IMarketRegistry.sol";
+import {ScaledDecimalBase} from "./ScaledDecimalBase.sol";
 
 /**
  * @author Union
  * @title UnionLens is a view layer contract intended to be used by a UI
  */
-contract UnionLens {
+contract UnionLens is ScaledDecimalBase {
     /* -------------------------------------------------------------------
       Types 
     ------------------------------------------------------------------- */
@@ -35,6 +36,15 @@ contract UnionLens {
     struct RelatedInfo {
         VouchInfo voucher;
         VouchInfo vouchee;
+    }
+
+    struct Staker {
+        bool isMember;
+        uint96 stakedAmount;
+        uint96 locked;
+        uint64 lastUpdated; // only update when stakedCoinAge is updated
+        uint256 stakedCoinAge;
+        uint256 lockedCoinAge;
     }
 
     /* -------------------------------------------------------------------
@@ -97,7 +107,7 @@ contract UnionLens {
         address[] memory addresses = new address[](voucherCount);
 
         for (uint256 i = 0; i < voucherCount; i++) {
-            (address staker, , ,) = userManager.vouchers(account, i);
+            (address staker, , , ) = userManager.vouchers(account, i);
             addresses[i] = staker;
         }
 
@@ -151,5 +161,21 @@ contract UnionLens {
         related.voucher = VouchInfo(voucherTrust, voucherVouch, voucherLocked, voucherLastUpdated);
 
         related.vouchee = VouchInfo(voucheeTrust, voucheeVouch, voucheeLocked, voucheeLastUpdated);
+    }
+
+    function getTotalCredit(address underlying, address borrower) external view returns (uint256 total) {
+        IUserManager userManager = IUserManager(marketRegistry.userManagers(underlying));
+
+        uint256 voucherCount = userManager.getVoucherCount(borrower);
+        for (uint256 i = 0; i < voucherCount; i++) {
+            (address staker, uint96 trust, , ) = userManager.vouchers(borrower, i);
+            (, uint96 stakedAmount, , , , ) = userManager.stakers(staker);
+            total += _min(stakedAmount, trust);
+        }
+        return decimalReducing(total, userManager.stakingTokenDecimal());
+    }
+
+    function _min(uint96 a, uint96 b) private pure returns (uint96) {
+        return a < b ? a : b;
     }
 }

@@ -158,4 +158,6 @@ interface IUserManager {
      *  @param amount Amount
      */
     function unstake(uint96 amount) external;
+
+    function stakingTokenDecimal() external view returns (uint8);
 }
