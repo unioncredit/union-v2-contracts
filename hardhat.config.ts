@@ -14,7 +14,7 @@ export default {
     networks: {
         hardhat: {
             accounts: {
-                count: 13
+                count: 103
             }
         },
         goerli: {
