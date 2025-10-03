@@ -731,16 +731,18 @@ contract UToken is IUToken, Controller, ERC20PermitUpgradeable, ReentrancyGuardU
                 IUserManager(userManager).onRepayBorrow(borrower, getLastRepay(borrower) + overdueTime);
             }
 
-            // Call update locked on the userManager to lock this borrowers stakers. This function
-            // will revert if the account does not have enough vouchers to cover the repay amount. ie
-            // the borrower is trying to repay more than is locked (owed)
+            // Check if debt is now fully cleared
+            bool debtFullyCleared = accountBorrows[borrower].principal == 0;
+
+            // Call update locked on the userManager to unlock this borrower's stakers. This function
+            // will revert if the borrower is trying to unlock more than was previously locked
             IUserManager(userManager).updateLocked(
                 borrower,
-                decimalReducing(repayAmount - interest, underlyingDecimal),
+                decimalReducing(repayAmount - interest, underlyingDecimal, debtFullyCleared),
                 false
             );
 
-            if (_getBorrowed(borrower) == 0) {
+            if (debtFullyCleared) {
                 // If the principal is now 0 we can reset the last repaid time to 0.
                 // which indicates that the borrower has no outstanding loans.
                 accountBorrows[borrower].lastRepay = 0;
